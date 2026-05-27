@@ -10,6 +10,7 @@ import {
   FileText,
   CheckCircle,
   Check,
+  Loader2,
 } from "lucide-react";
 import clsx from "clsx";
 import { employees } from "@/data/mockData";
@@ -146,6 +147,9 @@ export default function ManagerDashboard() {
   const [rawExpanded, setRawExpanded] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [acknowledgedId, setAcknowledgedId] = useState<string | null>(null);
+  const [teamSummaryText, setTeamSummaryText] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(false);
 
   function openReview(emp: Employee) {
     setReviewEmp(emp);
@@ -157,6 +161,43 @@ export default function ManagerDashboard() {
   function closeReview() {
     setSheetOpen(false);
     setTimeout(() => setReviewEmp(null), 350);
+  }
+
+  async function openAiSummary() {
+    const nextOpen = !aiOpen;
+    setAiOpen(nextOpen);
+    if (nextOpen && !teamSummaryText && !summaryLoading) {
+      setSummaryLoading(true);
+      setSummaryError(false);
+      try {
+        const res = await fetch("/api/ai/team-summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            teamAvgScore,
+            riskCount,
+            teamGoalAvg,
+            employees: employees.map((e) => ({
+              name: e.name,
+              score: e.performanceScore,
+              badge: e.badge,
+              goalAvg: empGoalAvg(e),
+              weekStreak: e.weekStreak,
+            })),
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setTeamSummaryText(data.summary);
+        } else {
+          setSummaryError(true);
+        }
+      } catch {
+        setSummaryError(true);
+      } finally {
+        setSummaryLoading(false);
+      }
+    }
   }
 
   const report = reviewEmp?.reports[0];
@@ -499,7 +540,7 @@ export default function ManagerDashboard() {
           style={{ animationDelay: "400ms" }}
         >
           <button
-            onClick={() => setAiOpen((o) => !o)}
+            onClick={openAiSummary}
             className="w-full flex items-center justify-between gap-3 bg-ink rounded-2xl px-5 py-4"
           >
             <div className="flex items-center gap-2.5">
@@ -530,15 +571,31 @@ export default function ManagerDashboard() {
                 </span>
               </div>
 
-              <p className="text-white/70 text-sm leading-relaxed">
-                Your team averaged{" "}
-                <span className="text-white font-semibold">{teamAvgScore}%</span>{" "}
-                performance this cycle — up 3 points vs last month.{" "}
-                <span className="text-pulse font-semibold">
-                  {riskCount} member{riskCount !== 1 ? "s" : ""}
-                </span>{" "}
-                require immediate attention.
-              </p>
+              {summaryLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 size={13} className="text-pulse animate-spin flex-shrink-0" />
+                  <p className="text-white/50 text-sm">Generating team summary...</p>
+                </div>
+              ) : summaryError ? (
+                <div className="bg-amber/10 rounded-xl p-3 flex items-start gap-2">
+                  <span className="text-amber flex-shrink-0 text-sm">⚠</span>
+                  <p className="text-xs text-amber leading-relaxed">
+                    Unable to generate summary. Check your API key or try again.
+                  </p>
+                </div>
+              ) : teamSummaryText ? (
+                <p className="text-white/70 text-sm leading-relaxed">{teamSummaryText}</p>
+              ) : (
+                <p className="text-white/70 text-sm leading-relaxed">
+                  Your team averaged{" "}
+                  <span className="text-white font-semibold">{teamAvgScore}%</span>{" "}
+                  performance this cycle — up 3 points vs last month.{" "}
+                  <span className="text-pulse font-semibold">
+                    {riskCount} member{riskCount !== 1 ? "s" : ""}
+                  </span>{" "}
+                  require immediate attention.
+                </p>
+              )}
 
               <div className="space-y-2.5">
                 {[

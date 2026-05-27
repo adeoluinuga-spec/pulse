@@ -16,6 +16,14 @@ import { employees } from "@/data/mockData";
 type Mood = "energised" | "good" | "okay" | "drained";
 type SubmitState = "idle" | "processing" | "done";
 
+interface AIDigest {
+  accomplishments: string[];
+  blockers: string[];
+  goalsReferenced: string[];
+  sentiment: string;
+  collaborationMentions: string[];
+}
+
 interface GoalEntry {
   id: string;
   name: string;
@@ -65,6 +73,8 @@ export default function ReportForm() {
   );
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [showToast, setShowToast] = useState(false);
+  const [aiDigest, setAiDigest] = useState<AIDigest | null>(null);
+  const [aiError, setAiError] = useState(false);
 
   const updateGoal = (id: string, raw: number) => {
     const val = Math.min(100, Math.max(0, raw));
@@ -73,13 +83,33 @@ export default function ReportForm() {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setSubmitState("processing");
     setShowToast(true);
-    setTimeout(() => {
-      setSubmitState("done");
-      setTimeout(() => router.push("/dashboard/employee"), 1000);
-    }, 1800);
+    try {
+      const res = await fetch("/api/ai/analyze-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accomplishments,
+          blockers,
+          mood,
+          goalProgress: goalEntries.map((g) => ({
+            name: g.name,
+            pct: g.currentPct,
+          })),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAiDigest(data);
+      } else {
+        setAiError(true);
+      }
+    } catch {
+      setAiError(true);
+    }
+    setSubmitState("done");
   };
 
   return (
@@ -448,6 +478,107 @@ export default function ReportForm() {
                   )}
                 </button>
               </div>
+
+              {/* AI Digest — shown after submit */}
+              {submitState === "done" && (
+                <div className="space-y-3 animate-fade-up">
+                  {aiError && (
+                    <div className="bg-amber-soft rounded-xl border border-amber/20 p-3.5 flex items-start gap-2.5">
+                      <span className="text-amber flex-shrink-0 text-sm">⚠</span>
+                      <p className="text-xs text-amber leading-relaxed">
+                        AI analysis unavailable. Your report was saved successfully.
+                      </p>
+                    </div>
+                  )}
+
+                  {aiDigest && (
+                    <div className="bg-ink rounded-[20px] p-5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-4 rounded-full bg-pulse flex-shrink-0" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-pulse">
+                            AI Report Digest
+                          </span>
+                        </div>
+                        <span
+                          className={clsx(
+                            "px-2.5 py-1 rounded-full text-[10px] font-bold",
+                            aiDigest.sentiment === "positive"
+                              ? "bg-green/20 text-green"
+                              : aiDigest.sentiment === "concerning"
+                              ? "bg-amber/20 text-amber"
+                              : "bg-white/10 text-white/60"
+                          )}
+                        >
+                          {aiDigest.sentiment}
+                        </span>
+                      </div>
+
+                      {aiDigest.accomplishments.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">
+                            Key Accomplishments
+                          </p>
+                          <div className="space-y-1.5">
+                            {aiDigest.accomplishments.map((item, i) => (
+                              <div key={i} className="flex items-start gap-2">
+                                <span className="w-1 h-1 rounded-full bg-green mt-2 flex-shrink-0" />
+                                <p className="text-white/60 text-xs leading-relaxed">
+                                  {item}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {aiDigest.blockers.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">
+                            Flagged Blockers
+                          </p>
+                          <div className="space-y-1.5">
+                            {aiDigest.blockers.map((item, i) => (
+                              <div key={i} className="flex items-start gap-2">
+                                <span className="w-1 h-1 rounded-full bg-amber mt-2 flex-shrink-0" />
+                                <p className="text-white/60 text-xs leading-relaxed">
+                                  {item}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {aiDigest.collaborationMentions.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">
+                            Collaboration
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {aiDigest.collaborationMentions.map((name, i) => (
+                              <span
+                                key={i}
+                                className="px-2.5 py-1 bg-white/10 text-white/60 text-[10px] rounded-full"
+                              >
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => router.push("/dashboard/employee")}
+                    className="w-full bg-green text-white font-semibold text-sm py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-green/90 transition-colors"
+                  >
+                    <ArrowRight size={15} />
+                    View Dashboard
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>

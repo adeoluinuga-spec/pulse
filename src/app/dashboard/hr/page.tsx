@@ -106,6 +106,11 @@ export default function HRDashboard() {
   const [sheetOpen, setSheetOpen]   = useState(false);
   const [sentSet, setSentSet]       = useState<Set<string>>(new Set());
 
+  type RecalcResult = { recommendation: AIRecommendation; confidence: number; evidence: string[]; note: string };
+  const [recalcLoading, setRecalcLoading] = useState<Set<string>>(new Set());
+  const [recalcResults, setRecalcResults] = useState<Record<string, RecalcResult>>({});
+  const [recalcErrors, setRecalcErrors]   = useState<Set<string>>(new Set());
+
   function openDept(dept: Department) {
     setSelectedDept(dept);
     requestAnimationFrame(() => setSheetOpen(true));
@@ -121,6 +126,41 @@ export default function HRDashboard() {
     setTimeout(() => {
       setSentSet((prev) => { const n = new Set(prev); n.delete(label); return n; });
     }, 2500);
+  }
+
+  async function handleRecalculate(emp: Employee) {
+    setRecalcLoading((prev) => new Set(prev).add(emp.id));
+    setRecalcErrors((prev) => { const n = new Set(prev); n.delete(emp.id); return n; });
+    try {
+      const res = await fetch("/api/ai/appraisal-recommendation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: emp.name,
+          performanceScore: emp.performanceScore,
+          goalCompletion: Math.round(
+            emp.goals.reduce((s, g) => s + g.percentComplete, 0) / emp.goals.length
+          ),
+          weekStreak: emp.weekStreak,
+          badge: emp.badge,
+          reportConsistency: emp.consistencyIndex,
+          peerRating: emp.peerRating,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRecalcResults((prev) => ({
+          ...prev,
+          [emp.id]: { ...data, confidence: data.confidence / 100 },
+        }));
+      } else {
+        setRecalcErrors((prev) => new Set(prev).add(emp.id));
+      }
+    } catch {
+      setRecalcErrors((prev) => new Set(prev).add(emp.id));
+    } finally {
+      setRecalcLoading((prev) => { const n = new Set(prev); n.delete(emp.id); return n; });
+    }
   }
 
   const visibleEmployees =
@@ -311,7 +351,13 @@ export default function HRDashboard() {
           {/* Employee rows */}
           <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
             {visibleEmployees.map((emp) => {
-              const meta = recMeta[emp.aiRec.recommendation];
+              const override    = recalcResults[emp.id];
+              const activeRec   = override?.recommendation ?? emp.aiRec.recommendation;
+              const activeConf  = override?.confidence     ?? emp.aiRec.confidence;
+              const activeEvid  = override?.evidence       ?? emp.aiRec.evidence;
+              const meta        = recMeta[activeRec];
+              const isLoading   = recalcLoading.has(emp.id);
+              const hasError    = recalcErrors.has(emp.id);
               return (
                 <div key={emp.id} className="p-4">
                   <div className="flex items-start gap-3">
@@ -339,21 +385,44 @@ export default function HRDashboard() {
 
                       {/* Evidence */}
                       <p className="text-xs text-muted mt-2 leading-snug line-clamp-2">
-                        {emp.aiRec.evidence[0]}
+                        {activeEvid[0]}
                       </p>
+                      {override?.note && (
+                        <p className="text-xs text-green mt-1 leading-snug italic">
+                          {override.note}
+                        </p>
+                      )}
 
-                      {/* Confidence + action */}
-                      <div className="flex items-center justify-between mt-2.5">
+                      {/* Confidence + actions */}
+                      <div className="flex items-center justify-between mt-2.5 flex-wrap gap-2">
                         <span className="text-[10px] text-muted">
                           AI confidence:{" "}
-                          <span className={clsx("font-semibold", confColor(emp.aiRec.confidence))}>
-                            {Math.round(emp.aiRec.confidence * 100)}%
+                          <span className={clsx("font-semibold", confColor(activeConf))}>
+                            {Math.round(activeConf * 100)}%
                           </span>
+                          {override && (
+                            <span className="text-green ml-1 font-semibold">· updated</span>
+                          )}
                         </span>
-                        <button className="text-[11px] text-pulse font-semibold flex items-center gap-0.5 hover:underline">
-                          View full <ChevronRight size={11} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleRecalculate(emp)}
+                            disabled={isLoading}
+                            className="text-[11px] text-muted font-semibold flex items-center gap-1 hover:text-ink transition-colors disabled:opacity-50"
+                          >
+                            <RefreshCw size={10} className={isLoading ? "animate-spin" : ""} />
+                            {isLoading ? "Recalculating..." : "Recalculate"}
+                          </button>
+                          <button className="text-[11px] text-pulse font-semibold flex items-center gap-0.5 hover:underline">
+                            View full <ChevronRight size={11} />
+                          </button>
+                        </div>
                       </div>
+                      {hasError && (
+                        <p className="text-[10px] text-amber mt-1.5">
+                          AI unavailable — showing original data.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

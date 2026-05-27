@@ -3,7 +3,7 @@
 import { useState } from "react";
 import clsx from "clsx";
 import {
-  ChevronDown, ChevronUp, Sparkles,
+  ChevronDown, ChevronUp, Sparkles, Loader2,
   Code2, TrendingUp, Users, BarChart2, Target, Megaphone, DollarSign, Star,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -203,10 +203,48 @@ function TrendChart() {
 
 export default function ExecutiveDashboard() {
   const [briefingOpen, setBriefingOpen] = useState(false);
+  const [briefingText, setBriefingText] = useState<string | null>(null);
+  const [briefingLoading, setBriefingLoading] = useState(false);
+  const [briefingError, setBriefingError] = useState(false);
 
   const atRiskOKRs = orgGoals.filter(
     (g) => g.status === "at_risk" || g.status === "behind"
   );
+
+  async function toggleBriefing() {
+    const nextOpen = !briefingOpen;
+    setBriefingOpen(nextOpen);
+    if (nextOpen && !briefingText && !briefingLoading) {
+      setBriefingLoading(true);
+      setBriefingError(false);
+      try {
+        const res = await fetch("/api/ai/executive-briefing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orgName: org.name,
+            orgGoalProgress,
+            atRiskOKRsCount: atRiskOKRs.length,
+            highPerformersPct: bucketPct(highPerformers.length),
+            goodStandingPct: bucketPct(goodStanding.length),
+            needsSupportPct: bucketPct(needsSupport.length),
+            criticalRiskCount: criticalRisk.length,
+            departments: sortedDepts.map((d) => ({ name: d.name, score: d.avgScore })),
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setBriefingText(data.briefing);
+        } else {
+          setBriefingError(true);
+        }
+      } catch {
+        setBriefingError(true);
+      } finally {
+        setBriefingLoading(false);
+      }
+    }
+  }
 
   return (
     <div className="dashboard-page space-y-5">
@@ -523,7 +561,7 @@ export default function ExecutiveDashboard() {
       {/* ── 6. AI EXECUTIVE BRIEFING ─────────────────────────────── */}
       <section className="animate-fade-up px-4 pb-2" style={{ animationDelay: "400ms" }}>
         <button
-          onClick={() => setBriefingOpen((o) => !o)}
+          onClick={toggleBriefing}
           className="w-full flex items-center justify-between gap-3 bg-ink rounded-2xl px-5 py-4"
         >
           <div className="flex items-center gap-2.5">
@@ -555,20 +593,36 @@ export default function ExecutiveDashboard() {
               </span>
             </div>
 
-            {/* Summary paragraph */}
-            <p className="text-white/70 text-sm leading-relaxed">
-              {org.name} is tracking at{" "}
-              <span className="text-white font-semibold">76/100</span>{" "}
-              aggregate performance this cycle — up{" "}
-              <span className="text-green font-semibold">+12 points</span> over
-              the trailing six months. Company OKR completion stands at{" "}
-              <span className="text-white font-semibold">{orgGoalProgress}%</span>, with{" "}
-              <span className="text-pulse font-semibold">
-                {atRiskOKRs.length} objective
-                {atRiskOKRs.length !== 1 ? "s" : ""}
-              </span>{" "}
-              flagged as at risk before the Q2 close.
-            </p>
+            {/* Summary paragraph — AI generated */}
+            {briefingLoading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 size={13} className="text-pulse animate-spin flex-shrink-0" />
+                <p className="text-white/50 text-sm">Generating executive briefing...</p>
+              </div>
+            ) : briefingError ? (
+              <div className="bg-amber/10 rounded-xl p-3 flex items-start gap-2">
+                <span className="text-amber flex-shrink-0 text-sm">⚠</span>
+                <p className="text-xs text-amber leading-relaxed">
+                  Unable to generate briefing. Check your API key or try again.
+                </p>
+              </div>
+            ) : briefingText ? (
+              <p className="text-white/70 text-sm leading-relaxed">{briefingText}</p>
+            ) : (
+              <p className="text-white/70 text-sm leading-relaxed">
+                {org.name} is tracking at{" "}
+                <span className="text-white font-semibold">76/100</span>{" "}
+                aggregate performance this cycle — up{" "}
+                <span className="text-green font-semibold">+12 points</span> over
+                the trailing six months. Company OKR completion stands at{" "}
+                <span className="text-white font-semibold">{orgGoalProgress}%</span>, with{" "}
+                <span className="text-pulse font-semibold">
+                  {atRiskOKRs.length} objective
+                  {atRiskOKRs.length !== 1 ? "s" : ""}
+                </span>{" "}
+                flagged as at risk before the Q2 close.
+              </p>
+            )}
 
             {/* Bullets */}
             <div className="space-y-3">
