@@ -83,7 +83,7 @@ export default function ReportForm() {
   };
 
   return (
-    <div className="py-5 max-w-lg mx-auto">
+    <div className="dashboard-page">
 
       {/* ── TOAST ──────────────────────────────────────────────── */}
       {showToast && (

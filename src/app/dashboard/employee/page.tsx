@@ -75,7 +75,7 @@ const timelineSteps: Array<{
 
 export default function EmployeeDashboard() {
   return (
-    <div className="py-5 space-y-5 max-w-lg mx-auto">
+    <div className="dashboard-page space-y-5">
 
       {/* ── 1. HERO CARD ─────────────────────────────────────────── */}
       <section
@@ -145,7 +145,7 @@ export default function EmployeeDashboard() {
 
       {/* ── 2. STAT GRID ─────────────────────────────────────────── */}
       <section
-        className="animate-fade-up grid grid-cols-2 gap-2.5 px-4"
+        className="animate-fade-up grid grid-cols-2 gap-2.5 px-4 md:grid-cols-4 md:gap-3"
         style={{ animationDelay: "80ms" }}
       >
         {/* Goals on track */}

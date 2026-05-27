@@ -138,7 +138,7 @@ export default function HRDashboard() {
 
   return (
     <>
-      <div className="py-5 space-y-5 max-w-lg mx-auto">
+      <div className="dashboard-page space-y-5">
 
         {/* ── 1. HERO CARD ─────────────────────────────────────────── */}
         <section className="animate-fade-up px-4" style={{ animationDelay: "0ms" }}>
@@ -205,7 +205,7 @@ export default function HRDashboard() {
 
         {/* ── 2. STAT GRID ─────────────────────────────────────────── */}
         <section
-          className="animate-fade-up grid grid-cols-2 gap-2.5 px-4"
+          className="animate-fade-up grid grid-cols-2 gap-2.5 px-4 md:grid-cols-4 md:gap-3"
           style={{ animationDelay: "80ms" }}
         >
           <div className="bg-card rounded-2xl border border-border p-4">
@@ -374,7 +374,7 @@ export default function HRDashboard() {
         <section className="animate-fade-up px-4" style={{ animationDelay: "240ms" }}>
           <SectionLabel right="tap for details">Department Heatmap</SectionLabel>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-2 md:grid-cols-8 md:gap-3">
             {departments.map((dept) => (
               <button
                 key={dept.id}
@@ -475,7 +475,7 @@ export default function HRDashboard() {
         <section className="animate-fade-up px-4 pb-2" style={{ animationDelay: "400ms" }}>
           <SectionLabel>Quick Actions</SectionLabel>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 md:max-w-xl">
             {[
               { Icon: Download,   label: "Export Report"      },
               { Icon: RefreshCw,  label: "Start New Cycle"    },

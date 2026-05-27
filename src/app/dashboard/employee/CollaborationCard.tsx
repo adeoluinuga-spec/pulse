@@ -54,7 +54,7 @@ export default function CollaborationCard({
         {/* Goal context */}
         <p className="text-white/50 text-xs leading-relaxed mb-4">
           Your{" "}
-          <span className="text-white/80 font-semibold">"{goalName}"</span>{" "}
+          <span className="text-white/80 font-semibold">&ldquo;{goalName}&rdquo;</span>{" "}
           goal is at {goalPct}% — a peer session could help unlock the next steps.
         </p>
 

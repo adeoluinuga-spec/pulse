@@ -15,7 +15,7 @@ export default function RoleSwitcher() {
   const pathname = usePathname();
 
   return (
-    <div className="bg-cream border-b border-border h-12 flex items-center px-4 gap-2 overflow-x-auto scrollbar-none">
+    <div className="bg-cream border-b border-border h-12 flex items-center px-4 gap-2 overflow-x-auto scrollbar-none md:hidden">
       {roles.map((role) => (
         <button
           key={role.path}
