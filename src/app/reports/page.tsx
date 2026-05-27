@@ -1,0 +1,11 @@
+export default function ReportsPage() {
+  return (
+    <div className="dashboard-page">
+      <div className="px-4 py-10 text-center space-y-3">
+        <p className="text-3xl" style={{ fontFamily: "var(--font-syne)" }}>📋</p>
+        <p className="text-base font-semibold text-ink">Reports</p>
+        <p className="text-sm text-muted">Role-aware report history — coming soon.</p>
+      </div>
+    </div>
+  );
+}

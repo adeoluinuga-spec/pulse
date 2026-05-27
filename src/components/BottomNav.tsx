@@ -1,43 +1,66 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Home, Target, BarChart2, Star, Users } from "lucide-react";
 import clsx from "clsx";
+import { useRole, ROLES, type RoleKey } from "@/context/RoleContext";
 
-const navItems = [
-  { label: "Home", icon: Home, href: "/dashboard/employee" },
-  { label: "Goals", icon: Target, href: "/dashboard/employee" },
-  { label: "Reports", icon: BarChart2, href: "/dashboard/hr" },
-  { label: "Appraisal", icon: Star, href: "/dashboard/executive" },
-  { label: "Team", icon: Users, href: "/dashboard/manager" },
+type TabId = "home" | "goals" | "reports" | "appraisal" | "team";
+
+const tabs: { id: TabId; label: string; Icon: React.ElementType }[] = [
+  { id: "home",     label: "Home",     Icon: Home     },
+  { id: "goals",    label: "Goals",    Icon: Target   },
+  { id: "reports",  label: "Reports",  Icon: BarChart2 },
+  { id: "appraisal",label: "Appraisal",Icon: Star     },
+  { id: "team",     label: "Team",     Icon: Users    },
 ];
+
+function getHref(id: TabId, role: RoleKey): string {
+  if (id === "home") return ROLES[role].path;
+  return `/${id}`;
+}
+
+function isTabActive(id: TabId, pathname: string, role: RoleKey): boolean {
+  if (id === "home") {
+    // Active on any dashboard path
+    return Object.values(ROLES).some((r) => pathname === r.path);
+  }
+  return pathname.startsWith(`/${id}`);
+}
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { role } = useRole();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-bottom md:hidden">
-      <div className="flex h-20 max-w-screen-sm mx-auto pb-1">
-        {navItems.map(({ label, icon: Icon, href }) => {
-          const isActive = pathname === href;
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border md:hidden">
+      <div className="flex h-20 max-w-screen-sm mx-auto pb-safe">
+        {tabs.map(({ id, label, Icon }) => {
+          const active = isTabActive(id, pathname, role);
+          const href   = getHref(id, role);
+
           return (
             <Link
-              key={label}
+              key={id}
               href={href}
               className={clsx(
                 "flex-1 flex flex-col items-center justify-center gap-1 transition-colors duration-150",
-                isActive ? "text-pulse" : "text-muted hover:text-ink"
+                active ? "text-pulse" : "text-muted hover:text-ink"
               )}
             >
               <Icon
                 size={20}
-                strokeWidth={isActive ? 2.5 : 1.75}
+                strokeWidth={active ? 2.5 : 1.75}
+                className={clsx(
+                  "transition-transform duration-150",
+                  active && "scale-110"
+                )}
               />
               <span
                 className={clsx(
                   "text-[10px] tracking-wide",
-                  isActive ? "font-semibold" : "font-medium"
+                  active ? "font-semibold" : "font-medium"
                 )}
               >
                 {label}

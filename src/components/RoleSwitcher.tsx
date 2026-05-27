@@ -1,35 +1,30 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
 import clsx from "clsx";
-
-const roles = [
-  { label: "Employee", path: "/dashboard/employee" },
-  { label: "Manager", path: "/dashboard/manager" },
-  { label: "HR", path: "/dashboard/hr" },
-  { label: "Executive", path: "/dashboard/executive" },
-];
+import { useRole, ROLE_LIST } from "@/context/RoleContext";
 
 export default function RoleSwitcher() {
-  const router = useRouter();
-  const pathname = usePathname();
+  const { role, navigate } = useRole();
 
   return (
-    <div className="bg-cream border-b border-border h-12 flex items-center px-4 gap-2 overflow-x-auto scrollbar-none md:hidden">
-      {roles.map((role) => (
-        <button
-          key={role.path}
-          onClick={() => router.push(role.path)}
-          className={clsx(
-            "px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150",
-            pathname === role.path
-              ? "bg-pulse text-white shadow-sm"
-              : "bg-card text-muted border border-border hover:border-pulse hover:text-pulse"
-          )}
-        >
-          {role.label}
-        </button>
-      ))}
+    <div className="bg-ink border-b border-white/8 h-12 flex items-center px-4 gap-2 overflow-x-auto scrollbar-none md:hidden">
+      {ROLE_LIST.map((r) => {
+        const isActive = role === r.key;
+        return (
+          <button
+            key={r.key}
+            onClick={() => navigate(r.key)}
+            className={clsx(
+              "px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200",
+              isActive
+                ? "bg-pulse text-white shadow-sm"
+                : "bg-transparent text-white/50 border border-white/20 hover:text-white hover:border-white/50"
+            )}
+          >
+            {r.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

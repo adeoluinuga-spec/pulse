@@ -82,6 +82,23 @@ export const departments: Department[] = [
   { id: "d8", name: "Customer Experience", avgScore: 83, headCount: 21 },
 ];
 
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  time: string;
+  read: boolean;
+}
+
+export const notifications: AppNotification[] = [
+  { id: "n1", title: "Weekly Report Submitted",    body: "Amara Osei submitted her weekly performance report.",               time: "2m ago",     read: false },
+  { id: "n2", title: "Goal Milestone Reached",      body: "Q2 Product Roadmap Launch is now at 88% completion.",              time: "1h ago",     read: false },
+  { id: "n3", title: "AI Promotion Signal",         body: "3 employees have crossed the promotion readiness threshold.",       time: "3h ago",     read: false },
+  { id: "n4", title: "Review Pending",              body: "4 weekly reports are awaiting your review.",                       time: "Yesterday",  read: true  },
+  { id: "n5", title: "Appraisal Cycle Update",      body: "Peer feedback collection is 88% complete for Q2 2026.",            time: "Yesterday",  read: true  },
+  { id: "n6", title: "PIP Flag Raised",             body: "Priya Sharma (Analytics) has been flagged for formal PIP review.", time: "2 days ago", read: true  },
+];
+
 export const employees: Employee[] = [
   {
     id: "e1",
