@@ -155,6 +155,20 @@ h1, h2, h3, h4, h5, h6 {
   animation: skeleton-sweep 1.5s ease-in-out infinite;
 }
 
+@keyframes celebration-float {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-34px) scale(1.1); }
+}
+
+.celebration-particle {
+  animation: celebration-float 900ms ease-out both;
+}
+
+.pulse-success-glow {
+  box-shadow: 0 0 0 1px rgba(26,122,74,0.12), 0 18px 60px rgba(26,122,74,0.16);
+}
+
 @keyframes skeleton-sweep {
   0% { transform: translateX(-120%); }
   100% { transform: translateX(120%); }

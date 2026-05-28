@@ -6,6 +6,7 @@ import { ArrowRight, ChevronRight } from "lucide-react";
 import { employees, departments } from "@/data/mockData";
 import { useUser } from "@/context/UserContext";
 import type { Employee } from "@/types";
+import { momentumLanguage } from "@/lib/pulseLanguage";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -104,9 +105,7 @@ function PulseBrief({ user }: { user: Employee }) {
 function PerformancePulse({ user }: { user: Employee }) {
   const score = user.performanceScore;
   const bandLabel =
-    score >= 85 ? "Strong Performer" :
-    score >= 70 ? "Good Standing" :
-    score >= 50 ? "Needs Improvement" : "At Risk";
+    momentumLanguage(score);
   const bandColor =
     score >= 85 ? "text-green" :
     score >= 70 ? "text-ink" :

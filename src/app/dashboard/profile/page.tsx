@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
@@ -13,6 +15,7 @@ import {
   Lock,
   Mail,
   PenLine,
+  Camera,
   Upload,
   UserRound,
   X,
@@ -23,7 +26,6 @@ import type { Document as EmployeeDocument } from "@/types";
 
 type SectionKey = "personal" | "documents" | "compensation";
 type EditableKey =
-  | "name"
   | "phone"
   | "personalEmail"
   | "homeAddress"
@@ -112,25 +114,29 @@ function CompletionRing({
   initials,
   color,
   percent,
+  imageUrl,
+  onUpload,
 }: {
   initials: string;
   color: string;
   percent: number;
+  imageUrl?: string;
+  onUpload: () => void;
 }) {
   return (
-    <div
-      className="relative flex h-24 w-24 items-center justify-center rounded-full"
-      style={{ background: `conic-gradient(var(--pulse) ${percent * 3.6}deg, var(--border) 0deg)` }}
-    >
-      <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-card text-xl font-bold text-white" style={{ backgroundColor: color }}>
-        {initials}
+    <button onClick={onUpload} className="group relative flex h-28 w-28 items-center justify-center rounded-full shadow-[0_18px_40px_rgba(13,13,13,0.14)]" style={{ background: `conic-gradient(var(--pulse) ${percent * 3.6}deg, var(--border) 0deg)` }}>
+      <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-card text-xl font-bold text-white ring-4 ring-white/60" style={{ backgroundColor: color }}>
+        {imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" /> : initials}
       </div>
-    </div>
+      <span className="absolute bottom-1 right-1 grid h-9 w-9 place-items-center rounded-full bg-ink text-white shadow-lg transition group-hover:bg-pulse">
+        <Camera size={15} />
+      </span>
+    </button>
   );
 }
 
 export default function ProfilePage() {
-  const { user } = useUser();
+  const { user, profileImages, setProfileImage } = useUser();
   const [active, setActive] = useState<SectionKey>("personal");
   const [toast, setToast] = useState("");
   const [editing, setEditing] = useState<EditableKey | null>(null);
@@ -142,10 +148,10 @@ export default function ProfilePage() {
   const [uploadError, setUploadError] = useState("");
   const [hideAmounts, setHideAmounts] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const profileImageInputRef = useRef<HTMLInputElement | null>(null);
   const pendingUploadType = useRef<string>("General Document");
 
   const [profile, setProfile] = useState<Record<EditableKey, string>>({
-    name: user.name,
     phone: user.phone,
     personalEmail: user.email.replace("@zenithcorp.ng", "@gmail.com"),
     homeAddress: user.homeAddress,
@@ -228,6 +234,15 @@ export default function ProfilePage() {
     });
   }
 
+  function handleProfileImage(file: File | undefined) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setProfileImage(user.id, reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
   return (
     <div className="dashboard-page space-y-5">
       {toast && (
@@ -257,31 +272,59 @@ export default function ProfilePage() {
         <>
           <section className="px-4 text-center">
             <div className="flex flex-col items-center">
-              <CompletionRing initials={user.initials} color={user.avatarColor} percent={profilePercent} />
+              <CompletionRing initials={user.initials} color={user.avatarColor} percent={profilePercent} imageUrl={profileImages[user.id]} onUpload={() => profileImageInputRef.current?.click()} />
+              <input ref={profileImageInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => handleProfileImage(event.target.files?.[0])} />
               <h1 className="mt-3 text-2xl font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>
-                {profile.name}
+                {user.name}
               </h1>
               <p className="mt-1 text-sm text-muted">
                 {user.role} · {user.department}
               </p>
-              <p className="mt-2 text-xs text-muted">Your profile is {profilePercent}% complete</p>
+              <p className="mt-2 text-xs text-muted">Your profile is {profilePercent}% complete · image editable by you</p>
             </div>
           </section>
 
-          <section className="grid gap-3 px-4 md:grid-cols-2">
-            <EditableCard label="Full name" field="name" value={profile.name} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
+          <section className="px-4">
+            <div className="rounded-[20px] border border-green/15 bg-green-soft/70 p-4 pulse-success-glow">
+              <p className="text-xs font-bold uppercase tracking-widest text-green">Recognition Timeline</p>
+              <div className="mt-3 grid gap-2 md:grid-cols-3">
+                {[
+                  user.performanceScore >= 80 ? "Momentum Rising" : "Stable",
+                  user.weekStreak >= 4 ? "Consistency Streak" : "Strong Alignment",
+                  user.aiRec.recommendation === "promote" ? "Promotion Ready" : "Team Impact Recognition",
+                ].map((item) => <span key={item} className="rounded-full bg-card px-3 py-2 text-xs font-bold text-green">{item}</span>)}
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4 px-4">
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">Managed by Organization</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                <LockedCard label="Full name" value={user.name} />
+                <LockedCard label="Employee ID" value={user.id.toUpperCase()} />
+                <LockedCard label="Cadre" value={user.cadre} />
+                <LockedCard label="Compensation band" value={user.band.current} />
+                <LockedCard label="Department" value={user.department} />
+                <LockedCard label="Line manager" value={manager?.name ?? "Not assigned"} onClick={() => setManagerOpen(true)} />
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">Editable by You</p>
+              <div className="grid gap-3 md:grid-cols-2">
             <EditableCard label="Phone number" field="phone" value={profile.phone} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
             <EditableCard label="Personal email" field="personalEmail" value={profile.personalEmail} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
             <EditableCard label="Home address" field="homeAddress" value={profile.homeAddress} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
             <EditableCard label="Emergency contact" field="emergencyContact" value={profile.emergencyContact} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
             <EditableCard label="Next of kin" field="nextOfKin" value={profile.nextOfKin} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
-            <LockedCard label="Staff ID" value={user.id.toUpperCase()} />
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
             <LockedCard label="Date of hire" value={formatDate(user.joinDate)} />
-            <LockedCard label="Department" value={user.department} />
             <LockedCard label="Team" value={user.team} />
-            <LockedCard label="Line manager" value={manager?.name ?? "Not assigned"} onClick={() => setManagerOpen(true)} />
             <LockedCard label="Employment type" value={employmentLabel(user.employmentType)} />
             <LockedCard label="Work location" value="Lagos HQ · Hybrid" />
+            </div>
           </section>
         </>
       )}

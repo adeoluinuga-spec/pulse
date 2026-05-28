@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
@@ -86,9 +88,11 @@ function statusDot(score: number) {
 }
 
 function Avatar({ employee, size = "md" }: { employee: Employee; size?: "sm" | "md" }) {
+  const { profileImages } = useUser();
+  const imageUrl = profileImages[employee.id];
   return (
-    <div className={clsx("flex flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white", size === "sm" ? "h-8 w-8" : "h-10 w-10")} style={{ backgroundColor: employee.avatarColor }}>
-      {employee.initials}
+    <div className={clsx("flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-bold text-white shadow-sm ring-2 ring-white", size === "sm" ? "h-8 w-8" : "h-10 w-10")} style={{ backgroundColor: employee.avatarColor }}>
+      {imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" /> : employee.initials}
     </div>
   );
 }
@@ -111,6 +115,7 @@ export default function DashboardTeamPage() {
   const [toast, setToast] = useState("");
   const [active, setActive] = useState<TabKey>("team");
   const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
+  const [trainingMember, setTrainingMember] = useState<Employee | null>(null);
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const [teamSummary, setTeamSummary] = useState("");
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -235,11 +240,12 @@ export default function DashboardTeamPage() {
               summaryOpen={summaryOpen}
               teamSummary={teamSummary}
               showToast={showToast}
+              onSuggestTraining={setTrainingMember}
             />
           )}
           {user.peopleResponsibility === "senior_manager" && (
             <>
-              <ManagerView user={user} teamMembers={teamMembers} riskCount={riskCount} unreviewed={unreviewed} pendingReviews={pendingReviews} expandedMember={expandedMember} setExpandedMember={setExpandedMember} getTeamSummary={getTeamSummary} summaryLoading={summaryLoading} summaryOpen={summaryOpen} teamSummary={teamSummary} showToast={showToast} />
+              <ManagerView user={user} teamMembers={teamMembers} riskCount={riskCount} unreviewed={unreviewed} pendingReviews={pendingReviews} expandedMember={expandedMember} setExpandedMember={setExpandedMember} getTeamSummary={getTeamSummary} summaryLoading={summaryLoading} summaryOpen={summaryOpen} teamSummary={teamSummary} showToast={showToast} onSuggestTraining={setTrainingMember} />
               <ManagersTeams managers={managersTeams} />
             </>
           )}
@@ -257,10 +263,12 @@ export default function DashboardTeamPage() {
 
       {selectedMember && (
         <BottomSheet onClose={() => setSelectedMember(null)}>
-          <h2 className="text-lg font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>{selectedMember.name} Tasks</h2>
-          <div className="mt-4 space-y-2">
-            {selectedMember.tasks.map((task) => <TaskMini key={task.id} task={task} />)}
-          </div>
+          <MemberProfile member={selectedMember} onSuggestTraining={() => setTrainingMember(selectedMember)} showToast={showToast} />
+        </BottomSheet>
+      )}
+      {trainingMember && (
+        <BottomSheet onClose={() => setTrainingMember(null)}>
+          <TrainingSuggestSheet member={trainingMember} onClose={() => setTrainingMember(null)} showToast={showToast} />
         </BottomSheet>
       )}
       {meetingNotes && <MeetingNotesSheet meeting={meetingNotes} teamMembers={teamMembers} onClose={() => setMeetingNotes(null)} onSave={() => { setMeetingNotes(null); showToast("Meeting notes saved"); }} />}
@@ -279,7 +287,7 @@ function TeamLeadView({ teamMembers, onSelect }: { teamMembers: Employee[]; onSe
   return (
     <div className="space-y-3">
       {teamMembers.map((member) => (
-        <div key={member.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+        <button key={member.id} onClick={() => onSelect(member)} className="flex w-full items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-left">
           <Avatar employee={member} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
@@ -288,9 +296,67 @@ function TeamLeadView({ teamMembers, onSelect }: { teamMembers: Employee[]; onSe
             </div>
             <p className="text-xs text-muted">{member.role} · {goalAvg(member)}% tasks · Last check-in {fmt(member.reports[0]?.date ?? "2026-05-19")}</p>
           </div>
-          <button onClick={() => onSelect(member)} className="rounded-lg bg-ink px-3 py-2 text-xs font-bold text-white">View tasks</button>
-        </div>
+          <span className="rounded-lg bg-ink px-3 py-2 text-xs font-bold text-white">View profile</span>
+        </button>
       ))}
+    </div>
+  );
+}
+
+function recognitionBadges(member: Employee) {
+  const badges = [];
+  if (member.performanceScore >= 85) badges.push("Top Contributor");
+  if (member.weekStreak >= 4) badges.push("Consistency Streak");
+  if (member.aiRec.recommendation === "promote") badges.push("Promotion Ready");
+  if (member.peerRating >= 4.4) badges.push("Collaboration Champion");
+  return badges.length ? badges : ["Strong Alignment"];
+}
+
+function MemberProfile({ member, onSuggestTraining, showToast }: { member: Employee; onSuggestTraining: () => void; showToast: (message: string) => void }) {
+  return (
+    <div>
+      <div className="flex items-start gap-3">
+        <Avatar employee={member} />
+        <div className="min-w-0 flex-1">
+          <h2 className="font-syne text-lg font-bold text-ink">{member.name}</h2>
+          <p className="text-sm text-muted">{member.role} · {member.department}</p>
+        </div>
+        <span className={clsx("font-syne text-2xl font-bold", scoreColor(member.performanceScore))}>{member.performanceScore}</span>
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+        <Stat small label="Goal completion" value={`${goalAvg(member)}%`} />
+        <Stat small label="Consistency" value={member.consistencyIndex} />
+        <Stat small label="Peer energy" value={member.peerRating.toFixed(1)} />
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {recognitionBadges(member).map((badge) => <span key={badge} className="rounded-full bg-green-soft px-3 py-1 text-[10px] font-bold text-green">{badge}</span>)}
+      </div>
+      <div className="mt-4 rounded-xl border border-border bg-paper p-3">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted">Pulse noticed</p>
+        <p className="mt-2 text-sm text-ink">Trajectory suggests {member.name.split(" ")[0]} would benefit most from focused support on {member.goals.find((goal) => goal.status === "at_risk" || goal.status === "behind")?.name ?? "their highest-weight goal"}.</p>
+      </div>
+      <div className="mt-4 flex gap-2">
+        <button onClick={onSuggestTraining} className="flex-1 rounded-lg bg-pulse px-4 py-3 text-sm font-bold text-white">Suggest Training</button>
+        <button onClick={() => showToast(`Collaboration request sent to ${member.name}`)} className="flex-1 rounded-lg border border-border px-4 py-3 text-sm font-bold text-muted">Request Collaboration</button>
+      </div>
+    </div>
+  );
+}
+
+function TrainingSuggestSheet({ member, onClose, showToast }: { member: Employee; onClose: () => void; showToast: (message: string) => void }) {
+  const [course, setCourse] = useState(member.trainingSuggestions[0]?.title ?? "Goal Delivery Essentials");
+  const [note, setNote] = useState("");
+  return (
+    <div>
+      <h2 className="font-syne text-lg font-bold text-ink">Suggest training for {member.name}</h2>
+      <p className="mt-2 text-sm text-muted">Developmental recommendations help people grow without making support feel punitive.</p>
+      <select value={course} onChange={(event) => setCourse(event.target.value)} className="mt-4 w-full rounded-lg border border-border px-3 py-3 text-base">
+        {member.trainingSuggestions.map((item) => <option key={item.id}>{item.title}</option>)}
+        <option>Report Consistency Masterclass</option>
+        <option>Data-Driven Decision Making</option>
+      </select>
+      <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note for the employee" className="mt-3 min-h-24 w-full rounded-lg border border-border px-3 py-2 text-base" />
+      <button onClick={() => { showToast(`${course} suggested to ${member.name}`); onClose(); }} className="mt-4 w-full rounded-lg bg-pulse px-4 py-3 text-sm font-bold text-white">Send Recommendation</button>
     </div>
   );
 }
@@ -308,6 +374,7 @@ function ManagerView({
   summaryOpen,
   teamSummary,
   showToast,
+  onSuggestTraining,
 }: {
   user: Employee;
   teamMembers: Employee[];
@@ -321,6 +388,7 @@ function ManagerView({
   summaryOpen: boolean;
   teamSummary: string;
   showToast: (message: string) => void;
+  onSuggestTraining: (member: Employee) => void;
 }) {
   const score = avgScore(teamMembers);
   return (
@@ -368,8 +436,9 @@ function ManagerView({
                     <Stat small label="Last report" value={fmt(member.reports[0]?.date ?? "2026-05-19").slice(0, 6)} />
                     <Stat small label="Consistency" value={member.consistencyIndex} />
                   </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
                     {["View Report", "Schedule 1:1", "Message"].map((action) => <button key={action} onClick={() => showToast(`${action} opened`)} className="rounded-lg border border-border px-2 py-2 text-xs font-bold text-muted">{action}</button>)}
+                    <button onClick={() => onSuggestTraining(member)} className="rounded-lg bg-pulse px-2 py-2 text-xs font-bold text-white">Suggest Training</button>
                   </div>
                 </div>
               )}
@@ -485,10 +554,6 @@ function Stat({ label, value, accent, small }: { label: string; value: string | 
 function AlertCard({ alert, employee }: { alert: { icon: string; title: string; tone: string; text: string }; employee?: Employee }) {
   const cls = alert.tone === "green" ? "border-green/20 bg-green-soft" : alert.tone === "amber" ? "border-amber/20 bg-amber-soft" : "border-pulse/20 bg-pulse-soft";
   return <div className={clsx("flex gap-3 rounded-lg border p-3", cls)}><span>{alert.icon}</span><div><p className="text-sm font-bold text-ink">{employee?.name ?? "Team"} · {alert.title}</p><p className="line-clamp-1 text-xs text-muted">{alert.text}</p></div></div>;
-}
-
-function TaskMini({ task }: { task: Task }) {
-  return <div className="rounded-lg bg-paper px-3 py-2"><p className="text-sm font-semibold text-ink">{task.title}</p><p className="text-xs text-muted">{fmt(task.dueDate)} · {task.status}</p></div>;
 }
 
 function MeetingNotesSheet({ meeting, teamMembers, onClose, onSave }: { meeting: Meeting; teamMembers: Employee[]; onClose: () => void; onSave: () => void }) {

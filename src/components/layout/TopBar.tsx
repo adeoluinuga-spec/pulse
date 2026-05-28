@@ -4,9 +4,12 @@ import { Bell, BarChart2, ChevronRight, LogOut, Settings, Sparkles, User, Users 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useUser } from "@/context/UserContext";
+import { dailyPulseLine } from "@/lib/pulseLanguage";
 
 export default function TopBar() {
-  const { user, setActiveUser, openNotif, hasUnread } = useUser();
+  const { user, setActiveUser, openNotif, hasUnread, profileImages } = useUser();
+  const pulseLine = dailyPulseLine();
+  const profileImage = profileImages[user.id];
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +37,7 @@ export default function TopBar() {
           <p className="text-xs font-black uppercase tracking-[0.18em]">Living Work OS</p>
         </div>
         <p className="mt-1 truncate font-syne text-xl font-bold text-ink">
-          Good to see you, {user.name.split(" ")[0]}. Pulse is watching the work, not the person.
+          {pulseLine}
         </p>
       </div>
 
@@ -55,15 +58,17 @@ export default function TopBar() {
             className="ml-0.5 flex h-10 w-10 items-center justify-center rounded-full text-[10px] font-bold text-white ring-2 ring-white hover:ring-pulse/30 active:scale-95 md:h-11 md:w-11"
             style={{ backgroundColor: user.avatarColor }}
           >
-            {user.initials}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {profileImage ? <img src={profileImage} alt="" className="h-full w-full rounded-full object-cover" /> : user.initials}
           </button>
 
           {profileOpen && (
             <div className="absolute right-0 top-[calc(100%+10px)] z-[60] w-72 overflow-hidden rounded-3xl border border-border bg-card shadow-[var(--shadow-lg)] animate-fade-up">
               <div className="border-b border-border bg-paper/70 px-4 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: user.avatarColor }}>
-                    {user.initials}
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: user.avatarColor }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {profileImage ? <img src={profileImage} alt="" className="h-full w-full object-cover" /> : user.initials}
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold text-ink">{user.name}</p>

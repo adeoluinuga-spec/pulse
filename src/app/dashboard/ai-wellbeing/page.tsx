@@ -101,6 +101,22 @@ function durationFor(training: Training) {
   return "2 weeks";
 }
 
+function trainingIntelligence(training: Training, index: number) {
+  const sources = ["AI", "Line Manager", "Promotion pathway", "KPI gaps", "Appraisal outcomes", "HR"];
+  const source = sources[index % sources.length];
+  return {
+    source,
+    impact: training.priority === "high" ? "High impact on next-cadre readiness" : "Supports steadier execution habits",
+    relevance: Math.max(74, 96 - index * 5),
+    reason:
+      source === "Line Manager"
+        ? "Suggested by Line Manager due to declining reporting consistency."
+        : source === "KPI gaps"
+          ? "Suggested because a related KPI remained below target for 2 cycles."
+          : training.reason,
+  };
+}
+
 function evaluateLevel(mood: Mood | null, workload: Workload | null, support: Support | null) {
   const negative = mood === "drained" || workload === "overwhelming" || support === "no";
   const mixed = mood === "okay" || workload === "heavy" || support === "somewhat";
@@ -316,11 +332,18 @@ export default function AiWellbeingPage() {
           <div className="grid gap-3 md:grid-cols-2">
             {trainingItems.map((training) => {
               const isEnrolled = enrolled.some((item) => item.id === training.id);
+              const intel = trainingIntelligence(training, trainingItems.indexOf(training));
               return (
                 <div key={training.id} className="rounded-lg border border-border bg-card p-4">
-                  <h3 className="text-sm font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>{training.title}</h3>
-                  <p className="mt-1 text-xs font-semibold text-muted">{training.provider}</p>
-                  <p className="mt-3 line-clamp-2 text-sm text-muted">{training.reason}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>{training.title}</h3>
+                      <p className="mt-1 text-xs font-semibold text-muted">{training.provider}</p>
+                    </div>
+                    <span className="rounded-full bg-pulse-soft px-2 py-1 text-[10px] font-bold text-pulse">{intel.relevance}% relevant</span>
+                  </div>
+                  <p className="mt-3 line-clamp-2 text-sm text-muted">{intel.reason}</p>
+                  <p className="mt-2 rounded-lg bg-paper px-3 py-2 text-xs font-bold text-ink">{intel.source} · {intel.impact}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <span className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-muted">{durationFor(training)}</span>
                     <span className="rounded-full bg-green-soft px-2.5 py-1 text-[10px] font-bold text-green">{levelFor(training)}</span>

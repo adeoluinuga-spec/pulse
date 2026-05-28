@@ -18,6 +18,7 @@ import {
 import { employees } from "@/data/mockData";
 import { useUser } from "@/context/UserContext";
 import type { Employee, Goal, GoalStatus, GoalType } from "@/types";
+import Celebration from "@/components/ui/Celebration";
 
 type FilterKey = "all" | "on_track" | "at_risk" | "completed" | "overdue";
 type GoalView = "entry" | "mid" | "manager" | "senior_manager" | "hr" | "executive";
@@ -216,6 +217,7 @@ export default function GoalsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [timeline, setTimeline] = useState(false);
   const [toast, setToast] = useState("");
+  const [celebration, setCelebration] = useState("");
   const [collapsedOrg, setCollapsedOrg] = useState(view === "entry");
 
   const selectedGoal = goals.find((goal) => goal.id === selectedId) ?? null;
@@ -247,7 +249,11 @@ export default function GoalsPage() {
         ],
       },
     }));
-    showToast("Goal progress updated");
+    if (percent >= 100 && current.percentComplete < 100) {
+      setCelebration("Goal achieved — momentum captured.");
+      window.setTimeout(() => setCelebration(""), 1800);
+    }
+    showToast(percent >= 100 ? "Goal achieved" : "Goal progress updated");
   }
 
   function toggleTask(goalId: string, taskId: string) {
@@ -298,6 +304,7 @@ export default function GoalsPage() {
   return (
     <div className="dashboard-page space-y-5">
       {toast && <Toast>{toast}</Toast>}
+      <Celebration active={Boolean(celebration)} label={celebration} />
 
       <section className="px-4 pt-1">
         <div className="mb-4 flex items-start justify-between gap-3">

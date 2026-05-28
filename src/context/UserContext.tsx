@@ -14,6 +14,8 @@ import { useToast } from "@/components/ui/Toast";
 interface UserContextValue {
   user: Employee;
   setActiveUser: (employeeId: string) => void;
+  profileImages: Record<string, string>;
+  setProfileImage: (employeeId: string, imageDataUrl: string) => void;
   notifications: Notification[];
   hasUnread: boolean;
   notifOpen: boolean;
@@ -26,6 +28,8 @@ const DEFAULT_USER = employees.find((e) => e.id === "e01") ?? employees[0];
 const UserContext = createContext<UserContextValue>({
   user: DEFAULT_USER,
   setActiveUser: () => {},
+  profileImages: {},
+  setProfileImage: () => {},
   notifications: DEFAULT_USER.notifications,
   hasUnread: DEFAULT_USER.notifications.some((n) => !n.read),
   notifOpen: false,
@@ -37,6 +41,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
   const [userId, setUserId] = useState("e01");
   const [notifOpen, setNotifOpen] = useState(false);
+  const [profileImages, setProfileImages] = useState<Record<string, string>>({});
   const [notifs, setNotifs] = useState<Notification[]>(
     () => [...DEFAULT_USER.notifications],
   );
@@ -50,6 +55,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     showToast(`Viewing as ${emp.name} — ${emp.cadre} / ${emp.peopleResponsibility}`, "info");
   }, [showToast]);
 
+  const setProfileImage = useCallback((employeeId: string, imageDataUrl: string) => {
+    setProfileImages((prev) => ({ ...prev, [employeeId]: imageDataUrl }));
+    showToast("Profile image updated", "success");
+  }, [showToast]);
+
   const hasUnread = notifs.some((n) => !n.read);
 
   const openNotif = useCallback(() => setNotifOpen(true), []);
@@ -61,7 +71,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   return (
     <UserContext.Provider
-      value={{ user, setActiveUser, notifications: notifs, hasUnread, notifOpen, openNotif, closeNotif }}
+      value={{ user, setActiveUser, profileImages, setProfileImage, notifications: notifs, hasUnread, notifOpen, openNotif, closeNotif }}
     >
       {children}
       <DevUserSwitcher />

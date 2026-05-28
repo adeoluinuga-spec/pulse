@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { useUser } from "@/context/UserContext";
+import { dailyPulseLine } from "@/lib/pulseLanguage";
 
 const primaryItems = [
   { label: "Home", href: "/dashboard", icon: Home },
@@ -33,7 +34,9 @@ function active(pathname: string, href: string) {
 
 export default function WorkSidebar() {
   const pathname = usePathname();
-  const { user } = useUser();
+  const { user, profileImages } = useUser();
+  const pulseLine = dailyPulseLine();
+  const profileImage = profileImages[user.id];
   const teamEnabled = user.peopleResponsibility !== "none";
   const portalItems = [
     ...(teamEnabled ? [{ label: "Team", href: "/dashboard/team", icon: Users }] : []),
@@ -57,7 +60,7 @@ export default function WorkSidebar() {
           <p className="text-xs font-bold">Pulse noticed</p>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-white/72">
-          Your current context is tuned for {user.cadre} work, {teamEnabled ? "team leadership" : "individual contribution"}, and this cycle&apos;s priorities.
+          {pulseLine}
         </p>
       </div>
 
@@ -108,8 +111,9 @@ export default function WorkSidebar() {
 
       <div className="mt-auto rounded-[22px] border border-white/10 bg-paper p-4 text-ink">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-full text-xs font-black text-white" style={{ backgroundColor: user.avatarColor }}>
-            {user.initials}
+          <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-full text-xs font-black text-white ring-2 ring-white" style={{ backgroundColor: user.avatarColor }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {profileImage ? <img src={profileImage} alt="" className="h-full w-full object-cover" /> : user.initials}
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-black">{user.name}</p>
