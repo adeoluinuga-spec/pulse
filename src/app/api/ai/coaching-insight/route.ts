@@ -1,7 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 
-const model = "claude-sonnet-4-20250514";
+const client = new OpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: "https://api.deepseek.com",
+});
 
 function fallback(employeeName?: string, score?: number) {
   const current = typeof score === "number" ? score : 78;
@@ -19,18 +22,21 @@ export async function POST(request: NextRequest) {
   } = {};
   try {
     body = await request.json();
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const cadre = body.cadre ?? body.employee?.cadre ?? "mid";
 
-    const message = await client.messages.create({
-      model,
+    const response = await client.chat.completions.create({
+      model: "deepseek-chat",
       max_tokens: 1000,
-      system:
-        `You are Pulse's AI performance coach. Analyze this employee's performance data and write a personal coaching insight. Structure your response with four sections: (1) Where You Stand — 2-3 sentences on current position, (2) Top 2 Priorities — the two most impactful actions right now, (3) Trajectory — projected end-of-cycle score based on current pace, (4) Watch Out — one risk flag if relevant. Tone: warm, direct, coach not judge. Specific to the data, not generic. Cadre context: ${cadre} [entry=foundational/mid=delivery/senior=strategic/executive=org-level]. Return plain text with section headers.`,
-      messages: [{ role: "user", content: JSON.stringify(body) }],
+      messages: [
+        {
+          role: "system",
+          content: `You are Pulse's AI performance coach. Analyze this employee's performance data and write a personal coaching insight. Structure your response with four sections: (1) Where You Stand — 2-3 sentences on current position, (2) Top 2 Priorities — the two most impactful actions right now, (3) Trajectory — projected end-of-cycle score based on current pace, (4) Watch Out — one risk flag if relevant. Tone: warm, direct, coach not judge. Specific to the data, not generic. Cadre context: ${cadre} [entry=foundational/mid=delivery/senior=strategic/executive=org-level]. Return plain text with section headers.`,
+        },
+        { role: "user", content: JSON.stringify(body) },
+      ],
     });
 
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    const text = response.choices[0].message.content ?? "";
     return NextResponse.json({
       insight: text || fallback(body.employee?.name, body.employee?.performanceScore).insight,
       projectedScore: Math.min(98, Math.round((body.employee?.performanceScore ?? 78) + 4)),

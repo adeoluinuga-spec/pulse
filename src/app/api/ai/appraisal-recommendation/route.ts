@@ -1,7 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new OpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: "https://api.deepseek.com",
+});
 
 const fallback = {
   recommendation: "good_standing",
@@ -22,21 +25,20 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
+    const response = await client.chat.completions.create({
+      model: "deepseek-chat",
       max_tokens: 1000,
-      system:
-        "You are Pulse's appraisal AI. Based on the performance data provided, generate an appraisal recommendation. Choose one: promote, good_standing, pip, exit_risk. Return ONLY a JSON object with: recommendation (string), confidence (number 0-100), evidence (array of strings, max 4), note (one sentence explanation). No preamble, no markdown.",
       messages: [
         {
-          role: "user",
-          content: JSON.stringify(body),
+          role: "system",
+          content:
+            "You are Pulse's appraisal AI. Based on the performance data provided, generate an appraisal recommendation. Choose one: promote, good_standing, pip, exit_risk. Return ONLY a JSON object with: recommendation (string), confidence (number 0-100), evidence (array of strings, max 4), note (one sentence explanation). No preamble, no markdown.",
         },
+        { role: "user", content: JSON.stringify(body) },
       ],
     });
 
-    const text =
-      message.content[0].type === "text" ? message.content[0].text : "{}";
+    const text = response.choices[0].message.content ?? "{}";
     const data = JSON.parse(extractJSON(text));
     return NextResponse.json(data);
   } catch (error) {

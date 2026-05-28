@@ -1,7 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new OpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: "https://api.deepseek.com",
+});
 
 function fallbackBriefing(body: Record<string, unknown>) {
   const orgName = typeof body.orgName === "string" ? body.orgName : "Zenith Corp";
@@ -19,20 +22,20 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
 
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+    const response = await client.chat.completions.create({
+      model: "deepseek-chat",
       max_tokens: 1000,
-      system:
-        "You are Pulse's executive intelligence layer. Write a strategic performance briefing for the CEO and executive team. Structure: (1) Overall Health — 2 sentences on org-wide performance, (2) Top Risk — the single biggest performance concern right now, (3) Top Strength — what's working well, (4) Recommended Action — one specific, actionable recommendation. Professional tone. Concise. No bullet points — flowing sentences. Max 5 sentences total.",
       messages: [
         {
-          role: "user",
-          content: JSON.stringify(body),
+          role: "system",
+          content:
+            "You are Pulse's executive intelligence layer. Write a strategic performance briefing for the CEO and executive team. Structure: (1) Overall Health — 2 sentences on org-wide performance, (2) Top Risk — the single biggest performance concern right now, (3) Top Strength — what's working well, (4) Recommended Action — one specific, actionable recommendation. Professional tone. Concise. No bullet points — flowing sentences. Max 5 sentences total.",
         },
+        { role: "user", content: JSON.stringify(body) },
       ],
     });
 
-    const briefing = message.content[0]?.type === "text" ? message.content[0].text : fallbackBriefing(body);
+    const briefing = response.choices[0].message.content ?? fallbackBriefing(body);
     return NextResponse.json({ briefing });
   } catch (error) {
     console.error("executive-briefing error:", error);

@@ -1,7 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 
-const model = "claude-sonnet-4-20250514";
+const client = new OpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: "https://api.deepseek.com",
+});
 
 const fallback = [
   {
@@ -38,17 +41,21 @@ function extractJSON(text: string) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const message = await client.messages.create({
-      model,
+    const response = await client.chat.completions.create({
+      model: "deepseek-chat",
       max_tokens: 1000,
-      system:
-        "You are Pulse's learning advisor. Based on the employee's performance gaps and next cadre requirements, suggest 3 specific courses or certifications. Return ONLY a JSON array with objects: { title, provider, reason, duration, level, url }. No preamble, no markdown.",
-      messages: [{ role: "user", content: JSON.stringify(body) }],
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Pulse's learning advisor. Based on the employee's performance gaps and next cadre requirements, suggest 3 specific courses or certifications. Return ONLY a JSON array with objects: { title, provider, reason, duration, level, url }. No preamble, no markdown.",
+        },
+        { role: "user", content: JSON.stringify(body) },
+      ],
     });
 
-    const text = message.content[0].type === "text" ? message.content[0].text : "[]";
+    const text = response.choices[0].message.content ?? "[]";
     const parsed = JSON.parse(extractJSON(text));
     return NextResponse.json(Array.isArray(parsed) ? parsed : fallback);
   } catch (error) {

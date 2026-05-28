@@ -1,7 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 
-const model = "claude-sonnet-4-20250514";
+const client = new OpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: "https://api.deepseek.com",
+});
 
 function fallback(level = "mixed") {
   if (level === "positive") {
@@ -15,7 +18,11 @@ function fallback(level = "mixed") {
     return {
       message:
         "This sounds like a heavier week than usual, and it makes sense to want more support. Consider choosing one immediate pressure point to discuss with someone you trust today.",
-      actions: ["Book a confidential EAP session", "Ask your manager to reprioritise one task", "Take a short reset break today"],
+      actions: [
+        "Book a confidential EAP session",
+        "Ask your manager to reprioritise one task",
+        "Take a short reset break today",
+      ],
     };
   }
   return {
@@ -29,17 +36,21 @@ export async function POST(request: NextRequest) {
   let body: { escalationLevel?: string } = {};
   try {
     body = await request.json();
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const message = await client.messages.create({
-      model,
+    const response = await client.chat.completions.create({
+      model: "deepseek-chat",
       max_tokens: 1000,
-      system:
-        "You are Pulse's wellbeing support layer. An employee has just completed a wellbeing check-in. Respond with warmth and care. If responses are positive, affirm and encourage. If mixed or negative, acknowledge without alarming, and gently point toward support. NEVER use words like flagged, reported, escalated, or monitored. Maximum 3 sentences. Then suggest 2 relevant support actions.",
-      messages: [{ role: "user", content: JSON.stringify(body) }],
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Pulse's wellbeing support layer. An employee has just completed a wellbeing check-in. Respond with warmth and care. If responses are positive, affirm and encourage. If mixed or negative, acknowledge without alarming, and gently point toward support. NEVER use words like flagged, reported, escalated, or monitored. Maximum 3 sentences. Then suggest 2 relevant support actions.",
+        },
+        { role: "user", content: JSON.stringify(body) },
+      ],
     });
 
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    const text = response.choices[0].message.content ?? "";
     const fb = fallback(body.escalationLevel);
     return NextResponse.json({ message: text || fb.message, actions: fb.actions });
   } catch (error) {
