@@ -2,68 +2,47 @@
 
 import { useState } from "react";
 import clsx from "clsx";
-import { X, Bell, Download, RefreshCw, Settings, ChevronRight } from "lucide-react";
+import { ChevronRight, RefreshCw, X } from "lucide-react";
 import { employees, departments, org } from "@/data/mockData";
-import type { Employee, Department, AIRecommendation } from "@/data/mockData";
+import type { Employee, Department } from "@/data/mockData";
+import type { AIRecommendation } from "@/data/mockData";
 import Avatar from "@/components/ui/Avatar";
-import { SectionLabel } from "@/components/ui";
 
-// ── Derived data ──────────────────────────────────────────────────────────────
+// ── Derived data ───────────────────────────────────────────────────────────────
 
 const orgHealthScore = Math.round(
   employees.reduce((s, e) => s + e.performanceScore, 0) / employees.length
 );
+const promotionReady  = employees.filter((e) => e.aiRec.recommendation === "promote");
+const pipCandidates   = employees.filter((e) => e.aiRec.recommendation === "pip");
+const exitRisk        = employees.filter((e) => e.aiRec.recommendation === "exit_risk");
+const riskFlags       = employees.filter((e) => e.badge === "At Risk" || e.badge === "Needs Improvement");
+const compliantCount  = employees.filter((e) => e.weekStreak >= 1).length;
+const reportCompliance = Math.round((compliantCount / employees.length) * 100);
 
-const promotionReady = employees.filter((e) => e.aiRec.recommendation === "promote");
-const pipCandidates  = employees.filter((e) => e.aiRec.recommendation === "pip");
-const riskFlags      = employees.filter((e) => e.badge === "At Risk" || e.badge === "Needs Improvement");
+type FilterKey = "all" | AIRecommendation;
 
-const compliantCount     = employees.filter((e) => e.weekStreak >= 1).length;
-const reportCompliancePct = Math.round((compliantCount / employees.length) * 100);
+const recMeta: Record<AIRecommendation, { label: string; bg: string; text: string; border: string }> = {
+  promote:       { label: "Promote",       bg: "bg-green-soft",  text: "text-green",  border: "border-green/20"  },
+  good_standing: { label: "Good Standing", bg: "bg-border",      text: "text-muted",  border: "border-border"    },
+  pip:           { label: "PIP",           bg: "bg-amber-soft",  text: "text-amber",  border: "border-amber/20"  },
+  exit_risk:     { label: "Exit Risk",     bg: "bg-red-soft",    text: "text-red",    border: "border-red/20"    },
+};
 
-// One or more representative employees per department
 const deptEmpMap = new Map<string, Employee[]>();
 for (const emp of employees) {
   deptEmpMap.set(emp.department, [...(deptEmpMap.get(emp.department) ?? []), emp]);
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type FilterKey = "all" | AIRecommendation;
-
-type CycleMilestone =
-  | { label: string; pct: number; type: "pct" }
-  | { label: string; count: number; type: "count" };
-
-// ── Static mock data ──────────────────────────────────────────────────────────
-
-const cycleMilestones: CycleMilestone[] = [
-  { label: "Self-assessments submitted",  pct: 72,  type: "pct"   },
-  { label: "Manager reviews done",        pct: 60,  type: "pct"   },
-  { label: "Peer feedback collected",     pct: 88,  type: "pct"   },
-  { label: "AI recommendations ready",   pct: 100, type: "pct"   },
-  { label: "HR sign-offs pending",        count: 3, type: "count" },
+const cycleMilestones = [
+  { label: "Self-assessments submitted",  value: "72%",  pct: 72,  done: false },
+  { label: "Manager reviews complete",    value: "60%",  pct: 60,  done: false },
+  { label: "Peer feedback collected",     value: "88%",  pct: 88,  done: false },
+  { label: "AI recommendations ready",   value: "100%", pct: 100, done: true  },
+  { label: "HR sign-offs pending",        value: "3",    pct: 0,   done: false, isCount: true },
 ];
 
-const recMeta: Record<AIRecommendation, { label: string; emoji: string; bg: string; text: string; border: string }> = {
-  promote:       { label: "Promote",       emoji: "✅", bg: "bg-green-soft",  text: "text-green",  border: "border-green/20"  },
-  good_standing: { label: "Good Standing", emoji: "📈", bg: "bg-border",      text: "text-muted",  border: "border-border"    },
-  pip:           { label: "PIP",           emoji: "⚠️", bg: "bg-amber-soft",  text: "text-amber",  border: "border-amber/20"  },
-  exit_risk:     { label: "Exit Risk",     emoji: "🔴", bg: "bg-red-soft",    text: "text-red",    border: "border-red/20"    },
-};
-
-const pendingActionsMap: Record<string, string[]> = {
-  Finance:              ["Initiate PIP for Sofia Reyes", "Schedule Finance Director review", "Correct Q2 reporting errors"],
-  Analytics:            ["Review support plan for Priya Sharma", "Assess dashboard project delay", "Schedule manager 1:1"],
-  Engineering:          ["Complete Q2 manager reviews", "Confirm promotion nomination for James Kirkland"],
-  Sales:                ["Finalise Marcus Chen promotion case", "Close new-logo gap before Q2 end"],
-  Product:              ["Submit Amara Osei promotion recommendation", "Sign off Q2 roadmap appraisal"],
-  Marketing:            ["Monitor social velocity goal risk", "Agency partnership review rescheduled to June"],
-  "Human Resources":    ["Finalise HR sign-off backlog (3 pending)", "Strengthen attrition goal intervention plan"],
-  "Customer Experience":["CS playbook follow-up with Derek Okafor", "Complete QBR cycle sign-off"],
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function heatBg(score: number) {
   if (score >= 80) return "bg-green-soft";
@@ -78,48 +57,99 @@ function heatText(score: number) {
   return "text-red";
 }
 
-function heatBar(score: number) {
-  if (score >= 80) return "bg-green";
-  if (score >= 70) return "bg-green/60";
-  if (score >= 60) return "bg-amber";
-  return "bg-red";
-}
-
-function pctColor(pct: number) {
-  if (pct === 100) return "text-green font-bold";
-  if (pct >= 75)   return "text-ink font-semibold";
-  if (pct >= 50)   return "text-amber font-semibold";
-  return "text-pulse font-bold";
-}
-
 function confColor(c: number) {
-  if (c >= 0.8)  return "text-green";
-  if (c >= 0.7)  return "text-amber";
+  if (c >= 0.8) return "text-green";
+  if (c >= 0.7) return "text-amber";
   return "text-pulse";
+}
+
+// ── Dept Detail Sheet ─────────────────────────────────────────────────────────
+
+function DeptSheet({
+  dept,
+  onClose,
+}: {
+  dept: Department;
+  onClose: () => void;
+}) {
+  const emps = deptEmpMap.get(dept.name) ?? [];
+  const top  = emps.reduce<Employee | null>((b, e) => (!b || e.performanceScore > b.performanceScore ? e : b), null);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[60] bg-black/40" onClick={onClose} />
+      <div className="fixed inset-x-0 bottom-0 z-[70] bg-card rounded-t-3xl max-h-[80vh] flex flex-col animate-slide-up">
+        <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
+          <div className="w-10 h-1 bg-border rounded-full" />
+        </div>
+        <div className="flex items-center justify-between px-5 py-2 border-b border-border flex-shrink-0">
+          <div>
+            <h2 className="text-base font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>
+              {dept.name}
+            </h2>
+            <p className="text-xs text-muted">{dept.headCount} employees</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className={clsx(
+              "text-2xl font-bold",
+              dept.avgScore >= 75 ? "text-green" : dept.avgScore >= 65 ? "text-amber" : "text-red"
+            )} style={{ fontFamily: "var(--font-syne)" }}>
+              {dept.avgScore}
+            </span>
+            <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-border text-muted">
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-5 pb-10 pt-4 space-y-4">
+          {top && (
+            <div className="bg-green-soft rounded-xl p-3.5 border border-green/15 flex items-center gap-3">
+              <Avatar initials={top.initials} color={top.avatarColor} size="sm" />
+              <div>
+                <p className="text-xs font-semibold text-green">Top performer</p>
+                <p className="text-sm font-bold text-ink">{top.name}</p>
+                <p className="text-xs text-muted">{top.performanceScore}/100</p>
+              </div>
+            </div>
+          )}
+          {emps.map((emp) => (
+            <div key={emp.id} className="flex items-center gap-3">
+              <Avatar initials={emp.initials} color={emp.avatarColor} size="sm" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-ink">{emp.name}</p>
+                <p className="text-xs text-muted truncate">{emp.role}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-ink">{emp.performanceScore}</span>
+                <span className={clsx(
+                  "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
+                  recMeta[emp.aiRec.recommendation].bg,
+                  recMeta[emp.aiRec.recommendation].text,
+                  recMeta[emp.aiRec.recommendation].border,
+                )}>
+                  {recMeta[emp.aiRec.recommendation].label}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function HRDashboard() {
-  const [filter, setFilter]         = useState<FilterKey>("all");
-  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
-  const [sheetOpen, setSheetOpen]   = useState(false);
-  const [sentSet, setSentSet]       = useState<Set<string>>(new Set());
+  const [filter, setFilter]                 = useState<FilterKey>("all");
+  const [selectedDept, setSelectedDept]     = useState<Department | null>(null);
+  const [sentSet, setSentSet]               = useState<Set<string>>(new Set());
 
   type RecalcResult = { recommendation: AIRecommendation; confidence: number; evidence: string[]; note: string };
-  const [recalcLoading, setRecalcLoading] = useState<Set<string>>(new Set());
-  const [recalcResults, setRecalcResults] = useState<Record<string, RecalcResult>>({});
-  const [recalcErrors, setRecalcErrors]   = useState<Set<string>>(new Set());
-
-  function openDept(dept: Department) {
-    setSelectedDept(dept);
-    requestAnimationFrame(() => setSheetOpen(true));
-  }
-
-  function closeDept() {
-    setSheetOpen(false);
-    setTimeout(() => setSelectedDept(null), 350);
-  }
+  const [recalcLoading, setRecalcLoading]   = useState<Set<string>>(new Set());
+  const [recalcResults, setRecalcResults]   = useState<Record<string, RecalcResult>>({});
+  const [recalcErrors, setRecalcErrors]     = useState<Set<string>>(new Set());
 
   function sendReminder(label: string) {
     setSentSet((prev) => new Set(prev).add(label));
@@ -138,9 +168,7 @@ export default function HRDashboard() {
         body: JSON.stringify({
           name: emp.name,
           performanceScore: emp.performanceScore,
-          goalCompletion: Math.round(
-            emp.goals.reduce((s, g) => s + g.percentComplete, 0) / emp.goals.length
-          ),
+          goalCompletion: Math.round(emp.goals.reduce((s, g) => s + g.percentComplete, 0) / emp.goals.length),
           weekStreak: emp.weekStreak,
           badge: emp.badge,
           reportConsistency: emp.consistencyIndex,
@@ -149,10 +177,7 @@ export default function HRDashboard() {
       });
       if (res.ok) {
         const data = await res.json();
-        setRecalcResults((prev) => ({
-          ...prev,
-          [emp.id]: { ...data, confidence: data.confidence / 100 },
-        }));
+        setRecalcResults((prev) => ({ ...prev, [emp.id]: { ...data, confidence: data.confidence / 100 } }));
       } else {
         setRecalcErrors((prev) => new Set(prev).add(emp.id));
       }
@@ -163,193 +188,173 @@ export default function HRDashboard() {
     }
   }
 
-  const visibleEmployees =
-    filter === "all"
-      ? employees
-      : employees.filter((e) => e.aiRec.recommendation === filter);
-
-  // Dept sheet derived
-  const deptEmps       = selectedDept ? (deptEmpMap.get(selectedDept.name) ?? []) : [];
-  const deptGoalAvg    = deptEmps.length
-    ? Math.round(deptEmps.flatMap((e) => e.goals).reduce((s, g) => s + g.percentComplete, 0) / deptEmps.flatMap((e) => e.goals).length)
-    : null;
-  const topPerformer   = deptEmps.reduce<Employee | null>((b, e) => (!b || e.performanceScore > b.performanceScore ? e : b), null);
-  const lowestPerformer = deptEmps.reduce<Employee | null>((w, e) => (!w || e.performanceScore < w.performanceScore ? e : w), null);
+  const visibleEmployees = filter === "all"
+    ? employees
+    : employees.filter((e) => e.aiRec.recommendation === filter);
 
   return (
     <>
-      <div className="dashboard-page space-y-5">
+      <div className="space-y-7 pb-8" style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }}>
 
-        {/* ── 1. HERO CARD ─────────────────────────────────────────── */}
-        <section className="animate-fade-up px-4" style={{ animationDelay: "0ms" }}>
-          <div className="bg-ink rounded-[20px] p-5">
-            <p className="text-white/40 text-sm">Organisation Overview</p>
-            <h1
-              className="text-white text-xl font-bold mt-0.5"
-              style={{ fontFamily: "var(--font-syne)" }}
-            >
-              {org.name}
-            </h1>
-            <p className="text-white/35 text-xs mt-0.5">
-              {org.staffCount} employees · {org.departmentCount} departments
+        {/* ── Header ─────────────────────────────────────────────── */}
+        <div className="px-5 pt-5 animate-fade-up">
+          <p className="type-label">HR Intelligence · {org.name}</p>
+          <h1 className="text-[26px] font-bold text-ink mt-1 leading-tight" style={{ fontFamily: "var(--font-syne)" }}>
+            Workforce View
+          </h1>
+          <p className="text-[11px] text-muted/70 mt-0.5">
+            {employees.length} employees · Q2 2026 cycle
+          </p>
+        </div>
+
+        {/* ── Org Health Strip ──────────────────────────────────── */}
+        <div className="animate-fade-up delay-75">
+          <div className="mx-5 bg-ink rounded-2xl px-5 py-5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 rounded-full"
+              style={{ background: "radial-gradient(circle, rgba(232,68,10,0.10) 0%, transparent 70%)" }} />
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/40 mb-2">
+              Organisation Health Score
             </p>
-
-            <div className="mt-5 flex items-end gap-1">
-              <span
-                className="text-white font-bold leading-none"
-                style={{ fontSize: "52px", fontFamily: "var(--font-syne)" }}
-              >
+            <div className="flex items-end gap-3 mb-4">
+              <span className="text-[52px] font-bold leading-none text-white" style={{ fontFamily: "var(--font-syne)" }}>
                 {orgHealthScore}
               </span>
-              <span
-                className="text-pulse font-bold pb-1.5 text-2xl"
-                style={{ fontFamily: "var(--font-syne)" }}
-              >
-                %
-              </span>
-              <span className="text-green text-sm font-semibold pb-2 ml-2">
-                ↑ +2.8 pts this cycle
-              </span>
+              <div className="pb-1.5">
+                <span className="text-white/40 text-xl">/100</span>
+                <p className="text-green text-sm font-semibold">↑ +2.8 pts this cycle</p>
+              </div>
             </div>
-
-            <div className="mt-4 h-2 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-[3px] bg-white/10 rounded-full overflow-hidden mb-4">
               <div
                 className="h-full rounded-full"
                 style={{
                   width: `${orgHealthScore}%`,
-                  background: "linear-gradient(90deg, #e8440a, #ff9046)",
-                  transformOrigin: "left center",
+                  background: "linear-gradient(90deg, #e8440a, #ff8c57)",
                   animation: "score-bar-fill 1.2s cubic-bezier(0.22, 1, 0.36, 1) both",
                   animationDelay: "0.35s",
                 }}
               />
             </div>
-            <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-white/25">0</span>
-              <span className="text-[10px] text-white/25">100</span>
+            <div className="grid grid-cols-4 gap-2 pt-3 border-t border-white/10">
+              {[
+                { label: "For Promotion", value: promotionReady.length, color: "text-green" },
+                { label: "PIP Candidates", value: pipCandidates.length, color: "text-amber" },
+                { label: "Exit Risk", value: exitRisk.length, color: exitRisk.length > 0 ? "text-red" : "text-white/40" },
+                { label: "Compliance", value: `${reportCompliance}%`, color: "text-white" },
+              ].map((s) => (
+                <div key={s.label} className="text-center">
+                  <p className={clsx("text-xl font-bold leading-none", s.color)} style={{ fontFamily: "var(--font-syne)" }}>
+                    {s.value}
+                  </p>
+                  <p className="text-[9px] text-white/40 font-medium mt-1">{s.label}</p>
+                </div>
+              ))}
             </div>
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              <span className="px-2.5 py-1 bg-green/20 text-green text-[11px] font-semibold rounded-full">
-                Q2 2026 Active
-              </span>
-              <span className="px-2.5 py-1 bg-pulse/20 text-pulse text-[11px] font-semibold rounded-full">
-                {riskFlags.length} Risk Flag{riskFlags.length !== 1 ? "s" : ""}
-              </span>
-              <span className="px-2.5 py-1 bg-amber/15 text-amber text-[11px] font-semibold rounded-full">
-                {pipCandidates.length} PIP Candidate{pipCandidates.length !== 1 ? "s" : ""}
-              </span>
-            </div>
           </div>
-        </section>
+        </div>
 
-        {/* ── 2. STAT GRID ─────────────────────────────────────────── */}
-        <section
-          className="animate-fade-up grid grid-cols-2 gap-2.5 px-4 md:grid-cols-4 md:gap-3"
-          style={{ animationDelay: "80ms" }}
-        >
-          <div className="bg-card rounded-2xl border border-border p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2">
-              Promotion Ready
-            </p>
-            <p
-              className="text-[2rem] font-bold text-ink leading-none"
-              style={{ fontFamily: "var(--font-syne)" }}
-            >
-              {promotionReady.length}
-              <span className="text-base text-muted font-medium">
-                /{employees.length}
-              </span>
-            </p>
-            <p className="text-[11px] text-green mt-1.5">↑ Score ≥85 this cycle</p>
+        {/* ── Appraisal Cycle Status ─────────────────────────────── */}
+        <div className="px-5 animate-fade-up delay-150">
+          <p className="type-label mb-3">Appraisal Cycle · Q2 2026</p>
+          <div className="space-y-3.5">
+            {cycleMilestones.map((m) => {
+              const isSent = sentSet.has(m.label);
+              return (
+                <div key={m.label}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm text-ink">{m.label}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={clsx(
+                        "text-xs font-semibold",
+                        m.done ? "text-green" : m.isCount ? "text-pulse font-bold" : "text-ink"
+                      )}>
+                        {m.done ? "✓ " : ""}{m.value}
+                      </span>
+                      {!m.done && !m.isCount && m.pct < 100 && (
+                        <button
+                          onClick={() => sendReminder(m.label)}
+                          disabled={isSent}
+                          className={clsx(
+                            "text-[10px] font-semibold transition-colors",
+                            isSent ? "text-green" : "text-pulse hover:underline"
+                          )}
+                        >
+                          {isSent ? "Sent ✓" : "Remind"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {!m.isCount && (
+                    <div className="h-[3px] bg-border rounded-full overflow-hidden">
+                      <div
+                        className={clsx("h-full rounded-full", m.done ? "bg-green" : "bg-pulse")}
+                        style={{ width: `${m.pct}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
+        </div>
 
-          <div className="bg-pulse rounded-2xl p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50 mb-2">
-              PIP Candidates
-            </p>
-            <p
-              className="text-[2rem] font-bold text-white leading-none"
-              style={{ fontFamily: "var(--font-syne)" }}
-            >
-              {pipCandidates.length}
-            </p>
-            <p className="text-[11px] text-white/60 mt-1.5">Require formal plan</p>
+        {/* ── Department Heatmap ─────────────────────────────────── */}
+        <div className="px-5 animate-fade-up delay-225">
+          <p className="type-label mb-3">Department Heatmap · tap for detail</p>
+          <div className="grid grid-cols-4 gap-2">
+            {departments.map((dept) => (
+              <button
+                key={dept.id}
+                onClick={() => setSelectedDept(dept)}
+                className={clsx(
+                  "rounded-xl p-3 text-left transition-all active:scale-95",
+                  heatBg(dept.avgScore)
+                )}
+              >
+                <p className={clsx("text-[9px] font-bold leading-tight", heatText(dept.avgScore))}>
+                  {dept.name}
+                </p>
+                <p className={clsx("text-base font-bold mt-1 leading-none", heatText(dept.avgScore))}
+                  style={{ fontFamily: "var(--font-syne)" }}>
+                  {dept.avgScore}
+                </p>
+              </button>
+            ))}
           </div>
+        </div>
 
-          <div className="bg-card rounded-2xl border border-border p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2">
-              Report Compliance
-            </p>
-            <p
-              className="text-[2rem] font-bold text-ink leading-none"
-              style={{ fontFamily: "var(--font-syne)" }}
-            >
-              {reportCompliancePct}
-              <span className="text-base text-muted font-medium">%</span>
-            </p>
-            <p className="text-[11px] text-muted mt-1.5">
-              {compliantCount}/{employees.length} submitted on time
-            </p>
+        {/* ── AI Appraisal Recommendations ──────────────────────── */}
+        <div className="px-5 animate-fade-up delay-300">
+          <div className="flex items-center justify-between mb-3">
+            <p className="type-label">AI Recommendations</p>
+            <span className="text-xs text-muted">{visibleEmployees.length} shown</span>
           </div>
-
-          <div className="bg-card rounded-2xl border border-border p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2">
-              Active Risk Flags
-            </p>
-            <p
-              className={clsx(
-                "text-[2rem] font-bold leading-none",
-                riskFlags.length > 0 ? "text-pulse" : "text-ink"
-              )}
-              style={{ fontFamily: "var(--font-syne)" }}
-            >
-              {riskFlags.length}
-            </p>
-            <p
-              className={clsx(
-                "text-[11px] mt-1.5",
-                riskFlags.length > 0 ? "text-pulse" : "text-muted"
-              )}
-            >
-              {riskFlags.length > 0 ? "Require attention" : "All clear"}
-            </p>
-          </div>
-        </section>
-
-        {/* ── 3. AI APPRAISAL RECOMMENDATIONS ─────────────────────── */}
-        <section className="animate-fade-up px-4" style={{ animationDelay: "160ms" }}>
-          <SectionLabel right={`${visibleEmployees.length} shown`}>
-            AI Appraisal Recommendations
-          </SectionLabel>
 
           {/* Filter chips */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-none mb-3 pb-0.5">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none mb-3">
             {(["all", "promote", "pip", "exit_risk", "good_standing"] as FilterKey[]).map((key) => {
-              const labelMap: Record<FilterKey, string> = {
-                all: "All", promote: "Promote", pip: "PIP",
-                exit_risk: "Exit Risk", good_standing: "Good Standing",
+              const labels: Record<FilterKey, string> = {
+                all: "All", promote: "Promote", pip: "PIP", exit_risk: "Exit Risk", good_standing: "Good Standing",
               };
-              const isActive = filter === key;
               return (
                 <button
                   key={key}
                   onClick={() => setFilter(key)}
                   className={clsx(
-                    "flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all",
-                    isActive
+                    "flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all",
+                    filter === key
                       ? "bg-ink text-white border-ink"
-                      : "bg-card text-muted border-border hover:border-ink hover:text-ink"
+                      : "bg-card text-muted border-border hover:text-ink hover:border-ink"
                   )}
                 >
-                  {labelMap[key]}
+                  {labels[key]}
                 </button>
               );
             })}
           </div>
 
-          {/* Employee rows */}
-          <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
+          {/* Employee list */}
+          <div className="space-y-2">
             {visibleEmployees.map((emp) => {
               const override    = recalcResults[emp.id];
               const activeRec   = override?.recommendation ?? emp.aiRec.recommendation;
@@ -358,70 +363,53 @@ export default function HRDashboard() {
               const meta        = recMeta[activeRec];
               const isLoading   = recalcLoading.has(emp.id);
               const hasError    = recalcErrors.has(emp.id);
+
               return (
-                <div key={emp.id} className="p-4">
+                <div key={emp.id} className="bg-card rounded-2xl border border-border p-4">
                   <div className="flex items-start gap-3">
                     <Avatar initials={emp.initials} color={emp.avatarColor} size="sm" />
                     <div className="flex-1 min-w-0">
-                      {/* Name row */}
-                      <div className="flex items-start justify-between gap-2 flex-wrap">
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-ink leading-tight">
-                            {emp.name}
-                          </p>
-                          <p className="text-[11px] text-muted mt-0.5 truncate">
-                            {emp.role} · {emp.performanceScore}%
-                          </p>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-ink">{emp.name}</p>
+                          <p className="text-[11px] text-muted mt-0.5">{emp.role} · {emp.performanceScore}/100</p>
                         </div>
-                        <span
-                          className={clsx(
-                            "px-2.5 py-1 rounded-full text-[10px] font-bold border flex-shrink-0 mt-0.5",
-                            meta.bg, meta.text, meta.border
-                          )}
-                        >
-                          {meta.emoji} {meta.label}
+                        <span className={clsx(
+                          "text-[10px] font-bold px-2.5 py-1 rounded-full border flex-shrink-0",
+                          meta.bg, meta.text, meta.border,
+                        )}>
+                          {meta.label}
                         </span>
                       </div>
 
-                      {/* Evidence */}
                       <p className="text-xs text-muted mt-2 leading-snug line-clamp-2">
                         {activeEvid[0]}
                       </p>
+
                       {override?.note && (
-                        <p className="text-xs text-green mt-1 leading-snug italic">
-                          {override.note}
-                        </p>
+                        <p className="text-xs text-green mt-1 italic leading-snug">{override.note}</p>
                       )}
 
-                      {/* Confidence + actions */}
-                      <div className="flex items-center justify-between mt-2.5 flex-wrap gap-2">
+                      <div className="flex items-center justify-between mt-2.5">
                         <span className="text-[10px] text-muted">
-                          AI confidence:{" "}
+                          Confidence:{" "}
                           <span className={clsx("font-semibold", confColor(activeConf))}>
                             {Math.round(activeConf * 100)}%
                           </span>
-                          {override && (
-                            <span className="text-green ml-1 font-semibold">· updated</span>
-                          )}
+                          {override && <span className="text-green ml-1 font-semibold">· updated</span>}
                         </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleRecalculate(emp)}
-                            disabled={isLoading}
-                            className="text-[11px] text-muted font-semibold flex items-center gap-1 hover:text-ink transition-colors disabled:opacity-50"
-                          >
-                            <RefreshCw size={10} className={isLoading ? "animate-spin" : ""} />
-                            {isLoading ? "Recalculating..." : "Recalculate"}
-                          </button>
-                          <button className="text-[11px] text-pulse font-semibold flex items-center gap-0.5 hover:underline">
-                            View full <ChevronRight size={11} />
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleRecalculate(emp)}
+                          disabled={isLoading}
+                          className="text-[11px] text-muted font-semibold flex items-center gap-1 hover:text-ink transition-colors disabled:opacity-50"
+                        >
+                          <RefreshCw size={10} className={isLoading ? "animate-spin" : ""} />
+                          {isLoading ? "Recalculating…" : "Recalculate"}
+                        </button>
                       </div>
+
                       {hasError && (
-                        <p className="text-[10px] text-amber mt-1.5">
-                          AI unavailable — showing original data.
-                        </p>
+                        <p className="text-[10px] text-amber mt-1.5">AI unavailable — showing original data.</p>
                       )}
                     </div>
                   </div>
@@ -430,290 +418,16 @@ export default function HRDashboard() {
             })}
           </div>
 
-          {/* Advisory note */}
-          <div className="mt-3 bg-amber-soft rounded-xl border border-amber/20 p-3.5 flex items-start gap-2.5">
-            <span className="text-amber flex-shrink-0 text-sm">⚠</span>
-            <p className="text-xs text-amber leading-relaxed">
-              All recommendations are advisory only. Final decisions require HR and manager confirmation.
-            </p>
-          </div>
-        </section>
+          <p className="text-[11px] text-muted text-center mt-4 px-2 leading-relaxed">
+            All recommendations are advisory. Final decisions require HR and manager confirmation.
+          </p>
+        </div>
 
-        {/* ── 4. DEPARTMENT HEATMAP ────────────────────────────────── */}
-        <section className="animate-fade-up px-4" style={{ animationDelay: "240ms" }}>
-          <SectionLabel right="tap for details">Department Heatmap</SectionLabel>
-
-          <div className="grid grid-cols-4 gap-2 md:grid-cols-8 md:gap-3">
-            {departments.map((dept) => (
-              <button
-                key={dept.id}
-                onClick={() => openDept(dept)}
-                className={clsx(
-                  "rounded-2xl p-2.5 text-left transition-all active:scale-95",
-                  heatBg(dept.avgScore)
-                )}
-              >
-                <p
-                  className={clsx(
-                    "text-[9px] font-bold leading-tight break-words",
-                    heatText(dept.avgScore)
-                  )}
-                >
-                  {dept.name}
-                </p>
-                <p
-                  className={clsx("text-base font-bold mt-1 leading-none", heatText(dept.avgScore))}
-                  style={{ fontFamily: "var(--font-syne)" }}
-                >
-                  {dept.avgScore}
-                </p>
-              </button>
-            ))}
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center gap-4 mt-3 flex-wrap">
-            {[
-              { label: "≥80", bgClass: "bg-green-soft",  textClass: "text-green" },
-              { label: "≥70", bgClass: "bg-green/10",    textClass: "text-green" },
-              { label: "≥60", bgClass: "bg-amber-soft",  textClass: "text-amber" },
-              { label: "<60", bgClass: "bg-red-soft",    textClass: "text-red"   },
-            ].map((l) => (
-              <div key={l.label} className="flex items-center gap-1.5">
-                <div className={clsx("w-3 h-3 rounded-sm", l.bgClass)} />
-                <span className={clsx("text-[10px] font-medium", l.textClass)}>{l.label}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── 5. APPRAISAL CYCLE STATUS ────────────────────────────── */}
-        <section className="animate-fade-up px-4" style={{ animationDelay: "320ms" }}>
-          <SectionLabel>Appraisal Cycle Status</SectionLabel>
-
-          <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
-            {cycleMilestones.map((m) => {
-              const isSent      = sentSet.has(m.label);
-              const isComplete  = m.type === "pct" && m.pct === 100;
-              const needsAction = m.type === "pct" ? m.pct < 100 : m.count > 0;
-
-              return (
-                <div key={m.label} className="flex items-center gap-3 px-4 py-3.5">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-ink">{m.label}</p>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {m.type === "pct" ? (
-                      <span className={clsx("text-sm tabular-nums", pctColor(m.pct))}>
-                        {m.pct}%
-                      </span>
-                    ) : (
-                      <span className="text-sm font-bold text-pulse tabular-nums">
-                        {m.count} pending
-                      </span>
-                    )}
-
-                    {isComplete && (
-                      <span className="text-[11px] text-green font-semibold">✓ Done</span>
-                    )}
-
-                    {needsAction && (
-                      <button
-                        onClick={() => sendReminder(m.label)}
-                        disabled={isSent}
-                        className={clsx(
-                          "flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all",
-                          isSent
-                            ? "bg-green-soft text-green border-green/20 cursor-default"
-                            : "bg-card text-muted border-border hover:border-pulse hover:text-pulse"
-                        )}
-                      >
-                        <Bell size={10} />
-                        {isSent ? "Sent ✓" : "Remind"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ── 6. QUICK ACTIONS ─────────────────────────────────────── */}
-        <section className="animate-fade-up px-4 pb-2" style={{ animationDelay: "400ms" }}>
-          <SectionLabel>Quick Actions</SectionLabel>
-
-          <div className="grid grid-cols-3 gap-2 md:max-w-xl">
-            {[
-              { Icon: Download,   label: "Export Report"      },
-              { Icon: RefreshCw,  label: "Start New Cycle"    },
-              { Icon: Settings,   label: "Configure Weights"  },
-            ].map(({ Icon, label }) => (
-              <button
-                key={label}
-                className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl border border-border bg-card text-muted hover:border-ink hover:text-ink transition-colors"
-              >
-                <Icon size={18} />
-                <span className="text-[11px] font-semibold text-center leading-tight">{label}</span>
-              </button>
-            ))}
-          </div>
-        </section>
       </div>
 
-      {/* ── DEPARTMENT BOTTOM SHEET ──────────────────────────────────── */}
+      {/* Dept detail sheet */}
       {selectedDept && (
-        <>
-          {/* Overlay */}
-          <div
-            onClick={closeDept}
-            className="fixed inset-0 z-[60] bg-black/50"
-            style={{ opacity: sheetOpen ? 1 : 0, transition: "opacity 0.3s ease" }}
-          />
-
-          {/* Sheet */}
-          <div
-            className="fixed bottom-0 left-0 right-0 z-[70] bg-paper rounded-t-[24px] max-h-[82vh] overflow-y-auto overscroll-contain"
-            style={{
-              transform: sheetOpen ? "translateY(0)" : "translateY(100%)",
-              transition: "transform 0.35s cubic-bezier(0.32,0.72,0,1)",
-            }}
-          >
-            {/* Drag handle */}
-            <div className="sticky top-0 bg-paper flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full bg-border" />
-            </div>
-
-            <div className="px-4 pb-10 space-y-4">
-              {/* Header */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <p
-                    className="text-lg font-bold text-ink"
-                    style={{ fontFamily: "var(--font-syne)" }}
-                  >
-                    {selectedDept.name}
-                  </p>
-                  <p className="text-[11px] text-muted mt-0.5">
-                    {selectedDept.headCount} employees
-                  </p>
-                </div>
-                <button
-                  onClick={closeDept}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-border text-muted hover:text-ink transition-colors flex-shrink-0"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-
-              {/* Score hero */}
-              <div className={clsx("rounded-2xl p-4", heatBg(selectedDept.avgScore))}>
-                <p
-                  className={clsx(
-                    "text-[10px] font-semibold uppercase tracking-widest mb-1",
-                    heatText(selectedDept.avgScore)
-                  )}
-                >
-                  Avg Performance Score
-                </p>
-                <p
-                  className={clsx("text-4xl font-bold leading-none", heatText(selectedDept.avgScore))}
-                  style={{ fontFamily: "var(--font-syne)" }}
-                >
-                  {selectedDept.avgScore}
-                </p>
-                <div className="mt-3 h-1.5 bg-white/50 rounded-full overflow-hidden">
-                  <div
-                    className={clsx("h-full rounded-full transition-all duration-700", heatBar(selectedDept.avgScore))}
-                    style={{ width: `${selectedDept.avgScore}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Stats grid */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-card rounded-2xl border border-border p-3.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-1.5">
-                    Goal Completion
-                  </p>
-                  <p
-                    className="text-2xl font-bold text-ink leading-none"
-                    style={{ fontFamily: "var(--font-syne)" }}
-                  >
-                    {deptGoalAvg !== null ? `${deptGoalAvg}%` : "—"}
-                  </p>
-                  <p className="text-[11px] text-muted mt-1">Avg across all goals</p>
-                </div>
-                <div className="bg-card rounded-2xl border border-border p-3.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-1.5">
-                    Head Count
-                  </p>
-                  <p
-                    className="text-2xl font-bold text-ink leading-none"
-                    style={{ fontFamily: "var(--font-syne)" }}
-                  >
-                    {selectedDept.headCount}
-                  </p>
-                  <p className="text-[11px] text-muted mt-1">Total employees</p>
-                </div>
-              </div>
-
-              {/* Top performer */}
-              {topPerformer && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2">
-                    Top Performer
-                  </p>
-                  <div className="bg-card rounded-2xl border border-border p-3.5 flex items-center gap-3">
-                    <Avatar initials={topPerformer.initials} color={topPerformer.avatarColor} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-ink">{topPerformer.name}</p>
-                      <p className="text-[11px] text-muted truncate">{topPerformer.role}</p>
-                    </div>
-                    <span className="text-sm font-bold text-green flex-shrink-0">
-                      {topPerformer.performanceScore}%
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Lowest performer — only shown when different person */}
-              {lowestPerformer && lowestPerformer.id !== topPerformer?.id && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2">
-                    Needs Attention
-                  </p>
-                  <div className="bg-card rounded-2xl border border-border p-3.5 flex items-center gap-3">
-                    <Avatar initials={lowestPerformer.initials} color={lowestPerformer.avatarColor} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-ink">{lowestPerformer.name}</p>
-                      <p className="text-[11px] text-muted truncate">{lowestPerformer.role}</p>
-                    </div>
-                    <span className="text-sm font-bold text-pulse flex-shrink-0">
-                      {lowestPerformer.performanceScore}%
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Pending actions */}
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2">
-                  Pending Actions
-                </p>
-                <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
-                  {(pendingActionsMap[selectedDept.name] ?? ["No pending actions."]).map((action) => (
-                    <div key={action} className="flex items-center gap-3 px-4 py-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-pulse flex-shrink-0" />
-                      <p className="text-xs text-ink leading-snug">{action}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
+        <DeptSheet dept={selectedDept} onClose={() => setSelectedDept(null)} />
       )}
     </>
   );

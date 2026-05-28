@@ -22,50 +22,47 @@ export default function TopBar() {
   }, [profileOpen]);
 
   return (
-    <header className="sticky top-0 z-50 min-h-14 bg-ink flex items-center justify-between px-4 pt-safe flex-shrink-0">
-      {/* Left — animated dot + wordmark */}
-      <div className="flex items-center gap-2.5">
-        <span className="w-2.5 h-2.5 rounded-full bg-pulse animate-pulse-dot" />
+    <header className="sticky top-0 z-50 h-14 bg-ink flex items-center justify-between px-5 flex-shrink-0">
+      {/* Left — wordmark */}
+      <Link href="/dashboard" className="flex items-center gap-2.5 active:opacity-70 transition-opacity">
+        <span className="w-2 h-2 rounded-full bg-pulse animate-pulse-dot flex-shrink-0" />
         <span
-          className="text-white text-lg font-extrabold tracking-tight leading-none"
+          className="text-white text-[17px] font-extrabold tracking-tight leading-none"
           style={{ fontFamily: "var(--font-syne)" }}
         >
           Pulse
         </span>
-      </div>
+      </Link>
 
       {/* Right — bell + avatar */}
-      <div className="flex items-center gap-1.5">
-        {/* Bell */}
+      <div className="flex items-center gap-1">
         <button
           onClick={openNotif}
           aria-label="Notifications"
-          className="relative w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white active:scale-95 transition-all"
+          className="relative w-9 h-9 flex items-center justify-center rounded-full text-white/50 hover:text-white active:scale-95 transition-all"
         >
-          <Bell size={18} />
+          <Bell size={17} strokeWidth={1.75} />
           {hasUnread && (
-            <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-pulse" />
+            <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-pulse" />
           )}
         </button>
 
-        {/* Avatar */}
         <div ref={dropdownRef} className="relative">
           <button
             onClick={() => setProfileOpen((p) => !p)}
             aria-label="Profile menu"
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold ring-2 ring-white/15 active:scale-95 transition-transform"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-white/20 hover:ring-white/40 active:scale-95 transition-all ml-0.5"
             style={{ backgroundColor: user.avatarColor }}
           >
             {user.initials}
           </button>
 
           {profileOpen && (
-            <div className="absolute right-0 top-[calc(100%+8px)] w-64 bg-card rounded-2xl shadow-[var(--shadow-lg)] border border-border z-[60] overflow-hidden animate-fade-up">
-              {/* Identity */}
-              <div className="px-4 py-4 border-b border-border">
+            <div className="absolute right-0 top-[calc(100%+10px)] w-64 bg-card rounded-2xl shadow-[var(--shadow-xl)] border border-border z-[60] overflow-hidden animate-scale-in">
+              <div className="px-4 py-4 border-b border-border bg-paper/60">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
                     style={{ backgroundColor: user.avatarColor }}
                   >
                     {user.initials}
@@ -73,42 +70,29 @@ export default function TopBar() {
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-ink truncate">{user.name}</p>
                     <p className="text-[11px] text-muted truncate">{user.role}</p>
-                    <p className="text-[10px] text-muted/60 truncate">{user.department}</p>
+                    <p className="text-[10px] text-muted/60 truncate mt-0.5">{user.department}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Nav links */}
-              <div className="py-1">
-                <DropItem href="/profile" Icon={User} label="My Profile" onClick={() => setProfileOpen(false)} />
+              <div className="py-1.5">
+                <DropItem href="/dashboard/profile" Icon={User} label="My Profile" onClick={() => setProfileOpen(false)} />
+                <DropItem href="/dashboard/performance" Icon={BarChart2} label="Performance" onClick={() => setProfileOpen(false)} />
                 <DropItem href="/settings" Icon={Settings} label="Settings" onClick={() => setProfileOpen(false)} />
 
                 {(user.platformRole === "hr_admin" || user.platformRole === "super_admin") && (
-                  <DropItem
-                    href="/hr"
-                    Icon={Users}
-                    label="Switch to HR View"
-                    accent
-                    onClick={() => setProfileOpen(false)}
-                  />
+                  <DropItem href="/hr" Icon={Users} label="HR Admin Portal" accent onClick={() => setProfileOpen(false)} />
                 )}
 
-                {(user.platformRole === "executive_view" || user.platformRole === "super_admin") && (
-                  <DropItem
-                    href="/executive"
-                    Icon={BarChart2}
-                    label="Switch to Executive View"
-                    accent
-                    onClick={() => setProfileOpen(false)}
-                  />
+                {user.platformRole === "executive_view" && (
+                  <DropItem href="/executive" Icon={BarChart2} label="Executive Portal" accent onClick={() => setProfileOpen(false)} />
                 )}
               </div>
 
-              {/* Sign out */}
-              <div className="border-t border-border py-1">
+              <div className="border-t border-border py-1.5">
                 <button
                   onClick={() => { setActiveUser("e01"); setProfileOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red hover:bg-red-soft/40 transition-colors active:scale-[0.98]"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red hover:bg-red-soft/30 transition-colors active:scale-[0.98]"
                 >
                   <LogOut size={14} className="text-red" />
                   <span>Sign Out</span>
@@ -123,17 +107,9 @@ export default function TopBar() {
 }
 
 function DropItem({
-  href,
-  Icon,
-  label,
-  accent = false,
-  onClick,
+  href, Icon, label, accent = false, onClick,
 }: {
-  href: string;
-  Icon: React.ElementType;
-  label: string;
-  accent?: boolean;
-  onClick: () => void;
+  href: string; Icon: React.ElementType; label: string; accent?: boolean; onClick: () => void;
 }) {
   return (
     <Link
@@ -143,7 +119,7 @@ function DropItem({
     >
       <Icon size={14} className={accent ? "text-pulse" : "text-muted"} />
       <span className={accent ? "text-pulse font-semibold" : "text-ink"}>{label}</span>
-      <ChevronRight size={12} className="ml-auto text-muted/40" />
+      <ChevronRight size={11} className="ml-auto text-muted/30" />
     </Link>
   );
 }

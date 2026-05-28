@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Target, FileText, Star, Users } from "lucide-react";
 import clsx from "clsx";
-import { useUser } from "@/context/UserContext";
 
 const TABS = [
   { id: "home",      label: "Home",      href: "/dashboard", Icon: Home     },
@@ -15,52 +14,59 @@ const TABS = [
 ] as const;
 
 function isActive(id: string, href: string, pathname: string): boolean {
-  if (id === "home") return pathname.startsWith("/dashboard");
-  return pathname.startsWith(href);
+  if (id === "home") return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+  return pathname === href || pathname.startsWith(href + "/");
 }
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { user } = useUser();
-  const tabs = user.peopleResponsibility === "none" ? TABS.filter((tab) => tab.id !== "team") : TABS;
 
   return (
     <nav
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50 bg-card/95 backdrop-blur-sm border-t border-border"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       aria-label="Main navigation"
     >
-      <div className="flex h-14">
-        {tabs.map(({ id, label, href, Icon }) => {
-          const active = isActive(id, href, pathname);
-          return (
-            <Link
-              key={id}
-              href={href}
-              aria-label={label}
-              aria-current={active ? "page" : undefined}
-              className={clsx(
-                "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px]",
-                "transition-all duration-100 active:scale-95",
-                active ? "text-pulse" : "text-muted hover:text-ink",
-              )}
-            >
-              <Icon
-                size={19}
-                strokeWidth={active ? 2.5 : 1.75}
-                className={clsx("transition-transform duration-150", active && "scale-110")}
-              />
-              <span
+      <div className="bg-card/96 backdrop-blur-md border-t border-border/60">
+        <div className="flex h-[54px]">
+          {TABS.map(({ id, label, href, Icon }) => {
+            const active = isActive(id, href, pathname);
+            return (
+              <Link
+                key={id}
+                href={href}
+                aria-label={label}
+                aria-current={active ? "page" : undefined}
                 className={clsx(
-                  "text-[10px] tracking-wide",
-                  active ? "font-bold" : "font-medium",
+                  "flex-1 flex flex-col items-center justify-center gap-[3px] min-h-[44px]",
+                  "transition-all duration-150 active:scale-90",
                 )}
               >
-                {label}
-              </span>
-            </Link>
-          );
-        })}
+                <div className="relative">
+                  <Icon
+                    size={18}
+                    strokeWidth={active ? 2.25 : 1.75}
+                    className={clsx(
+                      "transition-all duration-150",
+                      active ? "text-pulse scale-110" : "text-muted",
+                    )}
+                  />
+                  {active && (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-pulse" />
+                  )}
+                </div>
+                <span
+                  className={clsx(
+                    "text-[9.5px] tracking-wide transition-all duration-150",
+                    active ? "font-bold text-pulse" : "font-medium text-muted",
+                  )}
+                >
+                  {label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

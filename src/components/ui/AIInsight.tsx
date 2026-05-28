@@ -1,45 +1,44 @@
 import clsx from "clsx";
-import { TrendingUp, Star, AlertTriangle, AlertOctagon, CheckCircle } from "lucide-react";
 import type { AIRec, AIRecommendation } from "@/data/mockData";
 import Skeleton from "./Skeleton";
 
 const recConfig: Record<
   AIRecommendation,
   {
-    label: string;
-    color: string;
-    bg: string;
-    border: string;
-    Icon: React.ComponentType<{ size?: number; className?: string }>;
+    headline: string;
+    subtext: string;
+    accent: string;
+    dot: string;
+    bar: string;
   }
 > = {
   promote: {
-    label: "Recommend Promotion",
-    color: "text-green",
-    bg: "bg-green-soft",
-    border: "border-green/30",
-    Icon: TrendingUp,
+    headline: "Pulse sees promotion readiness.",
+    subtext: "This person is showing strong signals for the next level.",
+    accent: "text-green",
+    dot: "bg-green",
+    bar: "bg-green",
   },
   good_standing: {
-    label: "Good Standing",
-    color: "text-pulse",
-    bg: "bg-pulse-soft",
-    border: "border-pulse/30",
-    Icon: Star,
+    headline: "Pulse sees consistent momentum.",
+    subtext: "Performing well and on track for a strong cycle finish.",
+    accent: "text-pulse",
+    dot: "bg-pulse",
+    bar: "bg-pulse",
   },
   pip: {
-    label: "Performance Improvement Plan",
-    color: "text-amber",
-    bg: "bg-amber-soft",
-    border: "border-amber/30",
-    Icon: AlertTriangle,
+    headline: "Pulse noticed a performance gap.",
+    subtext: "A structured support plan may help close the gap.",
+    accent: "text-amber",
+    dot: "bg-amber",
+    bar: "bg-amber",
   },
   exit_risk: {
-    label: "Exit Risk",
-    color: "text-red",
-    bg: "bg-red-soft",
-    border: "border-red/30",
-    Icon: AlertOctagon,
+    headline: "Pulse is flagging an exit risk.",
+    subtext: "This person's signals suggest disengagement or inability to meet expectations.",
+    accent: "text-red",
+    dot: "bg-red-500",
+    bar: "bg-red-500",
   },
 };
 
@@ -51,44 +50,50 @@ interface AIInsightProps {
 
 export default function AIInsight({ aiRec, className, loading = false }: AIInsightProps) {
   const config = recConfig[aiRec.recommendation];
-  const { label, color, bg, border, Icon } = config;
   const confidencePct = Math.round(aiRec.confidence * 100);
 
   return (
-    <div className={clsx("rounded-2xl border p-4", bg, border, className)}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className={clsx("w-7 h-7 rounded-full flex items-center justify-center bg-white/60")}>
-            <Icon size={14} className={color} />
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">
-              AI Assessment
-            </p>
-            <p className={clsx("text-sm font-bold", color)}>{label}</p>
-          </div>
+    <div className={clsx("bg-ink rounded-[20px] p-5", className)}>
+      <div className="flex items-center gap-2 mb-4">
+        <span className={clsx("w-1 h-3.5 rounded-full flex-shrink-0", config.dot)} />
+        <span className="type-label text-white/40">Pulse AI · Appraisal Signal</span>
+      </div>
+
+      <p
+        className={clsx("text-base font-semibold leading-snug mb-1", config.accent)}
+        style={{ fontFamily: "var(--font-syne)" }}
+      >
+        {config.headline}
+      </p>
+      <p className="text-white/50 text-xs leading-relaxed mb-4">{config.subtext}</p>
+
+      <div className="mb-4">
+        <div className="flex items-baseline justify-between mb-1.5">
+          <span className="text-[10px] text-white/30 font-medium uppercase tracking-widest">
+            Confidence
+          </span>
+          <span className={clsx("text-sm font-bold", config.accent)}>{confidencePct}%</span>
         </div>
-        <div className="text-right">
-          <p className={clsx("text-2xl font-bold leading-none", color)} style={{ fontFamily: "var(--font-syne)" }}>
-            {confidencePct}%
-          </p>
-          <p className="text-[10px] text-muted mt-0.5">confidence</p>
+        <div className="h-[3px] bg-white/10 rounded-full overflow-hidden">
+          <div
+            className={clsx("h-full rounded-full transition-all duration-700", config.bar)}
+            style={{ width: `${confidencePct}%` }}
+          />
         </div>
       </div>
 
       {loading ? (
         <div className="space-y-2">
           <Skeleton width="100%" height={10} />
-          <Skeleton width="92%" height={10} />
-          <Skeleton width="78%" height={10} />
-          <Skeleton width="62%" height={10} />
+          <Skeleton width="88%" height={10} />
+          <Skeleton width="72%" height={10} />
         </div>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           {aiRec.evidence.map((item, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <CheckCircle size={12} className={clsx("flex-shrink-0 mt-0.5", color)} />
-              <p className="text-xs text-ink/80 leading-relaxed">{item}</p>
+            <div key={i} className="flex items-start gap-2.5">
+              <span className={clsx("w-1 h-1 rounded-full mt-1.5 flex-shrink-0", config.dot)} />
+              <p className="text-xs text-white/55 leading-relaxed">{item}</p>
             </div>
           ))}
         </div>
