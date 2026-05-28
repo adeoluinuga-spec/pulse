@@ -138,6 +138,18 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Misc ─────────────────────────────────────────────────────────────────── */
 
+/* ── Safe-area / iOS utilities ───────────────────────────────────────────── */
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Prevent iOS font-size zoom on inputs */
+input, textarea, select {
+  font-size: max(16px, 1rem);
+}
+
+/* ── Hide number input spinners ──────────────────────────────────────────── */
 /* Hide number input spinners */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
