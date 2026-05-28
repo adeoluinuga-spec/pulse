@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { ChevronDown, X, Download } from "lucide-react";
 import { employees, departments } from "@/data/mockData";
 import type { Employee, AIRecommendation } from "@/data/mockData";
-import { useRole } from "@/context/RoleContext";
+import { useUser } from "@/context/UserContext";
 import Avatar from "@/components/ui/Avatar";
 import ProgressBar from "@/components/ui/ProgressBar";
 import { SectionLabel } from "@/components/ui";
@@ -1170,8 +1170,18 @@ function ExecutiveView({ appraisals }: { appraisals: Record<string, AppraisalSta
 
 // ── AppraisalPage ─────────────────────────────────────────────────────────────
 
+type ViewKey = "employee" | "manager" | "hr" | "executive";
+
+function deriveView(user: Employee): ViewKey {
+  if (user.platformRole === "hr_admin" || user.platformRole === "super_admin") return "hr";
+  if (user.platformRole === "executive_view" || user.cadre === "executive") return "executive";
+  if (user.peopleResponsibility !== "none") return "manager";
+  return "employee";
+}
+
 export default function AppraisalPage() {
-  const { role } = useRole();
+  const { user } = useUser();
+  const view = deriveView(user);
   const [appraisals, setAppraisals] = useState<Record<string, AppraisalState>>(INIT_APPRAISALS);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [signOffId,   setSignOffId  ] = useState<string | null>(null);
@@ -1180,7 +1190,7 @@ export default function AppraisalPage() {
   function submitSelf(ratings: [number,number,number], texts: [string,string]) {
     setAppraisals((prev) => ({
       ...prev,
-      [employees[0].id]: { ...prev[employees[0].id], selfSubmitted: true, selfRatings: ratings, selfTexts: texts },
+      [user.id]: { ...prev[user.id], selfSubmitted: true, selfRatings: ratings, selfTexts: texts },
     }));
   }
 
@@ -1218,25 +1228,34 @@ export default function AppraisalPage() {
         <h1 className="text-2xl font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>
           Appraisal
         </h1>
-        <p className="text-sm text-muted mt-0.5">Q2 2026 · {role} view</p>
+        <p className="text-sm text-muted mt-0.5">Q2 2026 · {view} view</p>
       </section>
 
-      {role === "employee" && (
+      {(view === "employee" || view === "manager") && (
         <EmployeeView
-          employee={employees[0]}
-          state={appraisals[employees[0].id]}
+          employee={user}
+          state={appraisals[user.id] ?? makeState()}
           onSubmitSelf={submitSelf}
         />
       )}
 
-      {role === "manager" && (
-        <ManagerView
-          appraisals={appraisals}
-          onReview={setReviewingId}
-        />
+      {view === "manager" && (
+        <>
+          <section className="animate-fade-up px-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">Team Management</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+          </section>
+          <ManagerView
+            appraisals={appraisals}
+            onReview={setReviewingId}
+          />
+        </>
       )}
 
-      {role === "hr" && (
+      {view === "hr" && (
         <HRView
           appraisals={appraisals}
           onSignOff={setSignOffId}
@@ -1244,7 +1263,7 @@ export default function AppraisalPage() {
         />
       )}
 
-      {role === "executive" && (
+      {view === "executive" && (
         <ExecutiveView appraisals={appraisals} />
       )}
 
