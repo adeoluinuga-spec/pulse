@@ -1,0 +1,49 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { NextRequest, NextResponse } from "next/server";
+
+const model = "claude-sonnet-4-20250514";
+
+function fallback(level = "mixed") {
+  if (level === "positive") {
+    return {
+      message:
+        "It sounds like you are in a good rhythm this week. Keep protecting the habits that are working, and give yourself space to recover between focused pushes.",
+      actions: ["Block one recovery window this week", "Share one win with your manager"],
+    };
+  }
+  if (level === "negative") {
+    return {
+      message:
+        "This sounds like a heavier week than usual, and it makes sense to want more support. Consider choosing one immediate pressure point to discuss with someone you trust today.",
+      actions: ["Book a confidential EAP session", "Ask your manager to reprioritise one task", "Take a short reset break today"],
+    };
+  }
+  return {
+    message:
+      "There are some good signals here, and also a few signs that the workload may need attention. A small adjustment now could help the week feel more manageable.",
+    actions: ["Clarify this week's top two priorities", "Schedule a quick support check-in"],
+  };
+}
+
+export async function POST(request: NextRequest) {
+  let body: { escalationLevel?: string } = {};
+  try {
+    body = await request.json();
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const message = await client.messages.create({
+      model,
+      max_tokens: 1000,
+      system:
+        "You are Pulse's wellbeing support layer. An employee has just completed a wellbeing check-in. Respond with warmth and care. If responses are positive, affirm and encourage. If mixed or negative, acknowledge without alarming, and gently point toward support. NEVER use words like flagged, reported, escalated, or monitored. Maximum 3 sentences. Then suggest 2 relevant support actions.",
+      messages: [{ role: "user", content: JSON.stringify(body) }],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    const fb = fallback(body.escalationLevel);
+    return NextResponse.json({ message: text || fb.message, actions: fb.actions });
+  } catch (error) {
+    console.error("wellbeing-response fallback:", error);
+    return NextResponse.json(fallback(body.escalationLevel));
+  }
+}
