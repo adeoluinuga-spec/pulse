@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import clsx from "clsx";
-import { ChevronRight, RefreshCw, X } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
 import { employees, departments, org } from "@/data/mockData";
 import type { Employee, Department } from "@/data/mockData";
 import type { AIRecommendation } from "@/data/mockData";
@@ -16,7 +16,6 @@ const orgHealthScore = Math.round(
 const promotionReady  = employees.filter((e) => e.aiRec.recommendation === "promote");
 const pipCandidates   = employees.filter((e) => e.aiRec.recommendation === "pip");
 const exitRisk        = employees.filter((e) => e.aiRec.recommendation === "exit_risk");
-const riskFlags       = employees.filter((e) => e.badge === "At Risk" || e.badge === "Needs Improvement");
 const compliantCount  = employees.filter((e) => e.weekStreak >= 1).length;
 const reportCompliance = Math.round((compliantCount / employees.length) * 100);
 

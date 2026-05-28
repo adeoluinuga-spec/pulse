@@ -1,7 +1,7 @@
 "use client";
 
-import { Bell, User, Settings, LogOut, Users, BarChart2, ChevronRight } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { Bell, BarChart2, ChevronRight, LogOut, Settings, Sparkles, User, Users } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useUser } from "@/context/UserContext";
 
@@ -12,8 +12,8 @@ export default function TopBar() {
 
   useEffect(() => {
     if (!profileOpen) return;
-    function handle(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+    function handle(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setProfileOpen(false);
       }
     }
@@ -22,55 +22,53 @@ export default function TopBar() {
   }, [profileOpen]);
 
   return (
-    <header className="sticky top-0 z-50 h-14 bg-ink flex items-center justify-between px-5 flex-shrink-0">
-      {/* Left — wordmark */}
-      <Link href="/dashboard" className="flex items-center gap-2.5 active:opacity-70 transition-opacity">
-        <span className="w-2 h-2 rounded-full bg-pulse animate-pulse-dot flex-shrink-0" />
-        <span
-          className="text-white text-[17px] font-extrabold tracking-tight leading-none"
-          style={{ fontFamily: "var(--font-syne)" }}
-        >
-          Pulse
-        </span>
+    <header className="sticky top-0 z-50 flex min-h-16 flex-shrink-0 items-center justify-between border-b border-ink/6 bg-cream/88 px-4 pt-safe backdrop-blur-xl md:min-h-[76px] md:bg-cream/78 md:px-7">
+      <Link href="/dashboard" className="flex items-center gap-2.5 transition-opacity active:opacity-70 md:hidden">
+        <span className="h-2 w-2 flex-shrink-0 animate-pulse-dot rounded-full bg-pulse" />
+        <span className="font-syne text-[17px] font-extrabold leading-none tracking-tight text-ink">Pulse</span>
       </Link>
 
-      {/* Right — bell + avatar */}
+      <div className="hidden min-w-0 md:block">
+        <div className="flex items-center gap-2 text-pulse">
+          <Sparkles size={14} />
+          <p className="text-xs font-black uppercase tracking-[0.18em]">Living Work OS</p>
+        </div>
+        <p className="mt-1 truncate font-syne text-xl font-bold text-ink">
+          Good to see you, {user.name.split(" ")[0]}. Pulse is watching the work, not the person.
+        </p>
+      </div>
+
       <div className="flex items-center gap-1">
         <button
           onClick={openNotif}
           aria-label="Notifications"
-          className="relative w-9 h-9 flex items-center justify-center rounded-full text-white/50 hover:text-white active:scale-95 transition-all"
+          className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted shadow-sm hover:text-ink active:scale-95"
         >
           <Bell size={17} strokeWidth={1.75} />
-          {hasUnread && (
-            <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-pulse" />
-          )}
+          {hasUnread && <span className="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-pulse" />}
         </button>
 
         <div ref={dropdownRef} className="relative">
           <button
-            onClick={() => setProfileOpen((p) => !p)}
+            onClick={() => setProfileOpen((open) => !open)}
             aria-label="Profile menu"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-white/20 hover:ring-white/40 active:scale-95 transition-all ml-0.5"
+            className="ml-0.5 flex h-10 w-10 items-center justify-center rounded-full text-[10px] font-bold text-white ring-2 ring-white hover:ring-pulse/30 active:scale-95 md:h-11 md:w-11"
             style={{ backgroundColor: user.avatarColor }}
           >
             {user.initials}
           </button>
 
           {profileOpen && (
-            <div className="absolute right-0 top-[calc(100%+10px)] w-64 bg-card rounded-2xl shadow-[var(--shadow-xl)] border border-border z-[60] overflow-hidden animate-scale-in">
-              <div className="px-4 py-4 border-b border-border bg-paper/60">
+            <div className="absolute right-0 top-[calc(100%+10px)] z-[60] w-72 overflow-hidden rounded-3xl border border-border bg-card shadow-[var(--shadow-lg)] animate-fade-up">
+              <div className="border-b border-border bg-paper/70 px-4 py-4">
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
-                    style={{ backgroundColor: user.avatarColor }}
-                  >
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: user.avatarColor }}>
                     {user.initials}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-ink truncate">{user.name}</p>
-                    <p className="text-[11px] text-muted truncate">{user.role}</p>
-                    <p className="text-[10px] text-muted/60 truncate mt-0.5">{user.department}</p>
+                    <p className="truncate text-sm font-bold text-ink">{user.name}</p>
+                    <p className="truncate text-[11px] text-muted">{user.role}</p>
+                    <p className="mt-0.5 truncate text-[10px] text-muted/70">{user.cadre} / {user.peopleResponsibility}</p>
                   </div>
                 </div>
               </div>
@@ -81,18 +79,18 @@ export default function TopBar() {
                 <DropItem href="/settings" Icon={Settings} label="Settings" onClick={() => setProfileOpen(false)} />
 
                 {(user.platformRole === "hr_admin" || user.platformRole === "super_admin") && (
-                  <DropItem href="/hr" Icon={Users} label="HR Admin Portal" accent onClick={() => setProfileOpen(false)} />
+                  <DropItem href="/hr" Icon={Users} label="Switch to HR View" accent onClick={() => setProfileOpen(false)} />
                 )}
 
-                {user.platformRole === "executive_view" && (
-                  <DropItem href="/executive" Icon={BarChart2} label="Executive Portal" accent onClick={() => setProfileOpen(false)} />
+                {(user.platformRole === "executive_view" || user.platformRole === "super_admin") && (
+                  <DropItem href="/executive" Icon={BarChart2} label="Switch to Executive View" accent onClick={() => setProfileOpen(false)} />
                 )}
               </div>
 
               <div className="border-t border-border py-1.5">
                 <button
                   onClick={() => { setActiveUser("e01"); setProfileOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red hover:bg-red-soft/30 transition-colors active:scale-[0.98]"
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red transition-colors hover:bg-red-soft/30 active:scale-[0.98]"
                 >
                   <LogOut size={14} className="text-red" />
                   <span>Sign Out</span>
@@ -107,18 +105,22 @@ export default function TopBar() {
 }
 
 function DropItem({
-  href, Icon, label, accent = false, onClick,
+  href,
+  Icon,
+  label,
+  accent = false,
+  onClick,
 }: {
-  href: string; Icon: React.ElementType; label: string; accent?: boolean; onClick: () => void;
+  href: string;
+  Icon: React.ElementType;
+  label: string;
+  accent?: boolean;
+  onClick: () => void;
 }) {
   return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-paper transition-colors active:scale-[0.98]"
-    >
+    <Link href={href} onClick={onClick} className="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-paper active:scale-[0.98]">
       <Icon size={14} className={accent ? "text-pulse" : "text-muted"} />
-      <span className={accent ? "text-pulse font-semibold" : "text-ink"}>{label}</span>
+      <span className={accent ? "font-semibold text-pulse" : "text-ink"}>{label}</span>
       <ChevronRight size={11} className="ml-auto text-muted/30" />
     </Link>
   );

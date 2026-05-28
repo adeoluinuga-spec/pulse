@@ -4,7 +4,6 @@ import { useState } from "react";
 import clsx from "clsx";
 import { Loader2, Sparkles } from "lucide-react";
 import { employees, departments, org } from "@/data/mockData";
-import { SectionLabel } from "@/components/ui";
 
 // ── Derived data ───────────────────────────────────────────────────────────────
 

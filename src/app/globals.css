@@ -57,6 +57,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -65,6 +66,9 @@ body {
   font-family: var(--font-dm-sans), "DM Sans", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  touch-action: manipulation;
+  text-rendering: geometricPrecision;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -138,6 +142,24 @@ h1, h2, h3, h4, h5, h6 {
   animation: shimmer 1.6s linear infinite;
 }
 
+.skeleton-shimmer {
+  position: relative;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.58), transparent);
+  animation: skeleton-sweep 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
 /* ── Staggered animation delays ──────────────────────────────────────────── */
 
 .delay-75  { animation-delay: 75ms; }
@@ -151,8 +173,55 @@ h1, h2, h3, h4, h5, h6 {
 
 .dashboard-page {
   width: 100%;
-  max-width: 72rem;
+  max-width: 1180px;
   margin: 0 auto;
+  padding-block: 1.25rem 6rem;
+}
+
+@media (min-width: 768px) {
+  .dashboard-page {
+    padding-block: 2rem 3rem;
+  }
+
+  .dashboard-page > section {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+.dashboard-page > section {
+  animation: fade-up 0.42s ease-out both;
+}
+
+.bg-card {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(226, 221, 214, 0.78);
+}
+
+.bg-ink {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(232, 68, 10, 0.16), transparent 28rem),
+    linear-gradient(145deg, #0d0d0d, #17120f);
+}
+
+button,
+a,
+[role="button"] {
+  min-height: 44px;
+}
+
+button:active,
+a:active,
+[role="button"]:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  button.bg-card:hover,
+  a.bg-card:hover,
+  .interactive-card:hover {
+    box-shadow: var(--shadow-lg);
+  }
 }
 
 /* ── Insight card (AI brief) ─────────────────────────────────────────────── */
@@ -201,7 +270,11 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Safe-area / iOS utilities ───────────────────────────────────────────── */
 
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 12px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Prevent iOS font-size zoom on inputs */

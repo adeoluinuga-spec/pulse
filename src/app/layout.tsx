@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Syne, DM_Sans } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
-import TopBar from "@/components/layout/TopBar";
+import AppShell from "@/components/layout/AppShell";
 import NotificationPanel from "@/components/layout/NotificationPanel";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 
@@ -49,17 +49,8 @@ export default function RootLayout({
     <html lang="en" className={`${syne.variable} ${dmSans.variable}`}>
       <body className="min-h-screen bg-paper text-ink">
         <Providers>
-          {/* Desktop: paper bg fills screen, app column centered at 430px */}
-          <div className="min-h-screen bg-paper flex justify-center">
-            <div className="relative w-full max-w-[430px] min-h-screen bg-white flex flex-col shadow-[0_0_80px_rgba(13,13,13,0.1)]">
-              <TopBar />
-              <div className="flex-1">
-                {children}
-              </div>
-            </div>
-          </div>
+          <AppShell>{children}</AppShell>
 
-          {/* Full-screen overlays outside the column */}
           <NotificationPanel />
           <PWAInstallPrompt />
         </Providers>

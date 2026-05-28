@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import Link from "next/link";
-import { ArrowRight, ChevronRight, AlertTriangle, FileText, Star, TrendingUp, Calendar } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { employees, departments } from "@/data/mockData";
 import { useUser } from "@/context/UserContext";
 import type { Employee } from "@/types";
@@ -10,6 +10,7 @@ import type { Employee } from "@/types";
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 type ViewKey = "employee" | "manager" | "hr" | "executive";
+const REFERENCE_NOW = new Date("2026-05-28").getTime();
 
 function deriveView(user: Employee): ViewKey {
   if (user.platformRole === "hr_admin" || user.platformRole === "super_admin") return "hr";
@@ -50,7 +51,7 @@ function PulseBrief({ user }: { user: Employee }) {
   const bonus = bonusEligible(user);
   const atRiskGoals = user.goals.filter((g) => g.status === "at_risk" || g.status === "behind");
   const daysSince = user.reports.length
-    ? Math.floor((Date.now() - new Date(user.reports[0].date).getTime()) / 86_400_000)
+    ? Math.floor((REFERENCE_NOW - new Date(user.reports[0].date).getTime()) / 86_400_000)
     : 99;
 
   const lines: string[] = [];
@@ -153,7 +154,7 @@ interface AttentionItem {
 
 function AttentionFeed({ user }: { user: Employee }) {
   const daysSince = user.reports.length
-    ? Math.floor((Date.now() - new Date(user.reports[0].date).getTime()) / 86_400_000)
+    ? Math.floor((REFERENCE_NOW - new Date(user.reports[0].date).getTime()) / 86_400_000)
     : 99;
   const atRiskGoals = user.goals.filter((g) => g.status === "at_risk" || g.status === "behind");
   const bonus = bonusEligible(user);
@@ -304,14 +305,14 @@ function UpcomingSection({ user }: { user: Employee }) {
 
 // ── Manager Brief ─────────────────────────────────────────────────────────────
 
-function ManagerBrief({ user }: { user: Employee }) {
+function ManagerBrief() {
   const teamAvg = Math.round(
     employees.reduce((s, e) => s + e.performanceScore, 0) / employees.length
   );
   const atRisk = employees.filter((e) => e.badge === "At Risk" || e.badge === "Needs Improvement");
   const overdueReports = employees.filter((e) => {
     if (!e.reports.length) return true;
-    return Math.floor((Date.now() - new Date(e.reports[0].date).getTime()) / 86_400_000) >= 5;
+    return Math.floor((REFERENCE_NOW - new Date(e.reports[0].date).getTime()) / 86_400_000) >= 5;
   });
 
   const lines: string[] = [];
@@ -692,7 +693,7 @@ export default function DashboardHome() {
 
       {/* AI Brief */}
       {view === "employee" && <PulseBrief user={user} />}
-      {view === "manager" && <ManagerBrief user={user} />}
+      {view === "manager" && <ManagerBrief />}
       {view === "executive" && <ExecutiveBrief />}
       {view === "hr" && <HRBrief />}
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Target, FileText, Star, Users } from "lucide-react";
 import clsx from "clsx";
+import { useUser } from "@/context/UserContext";
 
 const TABS = [
   { id: "home",      label: "Home",      href: "/dashboard", Icon: Home     },
@@ -20,16 +21,18 @@ function isActive(id: string, href: string, pathname: string): boolean {
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { user } = useUser();
+  const tabs = user.peopleResponsibility === "none" ? TABS.filter((tab) => tab.id !== "team") : TABS;
 
   return (
     <nav
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 md:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}
       aria-label="Main navigation"
     >
       <div className="bg-card/96 backdrop-blur-md border-t border-border/60">
         <div className="flex h-[54px]">
-          {TABS.map(({ id, label, href, Icon }) => {
+          {tabs.map(({ id, label, href, Icon }) => {
             const active = isActive(id, href, pathname);
             return (
               <Link

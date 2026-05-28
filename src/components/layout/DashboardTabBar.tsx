@@ -29,9 +29,9 @@ export default function DashboardTabBar() {
   const tabs = user.peopleResponsibility !== "none" ? [...BASE_TABS, TEAM_TAB] : BASE_TABS;
 
   return (
-    <div className="sticky top-14 z-40 bg-ink/98 backdrop-blur-sm border-b border-white/8">
+    <div className="sticky top-16 z-40 border-b border-ink/6 bg-cream/82 backdrop-blur-xl md:hidden">
       <div
-        className="flex gap-0.5 px-4 py-2.5 overflow-x-auto scrollbar-none"
+        className="flex gap-1.5 overflow-x-auto px-4 py-2.5 scrollbar-none"
         role="tablist"
         aria-label="Dashboard sections"
       >
@@ -44,11 +44,11 @@ export default function DashboardTabBar() {
               role="tab"
               aria-selected={active}
               className={clsx(
-                "flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap",
+                "flex-shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-bold whitespace-nowrap",
                 "transition-all duration-150 active:scale-95",
                 active
-                  ? "bg-white/12 text-white font-semibold"
-                  : "text-white/45 hover:text-white/70",
+                  ? "bg-ink text-white"
+                  : "bg-card text-muted hover:text-ink",
               )}
             >
               {tab.label}
