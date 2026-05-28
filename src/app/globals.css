@@ -1,41 +1,53 @@
 @import "tailwindcss";
 
+/* ── Design tokens ────────────────────────────────────────────────────────── */
+
 :root {
-  --ink: #0d0d0d;
-  --paper: #f6f7f9;
-  --cream: #faf8f4;
-  --pulse: #e8440a;
-  --pulse-soft: #fde8e0;
-  --green: #1a7a4a;
-  --green-soft: #d4f0e2;
-  --amber: #c47d00;
-  --amber-soft: #fef3d4;
-  --red: #c0392b;
-  --red-soft: #fde8e6;
-  --muted: #6f747d;
-  --border: #e4e7ec;
-  --card: #ffffff;
+  --ink:          #0d0d0d;
+  --paper:        #f5f2ec;
+  --cream:        #faf8f4;
+  --pulse:        #e8440a;
+  --pulse-soft:   #fde8e0;
+  --pulse-dim:    rgba(232, 68, 10, 0.12);
+  --green:        #1a7a4a;
+  --green-soft:   #d4f0e2;
+  --amber:        #c47d00;
+  --amber-soft:   #fef3d4;
+  --red:          #c0392b;
+  --red-soft:     #fde8e6;
+  --muted:        #7a7570;
+  --border:       #e2ddd6;
+  --card:         #ffffff;
+  --shadow:       0 2px 16px rgba(13, 13, 13, 0.07);
+  --shadow-lg:    0 8px 40px rgba(13, 13, 13, 0.12);
+  --radius:       16px;
+  --radius-sm:    10px;
+  --radius-lg:    20px;
 }
 
+/* ── Tailwind v4 theme bridge ─────────────────────────────────────────────── */
+
 @theme inline {
-  --color-ink: var(--ink);
-  --color-paper: var(--paper);
-  --color-cream: var(--cream);
-  --color-pulse: var(--pulse);
-  --color-pulse-soft: var(--pulse-soft);
-  --color-green: var(--green);
-  --color-green-soft: var(--green-soft);
-  --color-amber: var(--amber);
-  --color-amber-soft: var(--amber-soft);
-  --color-red: var(--red);
-  --color-red-soft: var(--red-soft);
-  --color-muted: var(--muted);
-  --color-border: var(--border);
-  --color-card: var(--card);
+  --color-ink:         var(--ink);
+  --color-paper:       var(--paper);
+  --color-cream:       var(--cream);
+  --color-pulse:       var(--pulse);
+  --color-pulse-soft:  var(--pulse-soft);
+  --color-green:       var(--green);
+  --color-green-soft:  var(--green-soft);
+  --color-amber:       var(--amber);
+  --color-amber-soft:  var(--amber-soft);
+  --color-red:         var(--red);
+  --color-red-soft:    var(--red-soft);
+  --color-muted:       var(--muted);
+  --color-border:      var(--border);
+  --color-card:        var(--card);
 
   --font-syne: var(--font-syne), "Syne", sans-serif;
   --font-sans: var(--font-dm-sans), "DM Sans", sans-serif;
 }
+
+/* ── Base reset ───────────────────────────────────────────────────────────── */
 
 * {
   box-sizing: border-box;
@@ -46,8 +58,7 @@ html {
 }
 
 body {
-  background:
-    linear-gradient(90deg, #0d0d0d 0, #0d0d0d 18rem, var(--paper) 18rem);
+  background-color: var(--cream);
   color: var(--ink);
   font-family: var(--font-dm-sans), "DM Sans", sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -58,20 +69,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-syne), "Syne", sans-serif;
 }
 
-@keyframes pulse-dot {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(0.75);
-  }
-}
-
-.animate-pulse-dot {
-  animation: pulse-dot 2s ease-in-out infinite;
-}
+/* ── Utility: hide scrollbars ────────────────────────────────────────────── */
 
 .scrollbar-none {
   scrollbar-width: none;
@@ -81,45 +79,38 @@ h1, h2, h3, h4, h5, h6 {
   display: none;
 }
 
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* ── Animations ──────────────────────────────────────────────────────────── */
 
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .animate-fade-up {
   animation: fade-up 0.45s ease-out both;
 }
 
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out both;
+}
+
 @keyframes score-bar-fill {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
 }
 
-/* Hide number input spinners */
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.75); }
 }
-input[type="number"] {
-  appearance: textfield;
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
 }
 
-@media (max-width: 767px) {
-  body {
-    background: var(--paper);
-  }
-}
+/* ── Dashboard layout ────────────────────────────────────────────────────── */
 
 .dashboard-page {
   width: 100%;
@@ -132,7 +123,6 @@ input[type="number"] {
   .dashboard-page {
     padding-block: 1.5rem;
   }
-
   .dashboard-page > section {
     padding-left: 0;
     padding-right: 0;
@@ -143,16 +133,17 @@ input[type="number"] {
 .dashboard-page > section > .bg-amber-soft,
 .dashboard-page > section > .bg-ink,
 .dashboard-page > section > .bg-pulse {
-  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.05);
+  box-shadow: var(--shadow);
 }
 
-@media (min-width: 768px) {
-  .dashboard-page .rounded-2xl,
-  .dashboard-page .rounded-\[20px\] {
-    border-radius: 0.5rem;
-  }
+/* ── Misc ─────────────────────────────────────────────────────────────────── */
 
-  .dashboard-page .rounded-xl {
-    border-radius: 0.5rem;
-  }
+/* Hide number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  appearance: textfield;
 }

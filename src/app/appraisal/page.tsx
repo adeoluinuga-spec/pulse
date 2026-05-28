@@ -566,7 +566,7 @@ function HRSignOffSheet({
             {state.managerComment && (
               <div className="mt-3 pt-3 border-t border-border/50">
                 <p className="text-[11px] text-muted mb-1">Manager comment:</p>
-                <p className="text-xs text-ink italic">"{state.managerComment}"</p>
+                <p className="text-xs text-ink italic">&ldquo;{state.managerComment}&rdquo;</p>
               </div>
             )}
           </div>
@@ -778,7 +778,7 @@ function EmployeeView({
                   <StarDisplay value={p.rating} />
                   <span className="text-xs text-muted">Anonymous peer</span>
                 </div>
-                <p className="text-sm text-muted italic">"{p.text}"</p>
+                <p className="text-sm text-muted italic">&ldquo;{p.text}&rdquo;</p>
               </div>
             ))}
             <p className="text-xs text-muted px-1">Peer feedback collection closes Jun 20, 2026. Responses are fully anonymised.</p>
@@ -1009,7 +1009,7 @@ function HRView({
                 </div>
                 {signed && state.hrAgreed === false && state.hrOverrideReason && (
                   <p className="mt-2 text-xs text-amber italic bg-amber-soft rounded-lg px-3 py-2">
-                    Override: "{state.hrOverrideReason}"
+                    Override: &ldquo;{state.hrOverrideReason}&rdquo;
                   </p>
                 )}
               </div>

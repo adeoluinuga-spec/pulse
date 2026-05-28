@@ -1,86 +1,36 @@
-export type BadgeType = "Good Standing" | "Strong Performer" | "Needs Improvement" | "At Risk";
-export type GoalType = "org" | "dept" | "team" | "individual";
-export type GoalStatus = "on_track" | "at_risk" | "behind" | "completed";
-export type ReportType = "weekly" | "monthly";
-export type AIRecommendation = "promote" | "good_standing" | "pip" | "exit_risk";
-export type TrendDir = "up" | "down" | "flat";
+import type {
+  Organisation,
+  Department,
+  Employee,
+  Goal,
+  KPI,
+  Report,
+  AppraisalComponent,
+  Training,
+  WellbeingEntry,
+  Document,
+  LeaveBalance,
+  LeaveRequest,
+  Meeting,
+  Task,
+  Notification,
+  Badge,
+  AppraisalRec,
+  TrendDir,
+  GoalType,
+  GoalStatus,
+} from "@/types";
 
-export interface Metric {
-  label: string;
-  value: string;
-  trend: TrendDir;
-}
+// ─── Backward-compat re-exports ────────────────────────────────────────────────
 
-export interface Goal {
-  id: string;
-  name: string;
-  type: GoalType;
-  percentComplete: number;
-  dueDate: string;
-  weight: number;
-  status: GoalStatus;
-}
-
-export interface Report {
-  id: string;
-  type: ReportType;
-  date: string;
-  qualitative: string;
-  metrics: Metric[];
-}
-
+export type { Employee, Department, Goal, GoalType, GoalStatus, TrendDir };
+export type BadgeType = Badge;
+export type AIRecommendation = AppraisalRec;
 export interface AIRec {
-  recommendation: AIRecommendation;
+  recommendation: AppraisalRec;
   confidence: number;
   evidence: string[];
 }
-
-export interface Employee {
-  id: string;
-  name: string;
-  initials: string;
-  role: string;
-  department: string;
-  avatarColor: string;
-  performanceScore: number;
-  consistencyIndex: number;
-  peerRating: number;
-  weekStreak: number;
-  badge: BadgeType;
-  goals: Goal[];
-  reports: Report[];
-  aiRec: AIRec;
-}
-
-export interface Department {
-  id: string;
-  name: string;
-  avgScore: number;
-  headCount: number;
-}
-
-export interface Org {
-  name: string;
-  staffCount: number;
-  departmentCount: number;
-}
-
-export const org: Org = {
-  name: "Zenith Corp",
-  staffCount: 148,
-  departmentCount: 8,
-};
-
-export const departments: Department[] = [
-  { id: "d1", name: "Engineering", avgScore: 84, headCount: 24 },
-  { id: "d2", name: "Sales", avgScore: 87, headCount: 18 },
-  { id: "d3", name: "Human Resources", avgScore: 76, headCount: 9 },
-  { id: "d4", name: "Analytics", avgScore: 81, headCount: 12 },
-  { id: "d5", name: "Product", avgScore: 89, headCount: 14 },
-  { id: "d6", name: "Marketing", avgScore: 75, headCount: 16 },
-  { id: "d7", name: "Finance", avgScore: 72, headCount: 11 },
-  { id: "d8", name: "Customer Experience", avgScore: 83, headCount: 21 },
-];
 
 export interface AppNotification {
   id: string;
@@ -91,493 +41,1722 @@ export interface AppNotification {
 }
 
 export const notifications: AppNotification[] = [
-  { id: "n1", title: "Weekly Report Submitted",    body: "Amara Osei submitted her weekly performance report.",               time: "2m ago",     read: false },
-  { id: "n2", title: "Goal Milestone Reached",      body: "Q2 Product Roadmap Launch is now at 88% completion.",              time: "1h ago",     read: false },
-  { id: "n3", title: "AI Promotion Signal",         body: "3 employees have crossed the promotion readiness threshold.",       time: "3h ago",     read: false },
-  { id: "n4", title: "Review Pending",              body: "4 weekly reports are awaiting your review.",                       time: "Yesterday",  read: true  },
-  { id: "n5", title: "Appraisal Cycle Update",      body: "Peer feedback collection is 88% complete for Q2 2026.",            time: "Yesterday",  read: true  },
-  { id: "n6", title: "PIP Flag Raised",             body: "Priya Sharma (Analytics) has been flagged for formal PIP review.", time: "2 days ago", read: true  },
+  { id: "n1", title: "Weekly Report Submitted",   body: "Amara Osei submitted her weekly performance report.",          time: "2m ago",     read: false },
+  { id: "n2", title: "Goal Milestone Reached",     body: "Q2 Revenue target is now at 88% completion.",                  time: "1h ago",     read: false },
+  { id: "n3", title: "AI Promotion Signal",        body: "3 employees have crossed the promotion readiness threshold.",  time: "3h ago",     read: false },
+  { id: "n4", title: "Review Pending",             body: "4 weekly reports are awaiting your review.",                   time: "Yesterday",  read: true  },
+  { id: "n5", title: "Appraisal Cycle Update",     body: "Peer feedback collection is 96% complete for Q2 2026.",        time: "Yesterday",  read: true  },
+  { id: "n6", title: "PIP Flag Raised",            body: "Chidi Okafor (Ops) has been placed on a formal PIP.",          time: "2 days ago", read: true  },
 ];
 
+// ─── Organisation ─────────────────────────────────────────────────────────────
+
+export const org: Organisation = {
+  id: "zenith-corp",
+  name: "Zenith Corp",
+  staffCount: 148,
+  currency: "NGN",
+  currencySymbol: "₦",
+  appraisalCadence: "quarterly",
+  currentCycle: "Q2 2026",
+  departmentCount: 11,
+};
+
+// ─── Departments ──────────────────────────────────────────────────────────────
+
+export const departments: Department[] = [
+  { id: "d01", name: "Sales",            headCount: 18, avgScore: 84, head: "Bolu Adeyemi"    },
+  { id: "d02", name: "Operations",       headCount: 22, avgScore: 63, head: "Chidi Okafor"    },
+  { id: "d03", name: "Marketing",        headCount: 14, avgScore: 71, head: "Ngozi Bello"     },
+  { id: "d04", name: "Engineering",      headCount: 24, avgScore: 79, head: "Tolu Fashola"    },
+  { id: "d05", name: "Support",          headCount: 16, avgScore: 56, head: "Emeka Eze"       },
+  { id: "d06", name: "Finance",          headCount: 11, avgScore: 67, head: "Aisha Musa"      },
+  { id: "d07", name: "Legal",            headCount:  7, avgScore: 75                          },
+  { id: "d08", name: "Product",          headCount: 13, avgScore: 81                          },
+  { id: "d09", name: "Human Resources",  headCount:  9, avgScore: 78, head: "Kemi Adebayo"   },
+  { id: "d10", name: "Analytics",        headCount: 12, avgScore: 68, head: "Priya Sharma"    },
+  { id: "d11", name: "Customer Success", headCount: 14, avgScore: 82, head: "Derek Okafor"   },
+];
+
+// ─── Factory helpers ───────────────────────────────────────────────────────────
+
+let _id = 0;
+const uid = (prefix: string) => `${prefix}${String(++_id).padStart(3, "0")}`;
+
+function g(
+  name: string,
+  type: Goal["type"],
+  pct: number,
+  due: string,
+  weight: number,
+  status: Goal["status"],
+): Goal {
+  return { id: uid("g"), name, type, percentComplete: pct, dueDate: due, weight, status, description: "" };
+}
+
+function k(
+  name: string,
+  target: number,
+  current: number,
+  unit: string,
+  weight: number,
+  trend: KPI["trend"],
+): KPI {
+  return { id: uid("k"), name, target, current, unit, weight, trend };
+}
+
+function r(
+  type: Report["type"],
+  date: string,
+  qualitative: string,
+  metrics: Report["metrics"],
+  mood: Report["mood"],
+  aiSummary: string,
+): Report {
+  return { id: uid("r"), type, date, qualitative, metrics, mood, aiSummary };
+}
+
+function ac(name: string, weight: number, score: number, status: AppraisalComponent["status"]): AppraisalComponent {
+  return { id: uid("ac"), name, weight, score, status };
+}
+
+function t(title: string, provider: string, reason: string, hours: number, priority: Training["priority"], url?: string): Training {
+  return { id: uid("tr"), title, provider, reason, durationHours: hours, priority, url };
+}
+
+function wb(date: string, mood: WellbeingEntry["mood"], note?: string): WellbeingEntry {
+  return { date, mood, note };
+}
+
+function doc(name: string, type: string, status: Document["status"], uploadDate: string, size?: string): Document {
+  return { id: uid("d"), name, type, status, uploadDate, size };
+}
+
+function lv(total: number, used: number) {
+  return { total, used, remaining: total - used };
+}
+
+function mt(title: string, date: string, time: string, duration: number, type: Meeting["type"], attendees: string[], location?: string): Meeting {
+  return { id: uid("mt"), title, date, time, duration, type, attendees, location };
+}
+
+function tk(title: string, dueDate: string, priority: Task["priority"], status: Task["status"], category: string): Task {
+  return { id: uid("tk"), title, dueDate, priority, status, category };
+}
+
+function nt(type: Notification["type"], title: string, body: string, date: string, read: boolean): Notification {
+  return { id: uid("nt"), type, title, body, date, read };
+}
+
+// ─── Employees ────────────────────────────────────────────────────────────────
+
 export const employees: Employee[] = [
+
+  // ── e01 · Amara Osei · Senior Sales Manager ──────────────────────────────
   {
-    id: "e1",
+    id: "e01",
     name: "Amara Osei",
     initials: "AO",
-    role: "Senior Product Manager",
-    department: "Product",
+    role: "Senior Sales Manager",
+    email: "amara.osei@zenithcorp.ng",
+    phone: "+234 802 345 6789",
+    homeAddress: "14 Admiralty Way, Lekki Phase 1, Lagos",
+    department: "Sales",
+    team: "Enterprise Sales",
+    lineManagerId: "e03",
+    cadre: "senior",
+    peopleResponsibility: "manager",
+    platformRole: "standard",
     avatarColor: "#3b5bdb",
+    joinDate: "2021-03-15",
+    employmentType: "full_time",
+    band: {
+      current: "L4 – Senior Manager",
+      next: "L5 – Director",
+      requirements: ["Lead a team of 8+", "Sustain ≥85% score for 2 quarters", "Complete Leadership Essentials"],
+    },
+    compensation: {
+      basic: 750000, housing: 200000, transport: 100000, medical: 75000,
+      otherAllowances: [{ name: "Sales Incentive", amount: 50000 }],
+      totalGross: 1175000,
+      bonusStructure: [
+        { scoreThreshold: 90, bonusAmount: 350000 },
+        { scoreThreshold: 80, bonusAmount: 200000 },
+        { scoreThreshold: 70, bonusAmount: 100000 },
+      ],
+    },
     performanceScore: 91,
     consistencyIndex: 88,
     peerRating: 4.6,
     weekStreak: 7,
     badge: "Strong Performer",
-    goals: [
-      { id: "g1", name: "Q2 Product Roadmap Launch", type: "org", percentComplete: 88, dueDate: "2026-06-30", weight: 25, status: "on_track" },
-      { id: "g2", name: "User Retention Initiative", type: "dept", percentComplete: 65, dueDate: "2026-07-15", weight: 20, status: "at_risk" },
-      { id: "g3", name: "Feature Velocity +25%", type: "team", percentComplete: 100, dueDate: "2026-05-31", weight: 20, status: "completed" },
-      { id: "g4", name: "Stakeholder NPS +20pts", type: "individual", percentComplete: 45, dueDate: "2026-08-31", weight: 20, status: "behind" },
-      { id: "g5", name: "Product Documentation Overhaul", type: "individual", percentComplete: 78, dueDate: "2026-06-15", weight: 15, status: "on_track" },
-    ],
-    reports: [
-      {
-        id: "r1", type: "weekly", date: "2026-05-19",
-        qualitative: "Strong sprint delivery with 3 of 4 planned features shipped. Stakeholder sync went well — roadmap alignment is improving. One blocker around API integration is being escalated to Engineering.",
-        metrics: [
-          { label: "Features Shipped", value: "3/4", trend: "flat" },
-          { label: "Sprint Velocity", value: "89%", trend: "up" },
-          { label: "Blockers Raised", value: "1", trend: "flat" },
-        ],
-      },
-      {
-        id: "r2", type: "weekly", date: "2026-05-12",
-        qualitative: "Exceptional week — facilitated a cross-functional roadmap review with 94% stakeholder approval. Team velocity hit a 6-week high. NPS tracking is slightly behind schedule but recovery plan is in motion.",
-        metrics: [
-          { label: "Stakeholder Approval", value: "94%", trend: "up" },
-          { label: "Team Velocity", value: "95%", trend: "up" },
-          { label: "NPS Score", value: "62", trend: "up" },
-        ],
-      },
-      {
-        id: "r3", type: "monthly", date: "2026-04-30",
-        qualitative: "April was Amara's strongest month to date. She led the Product team through a major roadmap pivot with minimal disruption, closed 2 enterprise feature requests ahead of schedule, and received top-quartile peer feedback.",
-        metrics: [
-          { label: "Goals On Track", value: "4/5", trend: "up" },
-          { label: "Peer Feedback", value: "4.6/5", trend: "up" },
-          { label: "Dept Rank", value: "#1", trend: "flat" },
-        ],
-      },
-    ],
     aiRec: {
       recommendation: "promote",
       confidence: 0.91,
       evidence: [
-        "Top performer in Product dept for 2 consecutive quarters",
-        "88% consistency index — 15pts above department average",
+        "Top performer in Sales dept for 2 consecutive quarters",
+        "88% consistency index — 15 pts above department average",
         "Peer rating of 4.6/5 across all 360 reviewers",
         "7-week improvement streak with zero regression weeks",
-        "Successfully led 2 major product pivots with minimal disruption",
+        "Successfully led ₦380M Q2 close with 3 enterprise accounts",
       ],
     },
+    goals: [
+      g("Q2 Revenue Target ₦480M", "org", 88, "2026-06-30", 35, "on_track"),
+      g("Enterprise Account Retention 95%", "dept", 92, "2026-06-30", 25, "on_track"),
+      g("New Logo Acquisitions ×6", "team", 67, "2026-09-30", 20, "at_risk"),
+      g("Sales Playbook Refresh", "individual", 100, "2026-04-30", 10, "completed"),
+      g("Win Rate Improvement to 38%", "individual", 74, "2026-08-31", 10, "on_track"),
+    ],
+    kpis: [
+      k("Revenue Closed (Q2)", 480000000, 422400000, "NGN", 40, "up"),
+      k("Win Rate", 38, 34, "%", 30, "up"),
+      k("Pipeline Coverage", 3, 4.2, "x", 20, "up"),
+      k("Customer NPS", 70, 74, "pts", 10, "flat"),
+    ],
+    reports: [
+      r("weekly", "2026-05-19",
+        "Strong sprint — closed 3 enterprise deals totalling ₦142M. Pipeline is healthy at ₦1.6B. Two new logo prospects advanced to POC stage. Win rate tracking at 34%, trending toward 38% target.",
+        [{ metric: "Revenue Closed", value: "₦142M" }, { metric: "Pipeline Value", value: "₦1.6B" }, { metric: "Win Rate", value: "34%" }],
+        "energised",
+        "Amara had an outstanding week with strong deal closures and healthy pipeline momentum. The win rate trajectory suggests she will hit the 38% target by Q3."),
+      r("weekly", "2026-05-12",
+        "Conducted 8 discovery calls, 3 advanced to proposal stage. Launched the refreshed sales playbook — early rep feedback is positive. Q2 revenue at 88% to target with 6 weeks remaining.",
+        [{ metric: "Discovery Calls", value: 8 }, { metric: "Proposals Sent", value: 3 }, { metric: "Q2 Achievement", value: "88%" }],
+        "good",
+        "Solid prospecting week. The playbook launch shows leadership initiative. Q2 close trajectory is strong."),
+      r("monthly", "2026-04-30",
+        "April was Amara's strongest month to date. She led the Enterprise team through a major account expansion with minimal disruption, closed 2 large accounts ahead of schedule, and received top-quartile peer feedback.",
+        [{ metric: "Goals On Track", value: "4/5" }, { metric: "Peer Feedback", value: "4.6/5" }, { metric: "Dept Rank", value: "#1" }],
+        "energised",
+        "April performance is exceptional across all dimensions. Promotion case is strengthening each month."),
+      r("weekly", "2026-04-28",
+        "Wrapped Q1 appraisal cycle with a 94% stakeholder satisfaction score. Mentored 2 junior reps through first enterprise pitches. Chasing 1 stalled deal with a re-engagement strategy.",
+        [{ metric: "Appraisal CSAT", value: "94%" }, { metric: "Mentored Reps", value: 2 }, { metric: "Stalled Deals", value: 1 }],
+        "good",
+        "Strong close to the quarter with mentorship activity noted."),
+    ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 91, "completed"),
+      ac("Report Consistency", 20, 88, "completed"),
+      ac("KPI Performance", 25, 90, "completed"),
+      ac("Manager Assessment", 10, 93, "completed"),
+      ac("Peer Feedback", 10, 92, "completed"),
+    ],
+    trainingSuggestions: [
+      t("Leadership Essentials", "Coursera", "Required for L5 band promotion", 12, "high", "https://coursera.org"),
+      t("Enterprise Negotiation Masterclass", "LinkedIn Learning", "Improve win rate on large deals", 8, "medium"),
+      t("Data-Driven Sales Strategy", "HubSpot Academy", "Leverage CRM analytics for pipeline management", 6, "low"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "energised", "Great close to Q1"),
+      wb("2026-05-07", "good"),
+      wb("2026-05-14", "energised", "Playbook launch went well"),
+      wb("2026-05-21", "good"),
+    ],
+    documents: [
+      doc("Employment Contract", "Contract", "verified", "2021-03-15", "1.2 MB"),
+      doc("Q2 2026 Performance Agreement", "Appraisal", "verified", "2026-04-01", "480 KB"),
+      doc("Sales Commission Policy", "Policy", "verified", "2026-01-10", "340 KB"),
+      doc("Leadership Training Certificate", "Certificate", "submitted", "2026-05-02", "220 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(20, 5),
+      sick: lv(10, 1),
+      compassionate: lv(3, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Annual", startDate: "2026-04-07", endDate: "2026-04-09", days: 3, status: "approved", reason: "Family visit" },
+      { id: uid("lh"), type: "Annual", startDate: "2026-02-17", endDate: "2026-02-19", days: 2, status: "approved", reason: "Personal" },
+    ],
+    meetings: [
+      mt("Enterprise Pipeline Review", "2026-05-29", "10:00", 60, "team", ["Amara Osei", "Bolu Adeyemi", "Adeolu Johnson"], "Board Room A"),
+      mt("Q2 Forecast Call", "2026-06-03", "14:00", 45, "1:1", ["Amara Osei", "Bolu Adeyemi"], "Google Meet"),
+      mt("All-Hands — Q2 Update", "2026-06-10", "09:00", 90, "all_hands", ["All Staff"], "Main Auditorium"),
+    ],
+    tasks: [
+      tk("Submit Q2 pipeline update to Bolu", "2026-05-30", "high", "pending", "Reporting"),
+      tk("Complete leadership training module 3", "2026-06-05", "medium", "pending", "Development"),
+      tk("Send re-engagement proposal to Stalled Account", "2026-05-29", "high", "pending", "Sales"),
+      tk("Review junior rep call recordings", "2026-05-28", "low", "complete", "Coaching"),
+      tk("Update CRM with Q2 deal stages", "2026-05-26", "medium", "complete", "CRM"),
+    ],
+    notifications: [
+      nt("success", "Performance Score Updated", "Your Q2 performance score has been updated to 91%.", "2026-05-21", false),
+      nt("info", "Promotion Review Scheduled", "Your L5 promotion review is scheduled for Q3 2026.", "2026-05-18", false),
+      nt("action_required", "Report Pending", "Your weekly report for 26 May is due by Friday.", "2026-05-26", false),
+    ],
   },
+
+  // ── e02 · Adeolu Johnson · Sales Executive ────────────────────────────────
   {
-    id: "e2",
-    name: "James Kirkland",
-    initials: "JK",
-    role: "Software Engineer",
-    department: "Engineering",
+    id: "e02",
+    name: "Adeolu Johnson",
+    initials: "AJ",
+    role: "Sales Executive",
+    email: "adeolu.johnson@zenithcorp.ng",
+    phone: "+234 803 456 7890",
+    homeAddress: "22 Allen Avenue, Ikeja, Lagos",
+    department: "Sales",
+    team: "Enterprise Sales",
+    lineManagerId: "e01",
+    cadre: "mid",
+    peopleResponsibility: "none",
+    platformRole: "standard",
     avatarColor: "#7048ae",
-    performanceScore: 85,
-    consistencyIndex: 82,
-    peerRating: 4.2,
-    weekStreak: 5,
-    badge: "Strong Performer",
-    goals: [
-      { id: "g6", name: "Migrate Auth Service to OAuth 2.0", type: "dept", percentComplete: 72, dueDate: "2026-06-30", weight: 30, status: "on_track" },
-      { id: "g7", name: "Reduce API Latency by 40%", type: "team", percentComplete: 55, dueDate: "2026-07-31", weight: 25, status: "at_risk" },
-      { id: "g8", name: "Test Coverage to 80%", type: "individual", percentComplete: 91, dueDate: "2026-05-31", weight: 20, status: "on_track" },
-      { id: "g9", name: "Complete System Design Certification", type: "individual", percentComplete: 40, dueDate: "2026-08-15", weight: 15, status: "on_track" },
-      { id: "g10", name: "Onboard 2 Junior Engineers", type: "team", percentComplete: 100, dueDate: "2026-04-30", weight: 10, status: "completed" },
-    ],
-    reports: [
-      {
-        id: "r4", type: "weekly", date: "2026-05-19",
-        qualitative: "Good week overall — closed 8 of 9 assigned tickets, with the remaining blocked on design specs. Auth migration is progressing well. Flagged a potential performance issue in the data pipeline that could affect Q3 delivery.",
-        metrics: [
-          { label: "Tickets Closed", value: "8/9", trend: "up" },
-          { label: "Code Review Score", value: "4.1/5", trend: "flat" },
-          { label: "Bugs Introduced", value: "0", trend: "up" },
-        ],
-      },
-      {
-        id: "r5", type: "weekly", date: "2026-05-12",
-        qualitative: "Delivered the first milestone of the auth migration ahead of schedule. Led 2 code review sessions for junior engineers. API latency optimization is behind — need more dedicated time or additional resources next sprint.",
-        metrics: [
-          { label: "Sprint Points", value: "34", trend: "up" },
-          { label: "Latency Reduction", value: "18%", trend: "up" },
-          { label: "Review Sessions", value: "2", trend: "flat" },
-        ],
-      },
-      {
-        id: "r6", type: "monthly", date: "2026-04-30",
-        qualitative: "James demonstrated technical leadership throughout April, completing the junior onboarding milestone and driving test coverage from 71% to 82%. His ticket throughput is consistently in the top 20% of Engineering.",
-        metrics: [
-          { label: "Test Coverage", value: "82%", trend: "up" },
-          { label: "Throughput Rank", value: "Top 20%", trend: "up" },
-          { label: "Mentor Score", value: "4.4/5", trend: "up" },
-        ],
-      },
-    ],
-    aiRec: {
-      recommendation: "promote",
-      confidence: 0.82,
-      evidence: [
-        "Consistent top-20% throughput over past 3 months",
-        "Test coverage improved from 67% to 91% on individual goal",
-        "Proactively mentored 2 junior engineers ahead of schedule",
-        "Zero critical bugs shipped in past 6 weeks",
-        "82% consistency index with clear upward trajectory",
+    joinDate: "2023-01-09",
+    employmentType: "full_time",
+    band: {
+      current: "L2 – Mid-level",
+      next: "L3 – Senior Executive",
+      requirements: ["Close ₦200M in a single quarter", "Sustain ≥75% score for 2 quarters", "Complete Sales Excellence cert"],
+    },
+    compensation: {
+      basic: 420000, housing: 120000, transport: 70000, medical: 50000,
+      otherAllowances: [],
+      totalGross: 660000,
+      bonusStructure: [
+        { scoreThreshold: 80, bonusAmount: 150000 },
+        { scoreThreshold: 70, bonusAmount: 80000 },
       ],
     },
-  },
-  {
-    id: "e3",
-    name: "Fatima Al-Rashid",
-    initials: "FA",
-    role: "HR Business Partner",
-    department: "Human Resources",
-    avatarColor: "#0c8599",
-    performanceScore: 73,
+    performanceScore: 74,
     consistencyIndex: 71,
-    peerRating: 4.0,
-    weekStreak: 3,
+    peerRating: 3.9,
+    weekStreak: 4,
     badge: "Good Standing",
-    goals: [
-      { id: "g11", name: "Annual Performance Review Cycle", type: "org", percentComplete: 95, dueDate: "2026-05-31", weight: 30, status: "on_track" },
-      { id: "g12", name: "Reduce Attrition by 5%", type: "dept", percentComplete: 38, dueDate: "2026-12-31", weight: 25, status: "at_risk" },
-      { id: "g13", name: "HR Policy Handbook v3 Launch", type: "dept", percentComplete: 60, dueDate: "2026-07-01", weight: 20, status: "on_track" },
-      { id: "g14", name: "Complete HR Analytics Certification", type: "individual", percentComplete: 55, dueDate: "2026-09-30", weight: 15, status: "on_track" },
-      { id: "g15", name: "Implement 360 Feedback Platform", type: "org", percentComplete: 82, dueDate: "2026-06-15", weight: 10, status: "on_track" },
-    ],
-    reports: [
-      {
-        id: "r7", type: "weekly", date: "2026-05-19",
-        qualitative: "Performance review cycle is in final stages — 94% of forms submitted. Conducted 4 manager coaching sessions this week. Attrition concern in Engineering flagged and escalated to leadership.",
-        metrics: [
-          { label: "Review Completion", value: "94%", trend: "up" },
-          { label: "Coaching Sessions", value: "4", trend: "up" },
-          { label: "Open Grievances", value: "2", trend: "flat" },
-        ],
-      },
-      {
-        id: "r8", type: "weekly", date: "2026-05-12",
-        qualitative: "Focused on 360 feedback platform rollout — training sessions with 6 departments completed. Good adoption so far. HR policy handbook at 60%, slight delay due to extended legal review.",
-        metrics: [
-          { label: "Depts Trained", value: "6/8", trend: "up" },
-          { label: "Platform Adoption", value: "71%", trend: "up" },
-          { label: "Policy Completion", value: "60%", trend: "flat" },
-        ],
-      },
-      {
-        id: "r9", type: "monthly", date: "2026-04-30",
-        qualitative: "Fatima had a solid month driving the performance review cycle and policy documentation. Her coaching uptake scores improved by 12%. The attrition reduction goal needs more targeted interventions.",
-        metrics: [
-          { label: "Coaching Score", value: "+12%", trend: "up" },
-          { label: "Attrition Rate", value: "8.2%", trend: "down" },
-          { label: "HR CSAT", value: "3.9/5", trend: "flat" },
-        ],
-      },
-    ],
     aiRec: {
       recommendation: "good_standing",
-      confidence: 0.79,
+      confidence: 0.78,
       evidence: [
-        "Consistent performance in the 70–80th percentile range",
-        "High stakeholder CSAT for HR services (3.9/5)",
-        "On track for 4 of 5 goals including high-priority review cycle",
-        "Attrition goal requires stronger intervention strategy",
-        "Coaching effectiveness improving — 12% uptick last month",
+        "Consistent mid-70s performance across Q1 and Q2",
+        "4-week improvement streak after a slow start",
+        "Meeting activity and CRM hygiene rated positively by manager",
+        "Needs to improve win rate from 24% toward 30% target",
+        "Peer collaboration scores improved 0.4 pts since last cycle",
       ],
     },
+    goals: [
+      g("Q2 Personal Revenue Target ₦120M", "dept", 62, "2026-06-30", 40, "at_risk"),
+      g("CRM Data Hygiene ≥95%", "team", 88, "2026-06-30", 20, "on_track"),
+      g("Win Rate to 30%", "individual", 80, "2026-08-31", 20, "on_track"),
+      g("Complete Sales Excellence Certification", "individual", 55, "2026-07-31", 20, "on_track"),
+    ],
+    kpis: [
+      k("Revenue Closed (Q2)", 120000000, 74400000, "NGN", 50, "up"),
+      k("Win Rate", 30, 24, "%", 30, "up"),
+      k("Discovery Calls / Week", 8, 6, "calls", 20, "flat"),
+    ],
+    reports: [
+      r("weekly", "2026-05-19",
+        "Closed 1 mid-market deal at ₦22M. Two proposals outstanding. CRM is fully updated. Discovery call volume was down this week due to public holiday Monday.",
+        [{ metric: "Revenue Closed", value: "₦22M" }, { metric: "Proposals Outstanding", value: 2 }, { metric: "Discovery Calls", value: 5 }],
+        "good",
+        "Solid week despite reduced working days. Revenue trajectory needs to accelerate over the next 6 weeks to hit Q2 target."),
+      r("weekly", "2026-05-12",
+        "Best week this quarter — closed 2 deals totalling ₦38M and moved 3 prospects to proposal stage. Manager praise for improved CRM discipline.",
+        [{ metric: "Revenue Closed", value: "₦38M" }, { metric: "Proposals Sent", value: 3 }, { metric: "CRM Score", value: "97%" }],
+        "energised",
+        "Breakout week. If this momentum is sustained, Q2 target becomes achievable."),
+      r("monthly", "2026-04-30",
+        "April showed improvement after a slow Q1. Revenue at 62% of Q2 target by mid-cycle. CRM hygiene goal is solid; win rate still below target at 24%.",
+        [{ metric: "Q2 Progress", value: "62%" }, { metric: "Win Rate", value: "24%" }, { metric: "CRM Score", value: "92%" }],
+        "okay",
+        "Positive direction. Key development area is improving deal qualification to lift win rate."),
+      r("weekly", "2026-04-21",
+        "Attended 2-day sales training organised by Amara. Prospecting calls paused but knowledge gained should improve pitch quality from next week.",
+        [{ metric: "Training Attended", value: "2 days" }, { metric: "New Prospects Added", value: 4 }, { metric: "Follow-ups Sent", value: 6 }],
+        "good",
+        "Training investment week — expected short-term dip in activity."),
+    ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 68, "completed"),
+      ac("Report Consistency", 20, 71, "completed"),
+      ac("KPI Performance", 25, 72, "completed"),
+      ac("Manager Assessment", 10, 80, "completed"),
+      ac("Peer Feedback", 10, 78, "completed"),
+    ],
+    trainingSuggestions: [
+      t("Sales Excellence Certification", "Salesforce Trailhead", "Required for L3 band promotion", 16, "high"),
+      t("Objection Handling Masterclass", "LinkedIn Learning", "Improve win rate by strengthening close techniques", 6, "medium"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "okay", "Slow start to Q2"),
+      wb("2026-05-07", "good"),
+      wb("2026-05-14", "energised", "Best week this quarter"),
+      wb("2026-05-21", "good"),
+    ],
+    documents: [
+      doc("Employment Contract", "Contract", "verified", "2023-01-09", "1.1 MB"),
+      doc("Q2 2026 Performance Agreement", "Appraisal", "verified", "2026-04-01", "390 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(20, 3),
+      sick: lv(10, 2),
+      compassionate: lv(3, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Sick", startDate: "2026-03-10", endDate: "2026-03-11", days: 2, status: "approved", reason: "Fever" },
+      { id: uid("lh"), type: "Annual", startDate: "2026-04-21", endDate: "2026-04-23", days: 3, status: "approved", reason: "Easter break" },
+    ],
+    meetings: [
+      mt("Enterprise Pipeline Review", "2026-05-29", "10:00", 60, "team", ["Amara Osei", "Bolu Adeyemi", "Adeolu Johnson"], "Board Room A"),
+      mt("Weekly 1:1 with Amara", "2026-06-02", "09:00", 30, "1:1", ["Adeolu Johnson", "Amara Osei"], "Google Meet"),
+      mt("Sales Certification Study Group", "2026-05-30", "17:00", 60, "team", ["Adeolu Johnson", "Peers"], "Zoom"),
+    ],
+    tasks: [
+      tk("Follow up on 2 outstanding proposals", "2026-05-30", "high", "pending", "Sales"),
+      tk("Update Q2 pipeline report", "2026-05-29", "high", "pending", "Reporting"),
+      tk("Complete Sales Excellence module 4", "2026-06-07", "medium", "pending", "Development"),
+      tk("Add April prospecting calls to CRM", "2026-05-27", "low", "complete", "CRM"),
+    ],
+    notifications: [
+      nt("action_required", "Weekly Report Due", "Your weekly report for 26 May is due by Friday.", "2026-05-26", false),
+      nt("info", "Training Reminder", "Sales Excellence module 4 opens on 3 June.", "2026-05-25", true),
+      nt("warning", "Q2 Revenue Pacing", "You are currently at 62% of Q2 target with 6 weeks remaining.", "2026-05-22", false),
+    ],
   },
+
+  // ── e03 · Bolu Adeyemi · Sales Director ──────────────────────────────────
   {
-    id: "e4",
-    name: "Marcus Chen",
-    initials: "MC",
+    id: "e03",
+    name: "Bolu Adeyemi",
+    initials: "BA",
     role: "Sales Director",
+    email: "bolu.adeyemi@zenithcorp.ng",
+    phone: "+234 805 678 9012",
+    homeAddress: "7 Bourdillon Road, Ikoyi, Lagos",
     department: "Sales",
+    team: "Sales Leadership",
+    lineManagerId: "e09",
+    cadre: "senior",
+    peopleResponsibility: "senior_manager",
+    platformRole: "standard",
     avatarColor: "#d9480f",
-    performanceScore: 88,
-    consistencyIndex: 84,
+    joinDate: "2019-06-01",
+    employmentType: "full_time",
+    band: {
+      current: "L5 – Director",
+      next: "L6 – VP",
+      requirements: ["Deliver ₦2B in annual revenue", "Build and sustain a high-performing team", "Complete Executive Leadership Programme"],
+    },
+    compensation: {
+      basic: 900000, housing: 300000, transport: 150000, medical: 80000,
+      otherAllowances: [{ name: "Director's Allowance", amount: 0 }],
+      totalGross: 1430000,
+      bonusStructure: [
+        { scoreThreshold: 90, bonusAmount: 600000 },
+        { scoreThreshold: 80, bonusAmount: 350000 },
+        { scoreThreshold: 70, bonusAmount: 150000 },
+      ],
+    },
+    performanceScore: 87,
+    consistencyIndex: 85,
     peerRating: 4.4,
     weekStreak: 6,
     badge: "Strong Performer",
-    goals: [
-      { id: "g16", name: "Q2 Revenue Target $2.4M", type: "org", percentComplete: 78, dueDate: "2026-06-30", weight: 40, status: "on_track" },
-      { id: "g17", name: "Enterprise Pipeline Expansion", type: "dept", percentComplete: 85, dueDate: "2026-07-31", weight: 25, status: "on_track" },
-      { id: "g18", name: "New Logo Acquisitions ×8", type: "team", percentComplete: 50, dueDate: "2026-09-30", weight: 20, status: "at_risk" },
-      { id: "g19", name: "Sales Playbook Refresh", type: "individual", percentComplete: 100, dueDate: "2026-04-30", weight: 10, status: "completed" },
-      { id: "g20", name: "Win Rate Improvement to 38%", type: "individual", percentComplete: 62, dueDate: "2026-08-31", weight: 5, status: "on_track" },
-    ],
-    reports: [
-      {
-        id: "r10", type: "weekly", date: "2026-05-19",
-        qualitative: "Strong week — closed 3 enterprise deals totaling $380K. Pipeline is healthy at $4.2M. Two new logo prospects advanced to POC stage. Win rate tracking at 34%, trending toward 38% target.",
-        metrics: [
-          { label: "Revenue Closed", value: "$380K", trend: "up" },
-          { label: "Pipeline Value", value: "$4.2M", trend: "up" },
-          { label: "Win Rate", value: "34%", trend: "up" },
-        ],
-      },
-      {
-        id: "r11", type: "weekly", date: "2026-05-12",
-        qualitative: "Conducted 8 discovery calls, 3 advanced to proposal stage. Launched the refreshed sales playbook — early rep feedback is positive. Q2 revenue at 78% to target with 6 weeks remaining.",
-        metrics: [
-          { label: "Discovery Calls", value: "8", trend: "up" },
-          { label: "Proposals Sent", value: "3", trend: "flat" },
-          { label: "Q2 Achievement", value: "78%", trend: "up" },
-        ],
-      },
-      {
-        id: "r12", type: "monthly", date: "2026-04-30",
-        qualitative: "Marcus had an outstanding April — best revenue month of the year at $1.2M contributed. Enterprise pipeline grew 22% through targeted outreach. New logo acquisition at 4 of 8 target needs a push.",
-        metrics: [
-          { label: "Monthly Revenue", value: "$1.2M", trend: "up" },
-          { label: "Pipeline Growth", value: "+22%", trend: "up" },
-          { label: "New Logos", value: "4/8", trend: "flat" },
-        ],
-      },
-    ],
     aiRec: {
       recommendation: "promote",
-      confidence: 0.85,
+      confidence: 0.87,
       evidence: [
-        "Revenue contribution 22% above quota in trailing 90 days",
-        "84% consistency index — second highest in Sales department",
-        "Proactively built and distributed refreshed sales playbook",
-        "Enterprise pipeline grew 22% under direct influence",
-        "Peer-rated 4.4/5 on collaboration and leadership behaviors",
+        "Sales department revenue up 19% YoY under her leadership",
+        "Team consistency index of 84 — highest across all depts",
+        "Successfully managed 3 enterprise account renewals >₦400M",
+        "Peer and direct-report ratings both above 4.4",
+        "On track for VP-level criteria in next two quarters",
       ],
     },
-  },
-  {
-    id: "e5",
-    name: "Priya Sharma",
-    initials: "PS",
-    role: "Data Analyst",
-    department: "Analytics",
-    avatarColor: "#a61e4d",
-    performanceScore: 67,
-    consistencyIndex: 58,
-    peerRating: 3.2,
-    weekStreak: 1,
-    badge: "Needs Improvement",
     goals: [
-      { id: "g21", name: "Q2 Analytics Dashboard Launch", type: "dept", percentComplete: 35, dueDate: "2026-06-15", weight: 30, status: "behind" },
-      { id: "g22", name: "Data Quality Score to 95%", type: "team", percentComplete: 48, dueDate: "2026-07-31", weight: 25, status: "at_risk" },
-      { id: "g23", name: "Automate 3 Weekly Reports", type: "individual", percentComplete: 20, dueDate: "2026-06-30", weight: 20, status: "behind" },
-      { id: "g24", name: "Complete SQL Advanced Certification", type: "individual", percentComplete: 70, dueDate: "2026-07-15", weight: 15, status: "on_track" },
-      { id: "g25", name: "Cross-Dept Data Partnerships ×3", type: "dept", percentComplete: 33, dueDate: "2026-09-30", weight: 10, status: "at_risk" },
+      g("Sales Dept Annual Revenue ₦2B", "org", 84, "2026-12-31", 40, "on_track"),
+      g("Team Headcount Expansion (×3 hires)", "dept", 67, "2026-09-30", 20, "on_track"),
+      g("Win Rate Dept-wide to 35%", "team", 71, "2026-09-30", 20, "on_track"),
+      g("Sales Forecast Accuracy ≥90%", "individual", 88, "2026-12-31", 10, "on_track"),
+      g("Complete Executive Leadership Programme", "individual", 40, "2026-10-31", 10, "on_track"),
+    ],
+    kpis: [
+      k("Dept Revenue (YTD)", 2000000000, 1680000000, "NGN", 45, "up"),
+      k("Team Win Rate", 35, 31, "%", 30, "up"),
+      k("Forecast Accuracy", 90, 88, "%", 15, "flat"),
+      k("Headcount Hired (Q2)", 3, 2, "hires", 10, "flat"),
     ],
     reports: [
-      {
-        id: "r13", type: "weekly", date: "2026-05-19",
-        qualitative: "Dashboard project is significantly behind — only 35% complete with 4 weeks to deadline. Output affected this month. Manager check-in scheduled for Friday to discuss support options.",
-        metrics: [
-          { label: "Dashboard Progress", value: "35%", trend: "down" },
-          { label: "Tasks Completed", value: "3/8", trend: "down" },
-          { label: "Data Quality", value: "81%", trend: "flat" },
-        ],
-      },
-      {
-        id: "r14", type: "weekly", date: "2026-05-12",
-        qualitative: "Attended SQL certification training for 2 days which affected delivery output. Dashboard design phase completed but development is stalled. Flagged to manager that additional support may be needed.",
-        metrics: [
-          { label: "Dashboard Phase", value: "Dev Stalled", trend: "down" },
-          { label: "Training Hours", value: "16hrs", trend: "up" },
-          { label: "Peer Requests Served", value: "2/5", trend: "down" },
-        ],
-      },
-      {
-        id: "r15", type: "monthly", date: "2026-04-30",
-        qualitative: "April was a difficult month for Priya. Goal progress slipped across 3 of 5 goals. SQL certification remains the bright spot at 70%. Manager has initiated a support conversation focused on workload planning.",
-        metrics: [
-          { label: "Goals On Track", value: "1/5", trend: "down" },
-          { label: "SQL Progress", value: "70%", trend: "up" },
-          { label: "Output vs Plan", value: "58%", trend: "down" },
-        ],
-      },
+      r("weekly", "2026-05-19",
+        "Pipeline review with full team completed. Q2 at 84% of annual revenue run rate. Second Sales Director hire deferred to June — candidate pipeline thin. Forecast accuracy holding at 88%.",
+        [{ metric: "Q2 Revenue Run-rate", value: "84%" }, { metric: "Forecast Accuracy", value: "88%" }, { metric: "Candidate Pipeline", value: "Thin" }],
+        "good",
+        "Solid team performance. Hiring delay is a risk to H2 capacity."),
+      r("monthly", "2026-04-30",
+        "April saw the Sales dept close ₦580M — best month in 18 months. Two enterprise renewals landed. Hiring pipeline for Q3 needs urgent attention.",
+        [{ metric: "Monthly Revenue", value: "₦580M" }, { metric: "Enterprise Renewals", value: 2 }, { metric: "Team Morale Score", value: "4.4/5" }],
+        "energised",
+        "Outstanding month. Promotion case for VP is now very strong."),
+      r("weekly", "2026-05-12",
+        "Closed Nestlé supply chain deal ₦180M — largest single deal this quarter. Leadership programme module 2 completed. 1 new sales exec onboarded.",
+        [{ metric: "Largest Deal", value: "₦180M" }, { metric: "New Hire Onboarded", value: 1 }, { metric: "Leadership Module", value: "2 of 5" }],
+        "energised",
+        "Exceptional week. Flagship deal win drives VP narrative strongly."),
+      r("weekly", "2026-04-21",
+        "Conducted quarterly territory planning with all 6 reps. Set H2 targets. One rep placed on informal support plan. Forecast accuracy reviewed and calibrated.",
+        [{ metric: "Territory Plans Signed", value: 6 }, { metric: "Support Plans", value: 1 }, { metric: "H2 Targets Set", value: "Done" }],
+        "good",
+        "Strong operational discipline on display."),
     ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 87, "completed"),
+      ac("Report Consistency", 20, 85, "completed"),
+      ac("KPI Performance", 25, 88, "completed"),
+      ac("Manager Assessment", 10, 90, "completed"),
+      ac("Peer Feedback", 10, 88, "completed"),
+    ],
+    trainingSuggestions: [
+      t("Executive Leadership Programme", "Lagos Business School", "Required for VP band", 40, "high"),
+      t("Revenue Operations Strategy", "Coursera", "Build RevOps thinking at director level", 10, "medium"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "energised", "Biggest revenue month in 18 months"),
+      wb("2026-05-07", "good"),
+      wb("2026-05-14", "energised", "Landmark deal closed"),
+      wb("2026-05-21", "good"),
+    ],
+    documents: [
+      doc("Employment Contract", "Contract", "verified", "2019-06-01", "1.4 MB"),
+      doc("Director Appointment Letter", "Appointment", "verified", "2023-01-01", "560 KB"),
+      doc("Q2 2026 Performance Agreement", "Appraisal", "verified", "2026-04-01", "500 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(25, 8),
+      sick: lv(10, 0),
+      compassionate: lv(5, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Annual", startDate: "2026-01-02", endDate: "2026-01-06", days: 5, status: "approved", reason: "New Year break" },
+      { id: uid("lh"), type: "Annual", startDate: "2026-03-25", endDate: "2026-03-28", days: 4, status: "approved", reason: "Family" },
+    ],
+    meetings: [
+      mt("Q2 Forecast Review with Femi", "2026-05-30", "14:00", 60, "1:1", ["Bolu Adeyemi", "Femi Ogundimu"], "Executive Boardroom"),
+      mt("Sales Team All-Hands", "2026-06-02", "09:00", 90, "team", ["Sales Team"], "Conference Room B"),
+      mt("All-Hands — Q2 Update", "2026-06-10", "09:00", 90, "all_hands", ["All Staff"], "Main Auditorium"),
+    ],
+    tasks: [
+      tk("Review Adeolu Q2 pipeline report", "2026-05-30", "high", "pending", "Management"),
+      tk("Submit Sales headcount request to HR", "2026-06-01", "high", "pending", "HR"),
+      tk("Complete leadership module 3", "2026-06-07", "medium", "pending", "Development"),
+      tk("Renew Nestlé contract documentation", "2026-05-27", "high", "complete", "Contracts"),
+      tk("Quarterly territory review sign-offs", "2026-04-21", "medium", "complete", "Planning"),
+    ],
+    notifications: [
+      nt("success", "Deal Alert — ₦180M Closed", "Nestlé supply chain deal has been marked as Won.", "2026-05-12", true),
+      nt("action_required", "Headcount Request Pending", "HR requires Sales headcount justification by 1 June.", "2026-05-25", false),
+      nt("info", "VP Promotion Review", "Femi has scheduled a VP readiness discussion for Q3.", "2026-05-20", true),
+    ],
+  },
+
+  // ── e04 · Chidi Okafor · Operations Analyst ──────────────────────────────
+  {
+    id: "e04",
+    name: "Chidi Okafor",
+    initials: "CO",
+    role: "Operations Analyst",
+    email: "chidi.okafor@zenithcorp.ng",
+    phone: "+234 806 789 0123",
+    homeAddress: "45 Obafemi Awolowo Way, Ikeja, Lagos",
+    department: "Operations",
+    team: "Supply Chain",
+    lineManagerId: "e09",
+    cadre: "entry",
+    peopleResponsibility: "none",
+    platformRole: "standard",
+    avatarColor: "#0c8599",
+    joinDate: "2024-08-12",
+    employmentType: "full_time",
+    band: {
+      current: "L1 – Analyst",
+      next: "L2 – Senior Analyst",
+      requirements: ["Sustain ≥70% score for 3 quarters", "Complete Supply Chain Fundamentals", "Lead 1 process improvement project"],
+    },
+    compensation: {
+      basic: 260000, housing: 80000, transport: 40000, medical: 20000,
+      otherAllowances: [],
+      totalGross: 400000,
+      bonusStructure: [
+        { scoreThreshold: 70, bonusAmount: 60000 },
+      ],
+    },
+    performanceScore: 58,
+    consistencyIndex: 54,
+    peerRating: 3.1,
+    weekStreak: 1,
+    badge: "Needs Improvement",
     aiRec: {
       recommendation: "pip",
       confidence: 0.74,
       evidence: [
-        "3 of 5 goals tracking behind or at risk",
-        "Performance declined 14pts over 2 months (81→67)",
-        "Consistency index of 58 — lowest in Analytics department",
-        "Peer rating dropped from 3.8 to 3.2 in recent cycle",
-        "Manager has flagged workload and support concerns",
+        "Performance has declined from 68% at hire to 58% today",
+        "Consistency index of 54 — below L1 cohort average of 65",
+        "3 late report submissions in the past 6 weeks",
+        "Supply chain fundamentals training not yet started",
+        "Manager has flagged engagement concerns in 2 consecutive 1:1s",
       ],
     },
+    goals: [
+      g("Reduce Warehouse Turnaround Time by 15%", "dept", 30, "2026-07-31", 30, "behind"),
+      g("Inventory Accuracy Rate ≥98%", "team", 62, "2026-06-30", 30, "at_risk"),
+      g("Complete Supply Chain Fundamentals Course", "individual", 20, "2026-07-15", 25, "behind"),
+      g("Process Mapping for 3 Core Workflows", "individual", 50, "2026-06-30", 15, "at_risk"),
+    ],
+    kpis: [
+      k("Warehouse Turnaround (hrs)", 24, 31, "hrs", 40, "down"),
+      k("Inventory Accuracy", 98, 94, "%", 35, "flat"),
+      k("Process Docs Completed", 3, 1, "docs", 25, "flat"),
+    ],
+    reports: [
+      r("weekly", "2026-05-19",
+        "Inventory audit for warehouse B completed — accuracy at 94%, 4 pts below target. Turnaround time improving slowly. Training still not started due to workload. Manager meeting scheduled.",
+        [{ metric: "Inventory Accuracy", value: "94%" }, { metric: "Turnaround Time", value: "31 hrs" }, { metric: "Training Progress", value: "0%" }],
+        "drained",
+        "Performance remains below expectations. The training gap is compounding operational issues."),
+      r("weekly", "2026-05-12",
+        "Process mapping completed for receiving workflow. Struggled with cycle count documentation — errors flagged by line manager. Requesting peer support for inventory reconciliation.",
+        [{ metric: "Processes Mapped", value: 1 }, { metric: "Errors Flagged", value: 3 }, { metric: "Peer Requests", value: 1 }],
+        "okay",
+        "Some progress on process mapping, but quality concerns persist."),
+      r("monthly", "2026-04-30",
+        "April was challenging — 3 late submissions and warehouse accuracy dropped 2 pts. The manager has initiated an informal support conversation. Training urgently needed.",
+        [{ metric: "Late Submissions", value: 3 }, { metric: "Accuracy Drop", value: "−2 pts" }, { metric: "Manager Support", value: "Initiated" }],
+        "drained",
+        "Formal PIP review being considered. Turnaround time and training are priority actions."),
+      r("weekly", "2026-04-21",
+        "Completed goods receiving for 3 supplier deliveries. Missed the Tuesday report deadline. Colleague supported with stock reconciliation.",
+        [{ metric: "Deliveries Processed", value: 3 }, { metric: "Reports On Time", value: "0/1" }, { metric: "Stock Queries", value: 5 }],
+        "okay",
+        "Baseline activity completed but punctuality and quality gaps remain."),
+    ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 48, "completed"),
+      ac("Report Consistency", 20, 54, "completed"),
+      ac("KPI Performance", 25, 58, "completed"),
+      ac("Manager Assessment", 10, 65, "completed"),
+      ac("Peer Feedback", 10, 62, "completed"),
+    ],
+    trainingSuggestions: [
+      t("Supply Chain Fundamentals", "Coursera", "Required for role baseline and L2 band", 20, "high"),
+      t("Inventory Management Essentials", "CIPS Online", "Address accuracy gap in current KPI", 8, "high"),
+      t("Time Management for Analysts", "LinkedIn Learning", "Improve submission punctuality", 4, "medium"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "drained", "Missed deadlines causing stress"),
+      wb("2026-05-07", "okay"),
+      wb("2026-05-14", "okay", "Some progress on mapping"),
+      wb("2026-05-21", "drained", "Training backlog weighing on me"),
+    ],
+    documents: [
+      doc("Employment Contract", "Contract", "verified", "2024-08-12", "980 KB"),
+      doc("Q2 2026 Performance Agreement", "Appraisal", "pending", "2026-04-01", "360 KB"),
+      doc("Supply Chain Onboarding Checklist", "Onboarding", "verified", "2024-08-12", "220 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(20, 2),
+      sick: lv(10, 3),
+      compassionate: lv(3, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Sick", startDate: "2026-04-14", endDate: "2026-04-16", days: 3, status: "approved", reason: "Malaria" },
+    ],
+    meetings: [
+      mt("PIP Discussion with Manager", "2026-05-29", "11:00", 60, "1:1", ["Chidi Okafor", "Kemi Adebayo"], "HR Office"),
+      mt("Supply Chain Team Standup", "2026-06-01", "08:30", 30, "team", ["Supply Chain Team"], "Google Meet"),
+      mt("Training Kickoff — SCM Fundamentals", "2026-06-03", "10:00", 60, "team", ["Chidi Okafor", "Trainer"], "Training Room"),
+    ],
+    tasks: [
+      tk("Start Supply Chain Fundamentals module 1", "2026-06-03", "high", "pending", "Development"),
+      tk("Resolve 3 inventory reconciliation errors", "2026-05-30", "high", "pending", "Operations"),
+      tk("Submit overdue process mapping doc", "2026-05-29", "high", "pending", "Documentation"),
+      tk("Weekly report submission (on time)", "2026-05-28", "medium", "pending", "Reporting"),
+      tk("Attend PIP discussion with Kemi", "2026-05-29", "high", "complete", "HR"),
+    ],
+    notifications: [
+      nt("warning", "Performance Improvement Plan", "You have been placed on a formal PIP. Please review the plan shared by HR.", "2026-05-22", false),
+      nt("action_required", "Training Not Started", "Supply Chain Fundamentals is overdue. Please enrol immediately.", "2026-05-20", false),
+      nt("warning", "Late Report Submission", "Your report for 19 May was submitted 2 days late.", "2026-05-21", true),
+    ],
   },
+
+  // ── e05 · Ngozi Bello · Marketing Team Lead ───────────────────────────────
   {
-    id: "e6",
-    name: "Derek Okafor",
-    initials: "DO",
-    role: "Customer Success Lead",
-    department: "Customer Experience",
+    id: "e05",
+    name: "Ngozi Bello",
+    initials: "NB",
+    role: "Marketing Team Lead",
+    email: "ngozi.bello@zenithcorp.ng",
+    phone: "+234 808 901 2345",
+    homeAddress: "3 Eric Moore Road, Surulere, Lagos",
+    department: "Marketing",
+    team: "Brand & Content",
+    lineManagerId: "e09",
+    cadre: "mid",
+    peopleResponsibility: "team_lead",
+    platformRole: "standard",
+    avatarColor: "#a61e4d",
+    joinDate: "2022-05-16",
+    employmentType: "full_time",
+    band: {
+      current: "L3 – Team Lead",
+      next: "L4 – Senior Manager",
+      requirements: ["Lead campaign generating ≥₦200M revenue impact", "Sustain ≥78% score for 2 quarters", "Complete Brand Strategy certification"],
+    },
+    compensation: {
+      basic: 450000, housing: 130000, transport: 80000, medical: 55000,
+      otherAllowances: [],
+      totalGross: 715000,
+      bonusStructure: [
+        { scoreThreshold: 80, bonusAmount: 150000 },
+        { scoreThreshold: 70, bonusAmount: 80000 },
+      ],
+    },
+    performanceScore: 72,
+    consistencyIndex: 70,
+    peerRating: 4.0,
+    weekStreak: 3,
+    badge: "Good Standing",
+    aiRec: {
+      recommendation: "good_standing",
+      confidence: 0.76,
+      evidence: [
+        "Consistent mid-70s performance over 3 quarters",
+        "Led Q1 consumer brand activation with 18% engagement uplift",
+        "Peer rating improved from 3.6 to 4.0 this cycle",
+        "Digital campaign KPI needs 8 more points to hit dept target",
+        "Good team management instincts — directs clear to on track",
+      ],
+    },
+    goals: [
+      g("Q2 Brand Activation Campaign Launch", "org", 82, "2026-06-15", 30, "on_track"),
+      g("Digital Engagement Rate +20%", "dept", 56, "2026-07-31", 25, "at_risk"),
+      g("Content Calendar 100% On-Time Delivery", "team", 78, "2026-06-30", 20, "on_track"),
+      g("Complete Brand Strategy Certification", "individual", 45, "2026-09-30", 15, "on_track"),
+      g("Agency Briefing Process Redesign", "individual", 60, "2026-07-01", 10, "on_track"),
+    ],
+    kpis: [
+      k("Campaign Engagement Rate", 20, 12, "%", 35, "up"),
+      k("Content Delivered On Time", 100, 78, "%", 30, "flat"),
+      k("Brand Awareness Score", 65, 61, "pts", 20, "up"),
+      k("Social Follower Growth", 10, 7, "%", 15, "flat"),
+    ],
+    reports: [
+      r("weekly", "2026-05-19",
+        "Brand activation assets submitted for final approval. Digital engagement rate at 12% — up 3 pts from last week. Content calendar 78% on time; 2 missed deadlines due to agency delays.",
+        [{ metric: "Engagement Rate", value: "12%" }, { metric: "Content On Time", value: "78%" }, { metric: "Pending Approvals", value: 3 }],
+        "good",
+        "Good progress on campaign assets. Engagement rate is improving but needs acceleration."),
+      r("weekly", "2026-05-12",
+        "Ran content sprint — 8 social assets produced. Agency redesign brief drafted. Brand certification module 2 started. Team morale high after Q1 campaign results.",
+        [{ metric: "Assets Produced", value: 8 }, { metric: "Certification Progress", value: "Module 2" }, { metric: "Team Morale", value: "High" }],
+        "good",
+        "Productive content sprint week with development activity."),
+      r("monthly", "2026-04-30",
+        "April showed steady improvement. Campaign is on track for June launch. Digital engagement remains the risk area — needs influencer activation to close the gap.",
+        [{ metric: "Campaign Track", value: "On Track" }, { metric: "Engagement Gap", value: "8 pts" }, { metric: "Influencer Briefs", value: "2 sent" }],
+        "okay",
+        "Good standing maintained. Engagement KPI is the priority for May."),
+      r("weekly", "2026-04-21",
+        "Consumer research debrief presented to CMO — 3 insights adopted into campaign brief. Agency contract renewed for Q2. One junior team member rated performance 3/5 for communication.",
+        [{ metric: "Insights Adopted", value: 3 }, { metric: "Agency Contract", value: "Renewed" }, { metric: "360 Score", value: "3/5 comms" }],
+        "okay",
+        "Leadership activity visible. Communication development area flagged."),
+    ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 72, "completed"),
+      ac("Report Consistency", 20, 70, "completed"),
+      ac("KPI Performance", 25, 68, "completed"),
+      ac("Manager Assessment", 10, 78, "completed"),
+      ac("Peer Feedback", 10, 80, "completed"),
+    ],
+    trainingSuggestions: [
+      t("Brand Strategy Certification", "CIM Online", "Required for L4 band and career growth", 18, "high"),
+      t("Data-Driven Marketing", "Google Analytics Academy", "Improve digital engagement KPI", 8, "medium"),
+      t("Effective Stakeholder Communication", "LinkedIn Learning", "Address communication gap from 360 feedback", 4, "medium"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "okay", "Mid-campaign pressure"),
+      wb("2026-05-07", "good", "Good team energy"),
+      wb("2026-05-14", "good"),
+      wb("2026-05-21", "good", "Campaign nearing finish line"),
+    ],
+    documents: [
+      doc("Employment Contract", "Contract", "verified", "2022-05-16", "1.1 MB"),
+      doc("Team Lead Appointment Letter", "Appointment", "verified", "2024-01-01", "410 KB"),
+      doc("Q2 2026 Performance Agreement", "Appraisal", "verified", "2026-04-01", "430 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(20, 4),
+      sick: lv(10, 1),
+      compassionate: lv(3, 0),
+      maternity: lv(90, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Annual", startDate: "2026-04-07", endDate: "2026-04-09", days: 3, status: "approved", reason: "Rest" },
+      { id: uid("lh"), type: "Sick", startDate: "2026-03-03", endDate: "2026-03-03", days: 1, status: "approved", reason: "Migraine" },
+    ],
+    meetings: [
+      mt("Campaign Final Review", "2026-05-30", "13:00", 60, "team", ["Ngozi Bello", "Agency Leads", "CMO"], "Conference Room A"),
+      mt("Brand & Content Team Standup", "2026-06-02", "08:30", 30, "team", ["Brand Team"], "Google Meet"),
+      mt("All-Hands — Q2 Update", "2026-06-10", "09:00", 90, "all_hands", ["All Staff"], "Main Auditorium"),
+    ],
+    tasks: [
+      tk("Get CMO sign-off on campaign assets", "2026-05-30", "high", "pending", "Campaign"),
+      tk("Brief influencer agency for digital push", "2026-06-01", "high", "pending", "Campaign"),
+      tk("Complete Brand Strategy module 3", "2026-06-10", "medium", "pending", "Development"),
+      tk("Review content calendar for June", "2026-05-28", "medium", "complete", "Planning"),
+      tk("Send agency Q2 brief", "2026-05-15", "medium", "complete", "Agency"),
+    ],
+    notifications: [
+      nt("action_required", "Campaign Approval Needed", "Final assets are pending CMO approval.", "2026-05-26", false),
+      nt("warning", "Engagement KPI At Risk", "Digital engagement rate is 8 pts below Q2 target.", "2026-05-22", false),
+      nt("info", "Certification Module Unlocked", "Brand Strategy module 3 is now available.", "2026-05-20", true),
+    ],
+  },
+
+  // ── e06 · Tolu Fashola · Software Engineer ────────────────────────────────
+  {
+    id: "e06",
+    name: "Tolu Fashola",
+    initials: "TF",
+    role: "Software Engineer",
+    email: "tolu.fashola@zenithcorp.ng",
+    phone: "+234 809 012 3456",
+    homeAddress: "9 Hughes Avenue, Yaba, Lagos",
+    department: "Engineering",
+    team: "Platform Engineering",
+    lineManagerId: "e09",
+    cadre: "mid",
+    peopleResponsibility: "none",
+    platformRole: "standard",
     avatarColor: "#2f9e44",
-    performanceScore: 82,
-    consistencyIndex: 79,
+    joinDate: "2022-11-01",
+    employmentType: "full_time",
+    band: {
+      current: "L2 – Engineer II",
+      next: "L3 – Senior Engineer",
+      requirements: ["Own and deliver a major platform feature", "Test coverage ≥85%", "Lead at least 2 junior engineer mentoring cycles"],
+    },
+    compensation: {
+      basic: 490000, housing: 140000, transport: 90000, medical: 50000,
+      otherAllowances: [],
+      totalGross: 770000,
+      bonusStructure: [
+        { scoreThreshold: 85, bonusAmount: 180000 },
+        { scoreThreshold: 75, bonusAmount: 100000 },
+      ],
+    },
+    performanceScore: 83,
+    consistencyIndex: 81,
+    peerRating: 4.2,
+    weekStreak: 5,
+    badge: "Strong Performer",
+    aiRec: {
+      recommendation: "good_standing",
+      confidence: 0.82,
+      evidence: [
+        "Test coverage improved from 68% to 84% under her ownership",
+        "Delivered Auth Service migration 1 week ahead of schedule",
+        "Consistent top-20% throughput in Engineering for 12 weeks",
+        "Zero critical bugs shipped in the past 8 weeks",
+        "Mentoring 1 junior engineer — promotion to L3 within reach",
+      ],
+    },
+    goals: [
+      g("Auth Service Migration to OAuth 2.0", "dept", 75, "2026-06-30", 30, "on_track"),
+      g("API Latency Reduction 40%", "team", 50, "2026-07-31", 25, "at_risk"),
+      g("Test Coverage to 85%", "individual", 99, "2026-05-31", 20, "on_track"),
+      g("Mentor 1 Junior Engineer to L1 Proficiency", "individual", 70, "2026-07-31", 15, "on_track"),
+      g("Complete AWS Solutions Architect Associate", "individual", 35, "2026-08-31", 10, "on_track"),
+    ],
+    kpis: [
+      k("Test Coverage", 85, 84, "%", 35, "up"),
+      k("API Latency Reduction", 40, 20, "%", 30, "up"),
+      k("Sprint Ticket Completion", 90, 89, "%", 25, "flat"),
+      k("Code Review Score", 4.5, 4.3, "/5", 10, "flat"),
+    ],
+    reports: [
+      r("weekly", "2026-05-19",
+        "Auth migration milestone 2 shipped — OAuth token exchange working in staging. Test coverage hit 84%. Latency optimization needs dedicated sprint; flagged to EM. Mentee completed first solo PR.",
+        [{ metric: "Test Coverage", value: "84%" }, { metric: "Auth Migration", value: "Milestone 2 ✓" }, { metric: "Latency Reduction", value: "20%" }],
+        "energised",
+        "Strong week. Auth milestone ahead of schedule. Latency work needs more focused capacity."),
+      r("weekly", "2026-05-12",
+        "Closed 9 of 10 sprint tickets. One blocked on product spec. Ran 2 code review sessions. AWS study plan at 35%. Latency profiling reveals database query bottleneck.",
+        [{ metric: "Tickets Closed", value: "9/10" }, { metric: "Code Reviews Led", value: 2 }, { metric: "Bottleneck Found", value: "DB Queries" }],
+        "good",
+        "High throughput week. DB bottleneck finding is important for latency track."),
+      r("monthly", "2026-04-30",
+        "April was Tolu's best month — completed junior onboarding, hit test coverage target near-zero, and drove Auth milestone 1. Latency goal at risk but root cause is now known.",
+        [{ metric: "Test Coverage Gain", value: "+16 pts" }, { metric: "Junior Onboarded", value: "1" }, { metric: "Auth Milestone", value: "1 of 3 ✓" }],
+        "energised",
+        "Outstanding month. L3 promotion criteria 70% satisfied."),
+      r("weekly", "2026-04-21",
+        "Completed Auth service design document and got sign-off. Submitted platform RFC for API caching layer. Mentee's first code review — constructive feedback delivered.",
+        [{ metric: "Design Doc", value: "Approved" }, { metric: "RFC Submitted", value: 1 }, { metric: "Mentee Code Review", value: "Done" }],
+        "good",
+        "Leadership initiative clearly visible in RFC and design work."),
+    ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 84, "completed"),
+      ac("Report Consistency", 20, 81, "completed"),
+      ac("KPI Performance", 25, 83, "completed"),
+      ac("Manager Assessment", 10, 85, "completed"),
+      ac("Peer Feedback", 10, 84, "completed"),
+    ],
+    trainingSuggestions: [
+      t("AWS Solutions Architect Associate", "AWS Training", "Cloud proficiency for platform ownership at L3", 20, "high"),
+      t("Advanced Distributed Systems", "Coursera", "Support latency reduction goal with architectural knowledge", 12, "medium"),
+      t("Technical Leadership Fundamentals", "LinkedIn Learning", "Prep for L3 senior engineer people expectations", 6, "low"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "energised", "Best month — Auth milestone shipped"),
+      wb("2026-05-07", "good"),
+      wb("2026-05-14", "good", "Found latency root cause"),
+      wb("2026-05-21", "energised", "Auth milestone 2 shipped"),
+    ],
+    documents: [
+      doc("Employment Contract", "Contract", "verified", "2022-11-01", "1.0 MB"),
+      doc("Q2 2026 Performance Agreement", "Appraisal", "verified", "2026-04-01", "410 KB"),
+      doc("AWS Cloud Practitioner Certificate", "Certificate", "verified", "2025-06-10", "180 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(20, 3),
+      sick: lv(10, 0),
+      compassionate: lv(3, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Annual", startDate: "2026-04-14", endDate: "2026-04-16", days: 3, status: "approved", reason: "Break" },
+    ],
+    meetings: [
+      mt("Platform Engineering Sprint Review", "2026-05-29", "09:00", 60, "team", ["Eng Team"], "Zoom"),
+      mt("Latency Optimization Working Session", "2026-06-03", "15:00", 90, "team", ["Tolu Fashola", "EM", "DBA"], "Conference Room C"),
+      mt("Mentee Check-in", "2026-06-01", "10:00", 30, "1:1", ["Tolu Fashola", "Junior Engineer"], "Google Meet"),
+    ],
+    tasks: [
+      tk("Complete Auth migration milestone 3", "2026-06-20", "high", "pending", "Engineering"),
+      tk("Submit latency optimization sprint proposal", "2026-06-03", "high", "pending", "Engineering"),
+      tk("Complete AWS SAA practice exam", "2026-06-15", "medium", "pending", "Development"),
+      tk("Mentee code review session 3", "2026-06-01", "medium", "pending", "Mentoring"),
+      tk("Test coverage final push to 85%", "2026-05-31", "high", "complete", "Engineering"),
+    ],
+    notifications: [
+      nt("success", "Test Coverage Goal Met", "You have reached 84% test coverage — just 1 pt from goal.", "2026-05-19", true),
+      nt("info", "Auth Migration on Track", "Milestone 2 shipped ahead of schedule.", "2026-05-19", true),
+      nt("action_required", "Weekly Report Due", "Submit your report for the week of 26 May.", "2026-05-26", false),
+    ],
+  },
+
+  // ── e07 · Emeka Eze · Support Specialist ─────────────────────────────────
+  {
+    id: "e07",
+    name: "Emeka Eze",
+    initials: "EE",
+    role: "Support Specialist",
+    email: "emeka.eze@zenithcorp.ng",
+    phone: "+234 810 123 4567",
+    homeAddress: "27 Ogunlana Drive, Surulere, Lagos",
+    department: "Support",
+    team: "Tier 2 Support",
+    lineManagerId: "e11",
+    cadre: "entry",
+    peopleResponsibility: "none",
+    platformRole: "standard",
+    avatarColor: "#e67700",
+    joinDate: "2024-11-04",
+    employmentType: "full_time",
+    band: {
+      current: "L1 – Support Specialist",
+      next: "L2 – Senior Specialist",
+      requirements: ["CSAT ≥4.2 for 2 quarters", "Resolve ≥90% of tickets within SLA", "Complete ITIL Foundation cert"],
+    },
+    compensation: {
+      basic: 210000, housing: 70000, transport: 30000, medical: 20000,
+      otherAllowances: [],
+      totalGross: 330000,
+      bonusStructure: [
+        { scoreThreshold: 70, bonusAmount: 40000 },
+      ],
+    },
+    performanceScore: 45,
+    consistencyIndex: 43,
+    peerRating: 2.9,
+    weekStreak: 0,
+    badge: "At Risk",
+    aiRec: {
+      recommendation: "pip",
+      confidence: 0.72,
+      evidence: [
+        "CSAT score of 2.9 — well below the 4.0 department benchmark",
+        "Only 61% of tickets resolved within SLA — target is 90%",
+        "3 escalations in the past 4 weeks from dissatisfied customers",
+        "Consistency index of 43 — lowest in Support team",
+        "ITIL certification not started despite being 6 months into role",
+      ],
+    },
+    goals: [
+      g("Ticket SLA Resolution Rate ≥90%", "team", 68, "2026-06-30", 40, "behind"),
+      g("CSAT Score ≥4.0", "dept", 45, "2026-07-31", 30, "behind"),
+      g("Complete ITIL Foundation Certification", "individual", 0, "2026-07-31", 20, "behind"),
+      g("Zero Critical Escalations in Q3", "individual", 30, "2026-09-30", 10, "at_risk"),
+    ],
+    kpis: [
+      k("SLA Resolution Rate", 90, 61, "%", 40, "down"),
+      k("CSAT Score", 4.0, 2.9, "/5", 40, "down"),
+      k("Avg Ticket Handle Time", 25, 42, "min", 20, "flat"),
+    ],
+    reports: [
+      r("weekly", "2026-05-19",
+        "Handled 34 tickets this week — SLA rate at 61%. Two escalations from dissatisfied customers. Manager has escalated concern. ITIL study deferred again due to ticket backlog.",
+        [{ metric: "Tickets Handled", value: 34 }, { metric: "SLA Rate", value: "61%" }, { metric: "Escalations", value: 2 }],
+        "drained",
+        "Performance below critical threshold. Escalation pattern requires immediate intervention."),
+      r("weekly", "2026-05-12",
+        "SLA rate improved to 65% after workflow adjustment by Derek. CSAT still low at 3.0. Peer is helping with complex tickets. Backlog reduced by 8.",
+        [{ metric: "SLA Rate", value: "65%" }, { metric: "CSAT", value: "3.0" }, { metric: "Backlog Reduction", value: 8 }],
+        "okay",
+        "Marginal improvement with peer support. Core skills gap requires structured intervention."),
+      r("monthly", "2026-04-30",
+        "April performance below expectations across all KPIs. SLA at 58%, CSAT at 2.8. Derek has initiated a formal PIP. ITIL enrolment is the immediate next step.",
+        [{ metric: "SLA Rate", value: "58%" }, { metric: "CSAT", value: "2.8" }, { metric: "PIP Status", value: "Initiated" }],
+        "drained",
+        "Formal support plan is appropriate. Early intervention is critical for retention."),
+      r("weekly", "2026-04-21",
+        "First PIP check-in completed. Agreed to enrol in ITIL by 1 May. Handled 28 tickets — 10 below colleague average. Need structured call quality coaching.",
+        [{ metric: "Tickets Handled", value: 28 }, { metric: "PIP Check-in", value: "Done" }, { metric: "ITIL Enrolment", value: "Agreed" }],
+        "okay",
+        "PIP engagement positive. Follow-through on ITIL enrolment is critical test."),
+    ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 38, "completed"),
+      ac("Report Consistency", 20, 43, "completed"),
+      ac("KPI Performance", 25, 42, "completed"),
+      ac("Manager Assessment", 10, 55, "completed"),
+      ac("Peer Feedback", 10, 50, "completed"),
+    ],
+    trainingSuggestions: [
+      t("ITIL Foundation Certification", "Axelos e-Learning", "Core requirement for role competency and L2 band", 15, "high"),
+      t("Customer Communication Excellence", "Zendesk Training", "Address CSAT gap through communication techniques", 6, "high"),
+      t("Ticket Prioritisation and Triage", "Internal LMS", "Improve SLA rate through better queue management", 4, "medium"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "drained", "PIP is stressful"),
+      wb("2026-05-07", "okay", "Peer support helping"),
+      wb("2026-05-14", "okay"),
+      wb("2026-05-21", "drained", "More escalations this week"),
+    ],
+    documents: [
+      doc("Employment Contract", "Contract", "verified", "2024-11-04", "900 KB"),
+      doc("PIP Document — Q2 2026", "HR", "verified", "2026-04-22", "340 KB"),
+      doc("Q2 2026 Performance Agreement", "Appraisal", "pending", "2026-04-01", "310 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(20, 1),
+      sick: lv(10, 2),
+      compassionate: lv(3, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Sick", startDate: "2026-04-28", endDate: "2026-04-29", days: 2, status: "approved", reason: "Illness" },
+    ],
+    meetings: [
+      mt("PIP Weekly Check-in with Derek", "2026-05-29", "09:00", 30, "1:1", ["Emeka Eze", "Derek Okafor"], "Google Meet"),
+      mt("ITIL Kickoff Session", "2026-06-02", "14:00", 60, "team", ["Emeka Eze", "Trainer"], "Zoom"),
+      mt("Ticket Quality Review", "2026-06-04", "10:00", 45, "1:1", ["Emeka Eze", "Derek Okafor"], "Google Meet"),
+    ],
+    tasks: [
+      tk("Enrol in ITIL Foundation course", "2026-06-02", "high", "pending", "Development"),
+      tk("Resolve open escalation tickets (×2)", "2026-05-30", "high", "pending", "Support"),
+      tk("Submit weekly report on time", "2026-05-28", "high", "pending", "Reporting"),
+      tk("PIP check-in with Derek", "2026-05-29", "high", "complete", "HR"),
+      tk("Reduce backlog by 8 tickets", "2026-05-23", "medium", "complete", "Support"),
+    ],
+    notifications: [
+      nt("warning", "PIP Active — Week 5", "You are in week 5 of your Performance Improvement Plan. Targets must be met by 30 June.", "2026-05-22", false),
+      nt("action_required", "ITIL Enrolment Overdue", "You agreed to enrol by 1 May. Please complete enrolment immediately.", "2026-05-15", false),
+      nt("warning", "SLA Below Target", "Your SLA resolution rate of 61% is below the 90% team target.", "2026-05-20", true),
+    ],
+  },
+
+  // ── e08 · Kemi Adebayo · Head of HR ──────────────────────────────────────
+  {
+    id: "e08",
+    name: "Kemi Adebayo",
+    initials: "KA",
+    role: "HR Manager",
+    email: "kemi.adebayo@zenithcorp.ng",
+    phone: "+234 811 234 5678",
+    homeAddress: "5 Kingsway Road, Ikoyi, Lagos",
+    department: "Human Resources",
+    team: "HR Leadership",
+    lineManagerId: "e09",
+    cadre: "senior",
+    peopleResponsibility: "manager",
+    platformRole: "hr_admin",
+    avatarColor: "#364fc7",
+    joinDate: "2020-09-14",
+    employmentType: "full_time",
+    band: {
+      current: "L4 – HR Manager",
+      next: "L5 – HR Director",
+      requirements: ["Drive attrition below 6%", "Lead company-wide OKR rollout", "Complete CIPM Advanced Diploma"],
+    },
+    compensation: {
+      basic: 800000, housing: 250000, transport: 120000, medical: 90000,
+      otherAllowances: [{ name: "HR Practitioner Allowance", amount: 0 }],
+      totalGross: 1260000,
+      bonusStructure: [
+        { scoreThreshold: 85, bonusAmount: 300000 },
+        { scoreThreshold: 75, bonusAmount: 160000 },
+      ],
+    },
+    performanceScore: 78,
+    consistencyIndex: 76,
     peerRating: 4.1,
     weekStreak: 4,
     badge: "Good Standing",
-    goals: [
-      { id: "g26", name: "Customer Health Score Avg 85+", type: "dept", percentComplete: 72, dueDate: "2026-07-31", weight: 30, status: "on_track" },
-      { id: "g27", name: "Churn Rate Below 3%", type: "org", percentComplete: 68, dueDate: "2026-12-31", weight: 25, status: "on_track" },
-      { id: "g28", name: "QBR Completion Rate 90%", type: "team", percentComplete: 84, dueDate: "2026-06-30", weight: 20, status: "on_track" },
-      { id: "g29", name: "CS Playbook Documentation", type: "individual", percentComplete: 45, dueDate: "2026-07-15", weight: 15, status: "at_risk" },
-      { id: "g30", name: "Upsell Revenue $180K", type: "individual", percentComplete: 58, dueDate: "2026-09-30", weight: 10, status: "on_track" },
-    ],
-    reports: [
-      {
-        id: "r16", type: "weekly", date: "2026-05-19",
-        qualitative: "Completed 5 QBRs this week — all rated 'very satisfied' by customers. A churn-risk account was de-escalated after an emergency intervention call. CS playbook is falling behind due to QBR volume.",
-        metrics: [
-          { label: "QBRs Completed", value: "5", trend: "up" },
-          { label: "CSAT Score", value: "4.7/5", trend: "up" },
-          { label: "Churn Risks", value: "1 Resolved", trend: "up" },
-        ],
-      },
-      {
-        id: "r17", type: "weekly", date: "2026-05-12",
-        qualitative: "Health score reviews completed for top 20 accounts. Identified 3 expansion opportunities worth ~$60K. Documentation backlog growing — need to carve out dedicated time next week.",
-        metrics: [
-          { label: "Accounts Reviewed", value: "20", trend: "up" },
-          { label: "Expansion Pipeline", value: "$60K", trend: "up" },
-          { label: "Doc Backlog", value: "8 items", trend: "down" },
-        ],
-      },
-      {
-        id: "r18", type: "monthly", date: "2026-04-30",
-        qualitative: "Derek maintained strong account health throughout April with a 92% QBR completion rate. His customer CSAT of 4.7 is the highest in the CX team. Playbook documentation is the key area to address.",
-        metrics: [
-          { label: "QBR Rate", value: "92%", trend: "up" },
-          { label: "Customer CSAT", value: "4.7/5", trend: "up" },
-          { label: "Playbook Progress", value: "45%", trend: "flat" },
-        ],
-      },
-    ],
     aiRec: {
       recommendation: "good_standing",
-      confidence: 0.81,
+      confidence: 0.8,
       evidence: [
-        "Consistent 4.7/5 CSAT — highest score in CX team",
-        "92% QBR completion rate, above 85% team target",
-        "Successfully de-escalated 3 churn risks in Q2",
-        "79% consistency index with stable upward trend",
-        "CS playbook goal at risk — needs dedicated focus",
+        "Managed Q2 appraisal cycle for 148 staff with 96% completion rate",
+        "Attrition at 7.4% — down from 9.1% 12 months ago",
+        "Successfully launched Pulse HR platform organisation-wide",
+        "CIPM Advanced Diploma at 60% completion — on track",
+        "Peer rating of 4.1 reflects strong cross-functional trust",
       ],
     },
+    goals: [
+      g("Q2 Appraisal Cycle Completion 98%", "org", 96, "2026-05-31", 30, "on_track"),
+      g("Reduce Voluntary Attrition to Below 6%", "dept", 62, "2026-12-31", 25, "on_track"),
+      g("OKR Framework Rollout Org-wide", "org", 70, "2026-07-31", 20, "on_track"),
+      g("Complete CIPM Advanced Diploma", "individual", 60, "2026-10-31", 15, "on_track"),
+      g("Launch Employee Wellbeing Programme", "dept", 45, "2026-08-31", 10, "at_risk"),
+    ],
+    kpis: [
+      k("Appraisal Cycle Completion", 98, 96, "%", 30, "up"),
+      k("Voluntary Attrition Rate", 6, 7.4, "%", 30, "up"),
+      k("HR CSAT Score", 4.2, 4.1, "/5", 25, "flat"),
+      k("OKR Adoption Rate", 80, 70, "%", 15, "flat"),
+    ],
+    reports: [
+      r("weekly", "2026-05-19",
+        "Appraisal cycle at 96% — final 6 forms chasing. 2 PIP initiations this week (Chidi Okafor, Emeka Eze). OKR training sessions completed for 4 departments. Wellbeing programme scoping delayed.",
+        [{ metric: "Appraisal Completion", value: "96%" }, { metric: "PIPs Initiated", value: 2 }, { metric: "OKR Sessions Done", value: 4 }],
+        "good",
+        "Strong operational week. PIP initiations handled with due process. OKR rollout progressing well."),
+      r("weekly", "2026-05-12",
+        "Conducted 6 manager coaching sessions. CIPM module 4 completed. Attrition report for Q1 shared with Femi — trending positively. Wellbeing vendor shortlist prepared.",
+        [{ metric: "Coaching Sessions", value: 6 }, { metric: "CIPM Module", value: "4 of 7" }, { metric: "Attrition Trend", value: "Positive" }],
+        "good",
+        "Development activity strong. Wellbeing programme needs vendor selection decision soon."),
+      r("monthly", "2026-04-30",
+        "April was a high-output month for HR — appraisal cycle launch, 2 PIP conversations, and OKR rollout kickoff. Attrition improved 1.7 pts since January. Wellbeing programme is the lagging initiative.",
+        [{ metric: "PIPs Managed", value: 2 }, { metric: "Attrition Change", value: "−1.7 pts" }, { metric: "OKR Progress", value: "70%" }],
+        "good",
+        "Strong overall. Wellbeing programme is the clear priority gap heading into Q3."),
+      r("weekly", "2026-04-21",
+        "Launched Q2 performance agreement process — 92% signed within 48 hours. Delivered employment law refresher to line managers. CIPM exam booked for October.",
+        [{ metric: "Agreements Signed", value: "92% in 48h" }, { metric: "Training Delivered", value: 1 }, { metric: "CIPM Exam", value: "Booked Oct" }],
+        "energised",
+        "Initiative and process discipline on strong display."),
+    ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 79, "completed"),
+      ac("Report Consistency", 20, 76, "completed"),
+      ac("KPI Performance", 25, 78, "completed"),
+      ac("Manager Assessment", 10, 80, "completed"),
+      ac("Peer Feedback", 10, 82, "completed"),
+    ],
+    trainingSuggestions: [
+      t("CIPM Advanced Diploma", "CIPM Nigeria", "Required for HR Director band and professional credibility", 60, "high"),
+      t("Employee Wellbeing Strategy", "SHRM Online", "Close the wellbeing programme gap", 10, "medium"),
+      t("Data Analytics for HR", "Coursera", "Build capability to strengthen attrition reporting", 8, "medium"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "energised", "Great appraisal cycle launch"),
+      wb("2026-05-07", "good"),
+      wb("2026-05-14", "good", "Coaching sessions went well"),
+      wb("2026-05-21", "good", "PIP processes handled well"),
+    ],
+    documents: [
+      doc("Employment Contract", "Contract", "verified", "2020-09-14", "1.3 MB"),
+      doc("CIPM Practitioner Certificate", "Certificate", "verified", "2022-06-15", "250 KB"),
+      doc("Q2 2026 Performance Agreement", "Appraisal", "verified", "2026-04-01", "490 KB"),
+      doc("CIPM Advanced Diploma Enrolment", "Certificate", "submitted", "2026-01-15", "190 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(25, 5),
+      sick: lv(10, 0),
+      compassionate: lv(5, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Annual", startDate: "2026-01-02", endDate: "2026-01-06", days: 5, status: "approved", reason: "New Year" },
+    ],
+    meetings: [
+      mt("Org-wide OKR Q2 Review with Femi", "2026-05-30", "15:00", 60, "1:1", ["Kemi Adebayo", "Femi Ogundimu"], "Executive Boardroom"),
+      mt("Chidi PIP Review", "2026-05-29", "11:00", 60, "performance_review", ["Kemi Adebayo", "Chidi Okafor"], "HR Office"),
+      mt("All-Hands — Q2 Update", "2026-06-10", "09:00", 90, "all_hands", ["All Staff"], "Main Auditorium"),
+    ],
+    tasks: [
+      tk("Close remaining 6 appraisal forms", "2026-05-31", "high", "pending", "Appraisals"),
+      tk("Select wellbeing programme vendor", "2026-06-15", "high", "pending", "Wellbeing"),
+      tk("Share attrition dashboard with Femi", "2026-05-30", "medium", "pending", "Reporting"),
+      tk("Complete CIPM module 5", "2026-06-30", "medium", "pending", "Development"),
+      tk("OKR training — 4 dept sessions", "2026-05-19", "high", "complete", "OKR"),
+    ],
+    notifications: [
+      nt("action_required", "Appraisal Cycle: 6 Pending", "6 performance agreements still unsigned. Follow up required.", "2026-05-26", false),
+      nt("info", "Wellbeing Vendor Proposals Received", "3 vendor proposals are ready for your review.", "2026-05-24", false),
+      nt("success", "OKR Adoption at 70%", "Organisation-wide OKR adoption has reached 70%.", "2026-05-20", true),
+    ],
   },
+
+  // ── e09 · Femi Ogundimu · CEO ─────────────────────────────────────────────
   {
-    id: "e7",
-    name: "Yuki Tanaka",
-    initials: "YT",
-    role: "Brand Designer",
-    department: "Marketing",
-    avatarColor: "#364fc7",
-    performanceScore: 79,
-    consistencyIndex: 75,
-    peerRating: 4.3,
-    weekStreak: 3,
+    id: "e09",
+    name: "Femi Ogundimu",
+    initials: "FO",
+    role: "Chief Executive Officer",
+    email: "femi.ogundimu@zenithcorp.ng",
+    phone: "+234 812 345 6789",
+    homeAddress: "18 Glover Road, Ikoyi, Lagos",
+    department: "Executive",
+    team: "C-Suite",
+    lineManagerId: null,
+    cadre: "executive",
+    peopleResponsibility: "director",
+    platformRole: "executive_view",
+    avatarColor: "#1864ab",
+    joinDate: "2018-01-02",
+    employmentType: "full_time",
+    band: {
+      current: "L7 – CEO",
+      next: "L7 – CEO",
+      requirements: [],
+    },
+    compensation: {
+      basic: 1800000, housing: 600000, transport: 250000, medical: 150000,
+      otherAllowances: [{ name: "Executive Benefits", amount: 80000 }],
+      totalGross: 2880000,
+      bonusStructure: [
+        { scoreThreshold: 90, bonusAmount: 2000000 },
+        { scoreThreshold: 80, bonusAmount: 1000000 },
+      ],
+    },
+    performanceScore: 88,
+    consistencyIndex: 86,
+    peerRating: 4.5,
+    weekStreak: 8,
+    badge: "Strong Performer",
+    aiRec: {
+      recommendation: "promote",
+      confidence: 0.88,
+      evidence: [
+        "Revenue growth 19% YoY across all business units",
+        "Employee satisfaction index improved to 78% — up 11 pts",
+        "Org-wide OKR adoption at 70% after 6-month rollout",
+        "3 strategic partnerships signed in Q1 2026",
+        "Board satisfaction score of 4.5/5 in Q1 review",
+      ],
+    },
+    goals: [
+      g("Annual Org Revenue ₦8B", "org", 78, "2026-12-31", 35, "on_track"),
+      g("Employee Satisfaction ≥80%", "org", 78, "2026-12-31", 25, "on_track"),
+      g("Strategic Partnership Expansion ×5", "org", 60, "2026-12-31", 20, "on_track"),
+      g("OKR Framework 100% Adoption", "org", 70, "2026-07-31", 10, "on_track"),
+      g("Board ESG Report Submission", "org", 50, "2026-09-30", 10, "on_track"),
+    ],
+    kpis: [
+      k("Organisation Revenue (YTD)", 8000000000, 6240000000, "NGN", 40, "up"),
+      k("Employee Satisfaction", 80, 78, "%", 25, "up"),
+      k("Strategic Partnerships", 5, 3, "count", 20, "flat"),
+      k("OKR Adoption", 100, 70, "%", 15, "flat"),
+    ],
+    reports: [
+      r("monthly", "2026-04-30",
+        "Q1 closed at ₦3.1B — 6% above plan. Three new distribution partnerships signed. Employee satisfaction at 78%. Key risk: attrition in Operations (9.4%) requires targeted intervention.",
+        [{ metric: "Q1 Revenue", value: "₦3.1B" }, { metric: "vs Plan", value: "+6%" }, { metric: "Attrition Risk", value: "Ops 9.4%" }],
+        "energised",
+        "Strong Q1. Leadership execution is creating visible organisation-wide momentum."),
+      r("monthly", "2026-03-31",
+        "March board meeting delivered with strong financial narrative. ESG framework scoping completed. Two major accounts at risk of churn — Derek's CS team intervening.",
+        [{ metric: "Board Score", value: "4.5/5" }, { metric: "ESG Scoping", value: "Complete" }, { metric: "Churn Risks", value: 2 }],
+        "good",
+        "Sound governance and strategic oversight visible in all metrics."),
+      r("weekly", "2026-05-19",
+        "Q2 midpoint review with direct reports completed. Revenue at 78% to annual target. OKR adoption at 70% — on track for Q3 goal. Approved 2 headcount expansion requests.",
+        [{ metric: "Revenue vs Annual", value: "78%" }, { metric: "OKR Adoption", value: "70%" }, { metric: "Headcount Approvals", value: 2 }],
+        "good",
+        "CEO driving strong execution rhythm. Org is aligned around Q2 priorities."),
+      r("weekly", "2026-05-12",
+        "Nestlé distribution partnership signed — ₦400M potential pipeline. Reviewed Q2 appraisal status with Kemi. Approved wellbeing programme budget.",
+        [{ metric: "Partnership Signed", value: "Nestlé" }, { metric: "Appraisal Progress", value: "96%" }, { metric: "Wellbeing Budget", value: "Approved" }],
+        "energised",
+        "Landmark partnership signed. Wellbeing investment reflects long-term culture commitment."),
+    ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 88, "completed"),
+      ac("Report Consistency", 20, 86, "completed"),
+      ac("KPI Performance", 25, 89, "completed"),
+      ac("Board Assessment", 10, 90, "completed"),
+      ac("Peer Feedback", 10, 87, "completed"),
+    ],
+    trainingSuggestions: [
+      t("Advanced Board Governance", "IESE Business School", "Board effectiveness and governance excellence", 16, "medium"),
+      t("ESG Strategy for Executives", "Coursera", "Support ESG report deliverable", 8, "medium"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "energised", "Best Q1 in company history"),
+      wb("2026-05-07", "good"),
+      wb("2026-05-14", "energised", "Nestlé partnership landed"),
+      wb("2026-05-21", "good", "Midpoint review — org on track"),
+    ],
+    documents: [
+      doc("CEO Service Agreement", "Contract", "verified", "2018-01-02", "2.1 MB"),
+      doc("Board Resolution — Appointment", "Governance", "verified", "2018-01-02", "800 KB"),
+      doc("Q2 2026 Board Objectives", "Appraisal", "verified", "2026-04-01", "620 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(30, 6),
+      sick: lv(10, 0),
+      compassionate: lv(5, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Annual", startDate: "2026-01-02", endDate: "2026-01-07", days: 6, status: "approved", reason: "New Year" },
+    ],
+    meetings: [
+      mt("Q2 Midpoint Executive Review", "2026-05-30", "09:00", 120, "performance_review", ["Executive Team"], "Executive Boardroom"),
+      mt("Board Preparation — Q2", "2026-06-08", "14:00", 90, "1:1", ["Femi Ogundimu", "CFO", "Company Secretary"], "Executive Boardroom"),
+      mt("All-Hands — Q2 Update", "2026-06-10", "09:00", 90, "all_hands", ["All Staff"], "Main Auditorium"),
+    ],
+    tasks: [
+      tk("Review Q2 financial performance report", "2026-05-30", "high", "pending", "Finance"),
+      tk("Approve Bolu VP readiness discussion", "2026-06-01", "high", "pending", "HR"),
+      tk("Sign off on wellbeing vendor selection", "2026-06-15", "medium", "pending", "HR"),
+      tk("Review ESG framework draft", "2026-06-30", "medium", "pending", "Strategy"),
+      tk("Nestlé partnership agreement signed", "2026-05-12", "high", "complete", "Partnerships"),
+    ],
+    notifications: [
+      nt("info", "Q2 Revenue at 78% of Target", "Organisation is pacing well for annual revenue goal.", "2026-05-21", true),
+      nt("action_required", "Board Pack Due", "Q2 board presentation is due 8 June. Finance to submit draft by 5 June.", "2026-05-26", false),
+      nt("success", "Nestlé Partnership Live", "Distribution agreement with Nestlé Nigeria is now active.", "2026-05-12", true),
+    ],
+  },
+
+  // ── e10 · Priya Sharma · Data Analyst ────────────────────────────────────
+  {
+    id: "e10",
+    name: "Priya Sharma",
+    initials: "PS",
+    role: "Data Analyst",
+    email: "priya.sharma@zenithcorp.ng",
+    phone: "+234 813 456 7890",
+    homeAddress: "11 Idejo Street, Victoria Island, Lagos",
+    department: "Analytics",
+    team: "Business Intelligence",
+    lineManagerId: "e09",
+    cadre: "mid",
+    peopleResponsibility: "none",
+    platformRole: "standard",
+    avatarColor: "#5c7cfa",
+    joinDate: "2023-07-03",
+    employmentType: "full_time",
+    band: {
+      current: "L2 – Analyst II",
+      next: "L3 – Senior Analyst",
+      requirements: ["Own and deliver a company-wide analytics dashboard", "SQL Advanced cert", "Data quality score ≥97%"],
+    },
+    compensation: {
+      basic: 470000, housing: 135000, transport: 80000, medical: 50000,
+      otherAllowances: [],
+      totalGross: 735000,
+      bonusStructure: [
+        { scoreThreshold: 75, bonusAmount: 130000 },
+        { scoreThreshold: 65, bonusAmount: 70000 },
+      ],
+    },
+    performanceScore: 66,
+    consistencyIndex: 62,
+    peerRating: 3.6,
+    weekStreak: 2,
     badge: "Good Standing",
-    goals: [
-      { id: "g31", name: "Brand Refresh Campaign Launch", type: "org", percentComplete: 90, dueDate: "2026-06-01", weight: 35, status: "on_track" },
-      { id: "g32", name: "Design System v2.0 Completion", type: "dept", percentComplete: 68, dueDate: "2026-07-31", weight: 25, status: "on_track" },
-      { id: "g33", name: "Social Media Asset Velocity ×2", type: "team", percentComplete: 55, dueDate: "2026-08-31", weight: 20, status: "at_risk" },
-      { id: "g34", name: "Figma Advanced Certification", type: "individual", percentComplete: 100, dueDate: "2026-04-15", weight: 10, status: "completed" },
-      { id: "g35", name: "Agency Partnership Review", type: "dept", percentComplete: 30, dueDate: "2026-07-01", weight: 10, status: "behind" },
-    ],
-    reports: [
-      {
-        id: "r19", type: "weekly", date: "2026-05-19",
-        qualitative: "Final visual assets for brand refresh delivered to stakeholders — received exceptional feedback. Design system documentation at 68%. Social media asset volume still below target; exploring template automation.",
-        metrics: [
-          { label: "Brand Assets Delivered", value: "12", trend: "up" },
-          { label: "Design System Docs", value: "68%", trend: "up" },
-          { label: "Social Templates", value: "4/8", trend: "flat" },
-        ],
-      },
-      {
-        id: "r20", type: "weekly", date: "2026-05-12",
-        qualitative: "Brand campaign visual direction approved by CMO. Running 2 design sprints in parallel — stretching capacity. Agency review delayed due to stakeholder availability, rescheduled to June.",
-        metrics: [
-          { label: "Sprints Running", value: "2", trend: "up" },
-          { label: "CMO Approval", value: "Approved", trend: "up" },
-          { label: "Agency Review", value: "Delayed", trend: "down" },
-        ],
-      },
-      {
-        id: "r21", type: "monthly", date: "2026-04-30",
-        qualitative: "April was productive — brand refresh is in excellent shape and Yuki completed her Figma certification early. Agency partnership goal and social velocity targets need attention going into May.",
-        metrics: [
-          { label: "Quality Rating", value: "Top in Dept", trend: "up" },
-          { label: "Cert Completed", value: "1 early", trend: "up" },
-          { label: "Peer Design Score", value: "4.5/5", trend: "up" },
-        ],
-      },
-    ],
     aiRec: {
       recommendation: "good_standing",
-      confidence: 0.77,
+      confidence: 0.71,
       evidence: [
-        "Brand refresh delivery quality rated top in Marketing dept",
-        "Proactively completed Figma certification 2 weeks early",
-        "75% consistency index with steady improvement trend",
-        "Managing dual design sprints — capacity risk flagged",
-        "Agency review and social velocity goals need monitoring",
+        "Performance stabilised at 66% after dip to 59% in February",
+        "SQL Advanced certification at 70% — on track for completion",
+        "Dashboard delivery is behind but root cause identified",
+        "Manager has provided additional resource support",
+        "Peer collaboration scores improving — 3.2 to 3.6 this cycle",
       ],
     },
+    goals: [
+      g("Q2 BI Dashboard Launch", "dept", 42, "2026-06-15", 35, "behind"),
+      g("Data Quality Score ≥97%", "team", 55, "2026-07-31", 25, "at_risk"),
+      g("Automate 3 Weekly Reports", "individual", 33, "2026-06-30", 20, "behind"),
+      g("SQL Advanced Certification", "individual", 70, "2026-07-15", 20, "on_track"),
+    ],
+    kpis: [
+      k("Dashboard Delivery", 100, 42, "%", 40, "up"),
+      k("Data Quality Score", 97, 91, "%", 30, "flat"),
+      k("Automated Reports", 3, 1, "count", 20, "flat"),
+      k("Ad-hoc Requests Resolved", 90, 82, "%", 10, "flat"),
+    ],
+    reports: [
+      r("weekly", "2026-05-19",
+        "Dashboard progress at 42% — slow but moving. Data quality at 91%. One ad-hoc board report delivered on time. SQL exam prep going well.",
+        [{ metric: "Dashboard Progress", value: "42%" }, { metric: "Data Quality", value: "91%" }, { metric: "Board Report", value: "On Time" }],
+        "okay",
+        "Progress is happening but below required pace. Dashboard velocity needs to double to hit June deadline."),
+      r("weekly", "2026-05-12",
+        "Completed first automated report for Finance team. Data pipeline refactored with support from Tolu. SQL module 4 completed. Dashboard stalled on visualisation layer.",
+        [{ metric: "Automated Reports", value: "1/3" }, { metric: "SQL Module", value: "4 of 6" }, { metric: "Pipeline Refactor", value: "Done" }],
+        "good",
+        "Positive week. Cross-team support is helping unlock blockers."),
+      r("monthly", "2026-04-30",
+        "April showed recovery from February dip — score up 7 pts to 66%. Dashboard is behind but plan is in place. SQL cert bright spot. Manager support has helped.",
+        [{ metric: "Score Change", value: "+7 pts" }, { metric: "Dashboard Plan", value: "In Place" }, { metric: "SQL Progress", value: "70%" }],
+        "okay",
+        "Recovery trajectory is positive. Sustained delivery through May is the key test."),
+      r("weekly", "2026-04-21",
+        "Data quality issue in sales reporting discovered and patched. Ad-hoc queries for board prep completed. Dashboard design phase signed off.",
+        [{ metric: "Data Issue Fixed", value: 1 }, { metric: "Board Queries", value: "Done" }, { metric: "Dashboard Design", value: "Signed Off" }],
+        "good",
+        "Important data quality fix shows ownership. Board support adds credibility."),
+    ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 58, "completed"),
+      ac("Report Consistency", 20, 62, "completed"),
+      ac("KPI Performance", 25, 64, "completed"),
+      ac("Manager Assessment", 10, 75, "completed"),
+      ac("Peer Feedback", 10, 72, "completed"),
+    ],
+    trainingSuggestions: [
+      t("SQL Advanced Certification", "Mode Analytics", "Required for L3 band and dashboard delivery", 18, "high"),
+      t("dbt (Data Build Tool) Fundamentals", "dbt Labs", "Support report automation goal", 10, "high"),
+      t("Data Storytelling with Tableau", "LinkedIn Learning", "Unlock visualisation layer for BI dashboard", 8, "medium"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "okay", "Recovery visible, still cautious"),
+      wb("2026-05-07", "good", "Pipeline refactor helped"),
+      wb("2026-05-14", "good", "Good collaboration with Tolu"),
+      wb("2026-05-21", "okay", "Dashboard pressure building"),
+    ],
+    documents: [
+      doc("Employment Contract", "Contract", "verified", "2023-07-03", "1.0 MB"),
+      doc("Q2 2026 Performance Agreement", "Appraisal", "verified", "2026-04-01", "400 KB"),
+      doc("SQL Intermediate Certificate", "Certificate", "verified", "2025-03-10", "190 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(20, 4),
+      sick: lv(10, 1),
+      compassionate: lv(3, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Annual", startDate: "2026-03-25", endDate: "2026-03-28", days: 4, status: "approved", reason: "Travel" },
+      { id: uid("lh"), type: "Sick", startDate: "2026-02-10", endDate: "2026-02-10", days: 1, status: "approved", reason: "Headache" },
+    ],
+    meetings: [
+      mt("BI Dashboard Sprint Review", "2026-05-30", "10:00", 60, "team", ["Priya Sharma", "Analytics Lead", "Finance"], "Zoom"),
+      mt("SQL Study Group", "2026-06-04", "17:00", 60, "team", ["Analytics Team"], "Google Meet"),
+      mt("1:1 with Manager", "2026-06-01", "14:00", 45, "1:1", ["Priya Sharma", "Manager"], "Google Meet"),
+    ],
+    tasks: [
+      tk("Complete BI dashboard visualisation layer", "2026-06-10", "high", "pending", "Analytics"),
+      tk("Automate Finance weekly report", "2026-06-07", "high", "pending", "Automation"),
+      tk("Complete SQL module 5", "2026-06-04", "medium", "pending", "Development"),
+      tk("Data quality audit — Sales pipeline", "2026-05-30", "medium", "pending", "Data Quality"),
+      tk("Dashboard design sign-off", "2026-04-21", "high", "complete", "Analytics"),
+    ],
+    notifications: [
+      nt("warning", "Dashboard Deadline Risk", "BI Dashboard is at 42%. June 15 deadline is at risk — please escalate blockers.", "2026-05-22", false),
+      nt("info", "SQL Module 5 Now Available", "Unlock SQL Advanced module 5 when ready.", "2026-05-23", true),
+      nt("action_required", "Weekly Report Due", "Submit your report for the week of 26 May.", "2026-05-26", false),
+    ],
   },
+
+  // ── e11 · Derek Okafor · Head of Customer Success ────────────────────────
   {
-    id: "e8",
-    name: "Sofia Reyes",
-    initials: "SR",
-    role: "Finance Analyst",
+    id: "e11",
+    name: "Derek Okafor",
+    initials: "DO",
+    role: "Head of Customer Success",
+    email: "derek.okafor@zenithcorp.ng",
+    phone: "+234 814 567 8901",
+    homeAddress: "6 Adeola Odeku Street, Victoria Island, Lagos",
+    department: "Customer Success",
+    team: "CS Leadership",
+    lineManagerId: "e09",
+    cadre: "senior",
+    peopleResponsibility: "manager",
+    platformRole: "standard",
+    avatarColor: "#0ca678",
+    joinDate: "2021-07-19",
+    employmentType: "full_time",
+    band: {
+      current: "L4 – CS Manager",
+      next: "L5 – CS Director",
+      requirements: ["Churn rate below 3%", "CSAT ≥4.5 sustained for 3 quarters", "Build and present CS playbook to board"],
+    },
+    compensation: {
+      basic: 830000, housing: 260000, transport: 130000, medical: 90000,
+      otherAllowances: [],
+      totalGross: 1310000,
+      bonusStructure: [
+        { scoreThreshold: 88, bonusAmount: 350000 },
+        { scoreThreshold: 78, bonusAmount: 200000 },
+      ],
+    },
+    performanceScore: 85,
+    consistencyIndex: 83,
+    peerRating: 4.3,
+    weekStreak: 5,
+    badge: "Strong Performer",
+    aiRec: {
+      recommendation: "promote",
+      confidence: 0.84,
+      evidence: [
+        "CSAT sustained at 4.7/5 for 3 consecutive quarters",
+        "Successfully de-escalated 5 churn-risk accounts in Q2",
+        "Churn rate reduced from 4.8% to 3.4% under his management",
+        "QBR completion rate of 92% — highest in CS history",
+        "CS Director criteria 80% satisfied — strong promotion case",
+      ],
+    },
+    goals: [
+      g("Customer Churn Rate Below 3%", "org", 71, "2026-12-31", 35, "on_track"),
+      g("CSAT ≥4.5 Sustained", "dept", 94, "2026-12-31", 25, "on_track"),
+      g("QBR Completion Rate 95%", "team", 97, "2026-06-30", 20, "on_track"),
+      g("CS Playbook Documentation", "individual", 50, "2026-07-15", 10, "at_risk"),
+      g("Upsell Revenue ₦90M", "individual", 62, "2026-09-30", 10, "on_track"),
+    ],
+    kpis: [
+      k("Churn Rate", 3, 3.4, "%", 40, "down"),
+      k("CSAT Score", 4.5, 4.7, "/5", 30, "flat"),
+      k("QBR Completion Rate", 95, 97, "%", 20, "up"),
+      k("Upsell Revenue", 90000000, 55800000, "NGN", 10, "flat"),
+    ],
+    reports: [
+      r("weekly", "2026-05-19",
+        "Completed 5 QBRs — all rated 4.8+. One churn-risk account de-escalated via emergency call. CS playbook at 50% — falling behind. Upsell pipeline at ₦56M.",
+        [{ metric: "QBRs Completed", value: 5 }, { metric: "CSAT", value: "4.7/5" }, { metric: "Churn Risks Resolved", value: 1 }],
+        "good",
+        "Excellent customer-facing performance. Playbook documentation is the internal gap to address."),
+      r("weekly", "2026-05-12",
+        "Health score reviews for top 20 accounts complete. 2 upsell proposals sent — total ₦28M. Reviewed Emeka's PIP plan. Derek is managing the team well despite capacity pressure.",
+        [{ metric: "Accounts Reviewed", value: 20 }, { metric: "Upsell Proposals", value: "₦28M" }, { metric: "PIP Review", value: "Done" }],
+        "good",
+        "Strong account stewardship and management activity visible."),
+      r("monthly", "2026-04-30",
+        "April was Derek's best month — 92% QBR rate, zero new churns, and ₦55M upsell pipeline built. Promotion criteria 80% satisfied.",
+        [{ metric: "QBR Rate", value: "92%" }, { metric: "New Churns", value: 0 }, { metric: "Upsell Pipeline", value: "₦55M" }],
+        "energised",
+        "CS Director promotion case is very strong. Playbook is the only remaining gap."),
+      r("weekly", "2026-04-21",
+        "Ran QBR readiness session for CS team. Two accounts expanded contracts — ₦18M incremental. Playbook outline drafted and reviewed with Femi.",
+        [{ metric: "Account Expansions", value: "₦18M" }, { metric: "QBR Readiness", value: "Done" }, { metric: "Playbook Outline", value: "Reviewed" }],
+        "energised",
+        "Proactive expansion activity shows commercial acumen alongside customer success skills."),
+    ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 85, "completed"),
+      ac("Report Consistency", 20, 83, "completed"),
+      ac("KPI Performance", 25, 87, "completed"),
+      ac("Manager Assessment", 10, 88, "completed"),
+      ac("Peer Feedback", 10, 86, "completed"),
+    ],
+    trainingSuggestions: [
+      t("Customer Success Leadership Certification", "Gainsight University", "Required for CS Director band", 20, "high"),
+      t("Revenue Expansion Playbook", "LinkedIn Learning", "Support upsell revenue goal", 8, "medium"),
+      t("Executive Presentation Skills", "Dale Carnegie", "Prepare for board-level CS playbook presentation", 12, "medium"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "energised", "Best month — zero new churns"),
+      wb("2026-05-07", "good"),
+      wb("2026-05-14", "good", "Upsell proposals in flight"),
+      wb("2026-05-21", "good", "Churn risk de-escalated"),
+    ],
+    documents: [
+      doc("Employment Contract", "Contract", "verified", "2021-07-19", "1.2 MB"),
+      doc("Q2 2026 Performance Agreement", "Appraisal", "verified", "2026-04-01", "470 KB"),
+      doc("CS Manager Appointment Letter", "Appointment", "verified", "2023-07-01", "440 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(20, 6),
+      sick: lv(10, 0),
+      compassionate: lv(3, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Annual", startDate: "2026-01-02", endDate: "2026-01-06", days: 5, status: "approved", reason: "New Year" },
+      { id: uid("lh"), type: "Annual", startDate: "2026-03-14", endDate: "2026-03-14", days: 1, status: "approved", reason: "Errand" },
+    ],
+    meetings: [
+      mt("CS Team QBR Planning", "2026-05-29", "14:00", 60, "team", ["CS Team"], "Conference Room A"),
+      mt("1:1 Emeka PIP Check-in", "2026-05-29", "09:00", 30, "performance_review", ["Derek Okafor", "Emeka Eze"], "Google Meet"),
+      mt("All-Hands — Q2 Update", "2026-06-10", "09:00", 90, "all_hands", ["All Staff"], "Main Auditorium"),
+    ],
+    tasks: [
+      tk("Complete CS playbook sections 3–5", "2026-06-15", "high", "pending", "Documentation"),
+      tk("Follow up on 2 upsell proposals", "2026-05-30", "high", "pending", "Revenue"),
+      tk("Submit Emeka PIP week 5 report", "2026-05-30", "medium", "pending", "HR"),
+      tk("Complete CS Leadership cert module 2", "2026-06-10", "medium", "pending", "Development"),
+      tk("QBR readiness team session", "2026-04-21", "medium", "complete", "Team"),
+    ],
+    notifications: [
+      nt("success", "Churn Risk Resolved", "Account successfully de-escalated — CSAT now 4.8.", "2026-05-19", true),
+      nt("warning", "CS Playbook Falling Behind", "Playbook is at 50% with 7 weeks to deadline.", "2026-05-22", false),
+      nt("info", "Promotion Review Initiated", "Femi has initiated your CS Director promotion review for Q3.", "2026-05-20", true),
+    ],
+  },
+
+  // ── e12 · Aisha Musa · Finance Officer ───────────────────────────────────
+  {
+    id: "e12",
+    name: "Aisha Musa",
+    initials: "AM",
+    role: "Finance Officer",
+    email: "aisha.musa@zenithcorp.ng",
+    phone: "+234 815 678 9012",
+    homeAddress: "33 Toyin Street, Ikeja, Lagos",
     department: "Finance",
-    avatarColor: "#e67700",
-    performanceScore: 45,
-    consistencyIndex: 41,
-    peerRating: 2.8,
+    team: "Financial Reporting",
+    lineManagerId: "e09",
+    cadre: "entry",
+    peopleResponsibility: "none",
+    platformRole: "standard",
+    avatarColor: "#f76707",
+    joinDate: "2024-03-04",
+    employmentType: "full_time",
+    band: {
+      current: "L1 – Finance Officer",
+      next: "L2 – Senior Officer",
+      requirements: ["Zero missed reporting deadlines for 2 consecutive quarters", "Complete ICAN Foundation", "Data accuracy rate ≥99%"],
+    },
+    compensation: {
+      basic: 240000, housing: 75000, transport: 36000, medical: 20000,
+      otherAllowances: [],
+      totalGross: 371000,
+      bonusStructure: [
+        { scoreThreshold: 70, bonusAmount: 50000 },
+      ],
+    },
+    performanceScore: 39,
+    consistencyIndex: 35,
+    peerRating: 2.7,
     weekStreak: 0,
     badge: "At Risk",
-    goals: [
-      { id: "g36", name: "Q2 Financial Reporting Accuracy", type: "org", percentComplete: 55, dueDate: "2026-06-30", weight: 35, status: "at_risk" },
-      { id: "g37", name: "Monthly Close Process -20% Time", type: "dept", percentComplete: 10, dueDate: "2026-08-31", weight: 25, status: "behind" },
-      { id: "g38", name: "Budget Variance Reduction", type: "team", percentComplete: 30, dueDate: "2026-07-31", weight: 20, status: "behind" },
-      { id: "g39", name: "Complete IFRS Training Module", type: "individual", percentComplete: 45, dueDate: "2026-07-15", weight: 15, status: "at_risk" },
-      { id: "g40", name: "Automate Expense Reconciliation", type: "individual", percentComplete: 5, dueDate: "2026-06-15", weight: 5, status: "behind" },
-    ],
-    reports: [
-      {
-        id: "r22", type: "weekly", date: "2026-05-19",
-        qualitative: "Q2 reporting is behind schedule due to data reconciliation issues in 3 cost centers. Errors found in April reports require correction. Manager is involved and working with Finance Director to prioritize.",
-        metrics: [
-          { label: "Reporting Progress", value: "55%", trend: "down" },
-          { label: "Errors Found", value: "3", trend: "down" },
-          { label: "Corrections Pending", value: "7", trend: "down" },
-        ],
-      },
-      {
-        id: "r23", type: "weekly", date: "2026-05-12",
-        qualitative: "Missed the monthly close deadline by 2 days — third consecutive delay. Root causes discussed with manager: competing priorities, limited ERP proficiency, and insufficient handover documentation from previous analyst.",
-        metrics: [
-          { label: "Close Delay", value: "2 days", trend: "down" },
-          { label: "ERP Proficiency", value: "42%", trend: "flat" },
-          { label: "Errors Corrected", value: "5/9", trend: "flat" },
-        ],
-      },
-      {
-        id: "r24", type: "monthly", date: "2026-04-30",
-        qualitative: "April exposed significant performance gaps. Three consecutive missed deadlines and a 41% consistency index have placed Sofia in the 'At Risk' category. HR and Finance Director are aligned on initiating a formal support plan.",
-        metrics: [
-          { label: "Deadlines Missed", value: "3", trend: "down" },
-          { label: "Consistency Index", value: "41", trend: "down" },
-          { label: "Peer Rating", value: "2.8/5", trend: "down" },
-        ],
-      },
-    ],
     aiRec: {
       recommendation: "exit_risk",
       confidence: 0.68,
       evidence: [
-        "Performance score declined 22pts over 90 days (67→45)",
-        "3 consecutive missed deadlines in monthly close process",
-        "Consistency index of 41 — 30pts below Finance dept average",
-        "Peer rating of 2.8 flagged in 360 feedback for reliability issues",
-        "Formal support plan discussion in progress with HR and Finance Director",
+        "Performance score has declined from 62% at hire to 39% — 23 pts drop",
+        "4 consecutive missed monthly close deadlines",
+        "Reporting accuracy at 81% — 18 pts below required standard",
+        "Consistency index of 35 — lowest across all 148 staff",
+        "HR has escalated to formal review; exit risk if no improvement by Q3",
       ],
     },
+    goals: [
+      g("Zero Missed Deadlines This Quarter", "dept", 25, "2026-06-30", 40, "behind"),
+      g("Reporting Accuracy ≥99%", "individual", 20, "2026-06-30", 30, "behind"),
+      g("Complete ICAN Foundation Module 1", "individual", 30, "2026-07-31", 20, "behind"),
+      g("ERP System Proficiency ≥85%", "individual", 35, "2026-07-31", 10, "behind"),
+    ],
+    kpis: [
+      k("Reporting Accuracy", 99, 81, "%", 45, "down"),
+      k("Deadline Adherence", 100, 25, "%", 35, "down"),
+      k("ERP Proficiency Score", 85, 35, "%", 20, "down"),
+    ],
+    reports: [
+      r("weekly", "2026-05-19",
+        "May close report delayed again — 3 days late. Errors found in cost centre allocations. Manager is reviewing daily. ERP training not started. HR formal review scheduled for 29 May.",
+        [{ metric: "Close Delay", value: "3 days" }, { metric: "Errors Found", value: 4 }, { metric: "ERP Training", value: "Not Started" }],
+        "drained",
+        "Critical performance failure pattern continues. Formal exit risk review is appropriate given 4 consecutive misses."),
+      r("weekly", "2026-05-12",
+        "Completed Q1 reconciliation with 7 errors — peer had to correct 4 of them. Manager sat in on close process to identify bottlenecks. ICAN module 1 partially started.",
+        [{ metric: "Reconciliation Errors", value: 7 }, { metric: "Peer Corrections", value: 4 }, { metric: "ICAN Started", value: "Partial" }],
+        "drained",
+        "Quality issues severe. External support required to prevent further deadline failures."),
+      r("monthly", "2026-04-30",
+        "April: 4th consecutive missed deadline. Reporting accuracy at 81%. HR has placed Aisha on formal exit risk review with 60-day improvement window.",
+        [{ metric: "Missed Deadlines", value: 4 }, { metric: "Accuracy", value: "81%" }, { metric: "Exit Review", value: "Initiated" }],
+        "drained",
+        "Formal exit risk process is initiated. 60-day improvement window is the final opportunity."),
+      r("weekly", "2026-04-21",
+        "Missed close deadline by 1 day. Flagged to Finance Director. Agreed to daily check-ins with manager for remainder of Q2. ERP refresher booked for next week.",
+        [{ metric: "Deadline Miss", value: "1 day" }, { metric: "Daily Check-ins", value: "Agreed" }, { metric: "ERP Refresher", value: "Booked" }],
+        "drained",
+        "Support structures in place. Execution against agreed plan is the critical test."),
+    ],
+    appraisalComponents: [
+      ac("Goal Achievement", 35, 28, "completed"),
+      ac("Report Consistency", 20, 35, "completed"),
+      ac("KPI Performance", 25, 32, "completed"),
+      ac("Manager Assessment", 10, 48, "completed"),
+      ac("Peer Feedback", 10, 45, "completed"),
+    ],
+    trainingSuggestions: [
+      t("ICAN Foundation — Financial Reporting", "ICAN Nigeria", "Core requirement for Finance Officer competency", 30, "high"),
+      t("ERP System Fundamentals (SAP)", "SAP Learning Hub", "Close ERP proficiency gap causing deadline failures", 12, "high"),
+      t("Attention to Detail in Financial Work", "LinkedIn Learning", "Address root cause of reporting accuracy errors", 4, "high"),
+    ],
+    wellbeingHistory: [
+      wb("2026-04-30", "drained", "Exit review notice is very stressful"),
+      wb("2026-05-07", "drained"),
+      wb("2026-05-14", "drained", "Still struggling with deadlines"),
+      wb("2026-05-21", "drained", "Formal review approaching"),
+    ],
+    documents: [
+      doc("Employment Contract", "Contract", "verified", "2024-03-04", "950 KB"),
+      doc("Formal Exit Risk Notice", "HR", "verified", "2026-04-30", "310 KB"),
+      doc("Q2 2026 Performance Agreement", "Appraisal", "pending", "2026-04-01", "290 KB"),
+    ],
+    leaveBalance: {
+      annual: lv(20, 0),
+      sick: lv(10, 4),
+      compassionate: lv(3, 0),
+    },
+    leaveHistory: [
+      { id: uid("lh"), type: "Sick", startDate: "2026-03-17", endDate: "2026-03-20", days: 4, status: "approved", reason: "Illness" },
+    ],
+    meetings: [
+      mt("Exit Risk Formal Review", "2026-05-29", "11:00", 60, "performance_review", ["Aisha Musa", "Kemi Adebayo", "Finance Director"], "HR Office"),
+      mt("Daily Manager Check-in", "2026-05-30", "08:30", 20, "1:1", ["Aisha Musa", "Finance Manager"], "Google Meet"),
+      mt("ERP Refresher Training", "2026-06-02", "10:00", 180, "team", ["Aisha Musa", "ERP Trainer"], "Training Room"),
+    ],
+    tasks: [
+      tk("Complete June close report on time", "2026-06-02", "high", "pending", "Reporting"),
+      tk("Start ICAN Foundation module 1", "2026-06-02", "high", "pending", "Development"),
+      tk("Attend ERP refresher session", "2026-06-02", "high", "pending", "Training"),
+      tk("Exit risk review with HR", "2026-05-29", "high", "pending", "HR"),
+      tk("Daily check-in with Finance Manager", "2026-05-28", "high", "complete", "HR"),
+    ],
+    notifications: [
+      nt("warning", "Exit Risk Review Today", "Your formal performance review is scheduled for 29 May at 11:00.", "2026-05-29", false),
+      nt("warning", "Deadline Missed — May Close", "May close report was submitted 3 days late.", "2026-05-22", true),
+      nt("action_required", "ICAN Enrolment Required", "ICAN Foundation enrolment must be completed before your review on 29 May.", "2026-05-20", false),
+    ],
   },
 ];
+
+// ─── Convenience exports ───────────────────────────────────────────────────────
+
+export const employeeById = Object.fromEntries(
+  employees.map((e) => [e.id, e]),
+) as Record<string, Employee>;
+
+export const employeesByDept = employees.reduce<Record<string, Employee[]>>(
+  (acc, e) => {
+    (acc[e.department] ??= []).push(e);
+    return acc;
+  },
+  {},
+);
+
+export const orgAvgScore = Math.round(
+  employees.reduce((s, e) => s + e.performanceScore, 0) / employees.length,
+);

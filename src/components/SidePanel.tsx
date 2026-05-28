@@ -7,7 +7,7 @@ import {
   BarChart2, BriefcaseBusiness, Home, ShieldCheck,
   Sparkles, Target, Users, Star,
 } from "lucide-react";
-import { useRole, ROLES, ROLE_LIST } from "@/context/RoleContext";
+import { useRole, ROLE_LIST } from "@/context/RoleContext";
 
 const quickLinks = [
   { label: "Goals",      href: "/goals",           icon: Target          },

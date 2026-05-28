@@ -713,7 +713,7 @@ export default function ManagerDashboard() {
                 <div className="bg-card rounded-2xl border border-border divide-y divide-border">
                   {report.metrics.map((m) => (
                     <div
-                      key={m.label}
+                      key={m.metric}
                       className="flex items-center justify-between gap-3 px-4 py-3"
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -722,7 +722,7 @@ export default function ManagerDashboard() {
                           className="text-green flex-shrink-0"
                         />
                         <span className="text-xs text-ink truncate">
-                          {m.label}
+                          {m.metric}
                         </span>
                       </div>
                       <span className="text-xs font-bold text-ink flex-shrink-0">

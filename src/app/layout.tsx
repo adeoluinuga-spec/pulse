@@ -24,7 +24,7 @@ const dmSans = DM_Sans({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#e8440a",
+  themeColor: "#0d0d0d",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -39,6 +39,9 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Pulse",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
   },
 };
 

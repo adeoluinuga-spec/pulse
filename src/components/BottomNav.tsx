@@ -21,7 +21,7 @@ function getHref(id: TabId, role: RoleKey): string {
   return `/${id}`;
 }
 
-function isTabActive(id: TabId, pathname: string, role: RoleKey): boolean {
+function isTabActive(id: TabId, pathname: string): boolean {
   if (id === "home") {
     // Active on any dashboard path
     return Object.values(ROLES).some((r) => pathname === r.path);
@@ -37,7 +37,7 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border md:hidden">
       <div className="flex h-20 max-w-screen-sm mx-auto pb-safe">
         {tabs.map(({ id, label, Icon }) => {
-          const active = isTabActive(id, pathname, role);
+          const active = isTabActive(id, pathname);
           const href   = getHref(id, role);
 
           return (
