@@ -7,7 +7,7 @@ import { useUser } from "@/context/UserContext";
 import { dailyPulseLine } from "@/lib/pulseLanguage";
 
 export default function TopBar() {
-  const { user, setActiveUser, openNotif, hasUnread, profileImages } = useUser();
+  const { user, signOut, openNotif, hasUnread, profileImages } = useUser();
   const pulseLine = dailyPulseLine();
   const profileImage = profileImages[user.id];
   const [profileOpen, setProfileOpen] = useState(false);
@@ -94,7 +94,7 @@ export default function TopBar() {
 
               <div className="border-t border-border py-1.5">
                 <button
-                  onClick={() => { setActiveUser("e01"); setProfileOpen(false); }}
+                  onClick={() => { setProfileOpen(false); void signOut(); }}
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red transition-colors hover:bg-red-soft/30 active:scale-[0.98]"
                 >
                   <LogOut size={14} className="text-red" />

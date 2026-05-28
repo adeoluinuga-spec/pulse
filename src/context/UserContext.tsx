@@ -3,17 +3,25 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
   useCallback,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
+import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
 import { employees } from "@/data/mockData";
 import type { Employee, Notification } from "@/types";
 import { useToast } from "@/components/ui/Toast";
+import { supabase } from "@/lib/supabase";
 
 interface UserContextValue {
   user: Employee;
+  authUser: SupabaseUser | null;
+  session: Session | null;
+  loading: boolean;
   setActiveUser: (employeeId: string) => void;
+  signOut: () => Promise<void>;
   profileImages: Record<string, string>;
   setProfileImage: (employeeId: string, imageDataUrl: string) => void;
   notifications: Notification[];
@@ -27,7 +35,11 @@ const DEFAULT_USER = employees.find((e) => e.id === "e01") ?? employees[0];
 
 const UserContext = createContext<UserContextValue>({
   user: DEFAULT_USER,
+  authUser: null,
+  session: null,
+  loading: true,
   setActiveUser: () => {},
+  signOut: async () => {},
   profileImages: {},
   setProfileImage: () => {},
   notifications: DEFAULT_USER.notifications,
@@ -38,8 +50,11 @@ const UserContext = createContext<UserContextValue>({
 });
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [userId, setUserId] = useState("e01");
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileImages, setProfileImages] = useState<Record<string, string>>({});
   const [notifs, setNotifs] = useState<Notification[]>(
@@ -48,12 +63,48 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const user = employees.find((e) => e.id === userId) ?? employees[0];
 
+  const selectEmployeeForSession = useCallback((authSession: Session | null) => {
+    const email = authSession?.user.email?.toLowerCase();
+    const employee = employees.find((emp) => emp.email.toLowerCase() === email) ?? DEFAULT_USER;
+    setUserId(employee.id);
+    setNotifs([...employee.notifications]);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setSession(data.session);
+      selectEmployeeForSession(data.session);
+      setLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      selectEmployeeForSession(nextSession);
+      setLoading(false);
+    });
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [selectEmployeeForSession]);
+
   const setActiveUser = useCallback((id: string) => {
     const emp = employees.find((employee) => employee.id === id) ?? employees[0];
     setUserId(id);
     setNotifs([...emp.notifications]);
     showToast(`Viewing as ${emp.name} — ${emp.cadre} / ${emp.peopleResponsibility}`, "info");
   }, [showToast]);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    router.replace("/auth/login");
+    router.refresh();
+  }, [router]);
 
   const setProfileImage = useCallback((employeeId: string, imageDataUrl: string) => {
     setProfileImages((prev) => ({ ...prev, [employeeId]: imageDataUrl }));
@@ -69,9 +120,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
   }, []);
 
+  if (loading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-paper px-6 text-center text-ink">
+        <div>
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-border border-t-pulse" />
+          <p className="mt-4 text-sm font-bold text-muted">Preparing your Pulse workspace...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <UserContext.Provider
-      value={{ user, setActiveUser, profileImages, setProfileImage, notifications: notifs, hasUnread, notifOpen, openNotif, closeNotif }}
+      value={{ user, authUser: session?.user ?? null, session, loading, setActiveUser, signOut, profileImages, setProfileImage, notifications: notifs, hasUnread, notifOpen, openNotif, closeNotif }}
     >
       {children}
       <DevUserSwitcher />
