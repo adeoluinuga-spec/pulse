@@ -61,20 +61,20 @@ const MANAGER_COMPETENCIES = [
 ];
 
 const PEER_FEEDBACK: Record<string, { rating: number; text: string }[]> = {
-  e1: [
+  e01: [
     { rating: 5, text: "Consistently the strongest cross-functional collaborator on the team." },
     { rating: 5, text: "Exceptional at roadmap presentations — rarely needs to explain things twice." },
     { rating: 4, text: "Proactive about unblocking the team and very clear in written communication." },
   ],
-  e2: [
+  e02: [
     { rating: 5, text: "Fantastic technical mentor. Very patient and thorough with junior engineers." },
     { rating: 4, text: "Strong code review feedback. Always explains the rationale behind suggestions." },
   ],
-  e4: [
+  e04: [
     { rating: 5, text: "The most energising sales leader I've worked with. Sets clear direction." },
     { rating: 4, text: "Great at rallying the team around targets. Could improve async update cadence." },
   ],
-  e6: [
+  e06: [
     { rating: 5, text: "Exceptional CSAT scores speak for themselves. A genuinely customer-first mindset." },
     { rating: 4, text: "Reliable, proactive, and thorough in quarterly business review preparation." },
   ],
