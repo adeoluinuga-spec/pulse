@@ -3,12 +3,14 @@ import { ChevronRight } from "lucide-react";
 import type { Employee } from "@/data/mockData";
 import Avatar from "./Avatar";
 import Badge from "./Badge";
+import Skeleton from "./Skeleton";
 
 interface PersonRowProps {
   employee: Employee;
   showScore?: boolean;
   onClick?: () => void;
   className?: string;
+  loading?: boolean;
 }
 
 export default function PersonRow({
@@ -16,8 +18,22 @@ export default function PersonRow({
   showScore = true,
   onClick,
   className,
+  loading = false,
 }: PersonRowProps) {
   const Wrapper = onClick ? "button" : "div";
+
+  if (loading) {
+    return (
+      <div className={clsx("flex items-center gap-3 py-3.5", className)}>
+        <Skeleton width={36} height={36} borderRadius="999px" />
+        <div className="flex-1">
+          <Skeleton width="65%" height={12} />
+          <Skeleton width="42%" height={9} className="mt-2" />
+        </div>
+        <Skeleton width={48} height={20} borderRadius={999} />
+      </div>
+    );
+  }
 
   return (
     <Wrapper

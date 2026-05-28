@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { X, Bell } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import type { NotificationType } from "@/types";
+import EmptyState from "@/components/ui/EmptyState";
 
 const ACCENT: Record<NotificationType, string> = {
   info:            "bg-muted",
@@ -85,14 +86,8 @@ export default function NotificationPanel() {
         {/* List / empty */}
         <div className="flex-1 overflow-y-auto">
           {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-3 px-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-border flex items-center justify-center">
-                <Bell size={20} className="text-muted" />
-              </div>
-              <p className="text-sm font-semibold text-ink">You&apos;re all caught up</p>
-              <p className="text-xs text-muted leading-relaxed">
-                No notifications right now. Check back later.
-              </p>
+            <div className="flex h-full items-center px-5">
+              <EmptyState icon="🔔" title="No new notifications" subtitle="You're up to date." />
             </div>
           ) : (
             notifications.map((n) => (

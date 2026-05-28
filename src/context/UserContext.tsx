@@ -9,6 +9,7 @@ import {
 } from "react";
 import { employees } from "@/data/mockData";
 import type { Employee, Notification } from "@/types";
+import { useToast } from "@/components/ui/Toast";
 
 interface UserContextValue {
   user: Employee;
@@ -33,6 +34,7 @@ const UserContext = createContext<UserContextValue>({
 });
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const { showToast } = useToast();
   const [userId, setUserId] = useState("e01");
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notification[]>(
@@ -45,7 +47,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const emp = employees.find((employee) => employee.id === id) ?? employees[0];
     setUserId(id);
     setNotifs([...emp.notifications]);
-  }, []);
+    showToast(`Viewing as ${emp.name} — ${emp.cadre} / ${emp.peopleResponsibility}`, "info");
+  }, [showToast]);
 
   const hasUnread = notifs.some((n) => !n.read);
 

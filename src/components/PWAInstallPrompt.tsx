@@ -9,7 +9,11 @@ export default function PWAInstallPrompt() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem("pwa-dismissed")) return;
+    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    }
+    if (sessionStorage.getItem("pulse-pwa-dismissed")) return;
+    if (sessionStorage.getItem("pulse-pwa-shown")) return;
 
     const onBeforeInstall = (e: Event) => {
       e.preventDefault();
@@ -17,7 +21,10 @@ export default function PWAInstallPrompt() {
     };
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
 
-    const timer = setTimeout(() => setVisible(true), 30_000);
+    const timer = setTimeout(() => {
+      sessionStorage.setItem("pulse-pwa-shown", "1");
+      setVisible(true);
+    }, 45_000);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
@@ -27,7 +34,7 @@ export default function PWAInstallPrompt() {
 
   function dismiss() {
     setVisible(false);
-    sessionStorage.setItem("pwa-dismissed", "1");
+    sessionStorage.setItem("pulse-pwa-dismissed", "1");
   }
 
   async function install() {
@@ -43,8 +50,8 @@ export default function PWAInstallPrompt() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-24 left-4 right-4 z-[100] md:bottom-6 md:left-auto md:right-6 md:w-80 animate-fade-up">
-      <div className="bg-ink text-white rounded-2xl p-4 flex items-center gap-3 shadow-2xl">
+    <div className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,12px))] left-4 right-4 z-[100] mx-auto max-w-[430px] animate-sheet-up md:bottom-6 md:left-auto md:right-6 md:w-80">
+      <div className="bg-ink text-white rounded-2xl p-4 flex items-center gap-3 shadow-2xl border border-pulse/25">
         <div className="w-9 h-9 rounded-xl bg-pulse/20 flex items-center justify-center flex-shrink-0">
           <Download size={16} className="text-pulse" />
         </div>
@@ -54,7 +61,7 @@ export default function PWAInstallPrompt() {
             Add Pulse to your home screen
           </p>
           <p className="text-[11px] text-white/50 mt-0.5">
-            Best experience as an installed app
+            Works offline and feels native
           </p>
         </div>
 

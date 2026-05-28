@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import type { Goal } from "@/data/mockData";
 import ProgressBar from "./ProgressBar";
+import Skeleton from "./Skeleton";
 
 const typeLabel: Record<Goal["type"], string> = {
   org: "Org",
@@ -33,9 +34,20 @@ const statusColor: Record<Goal["status"], string> = {
 interface GoalItemProps {
   goal: Goal;
   className?: string;
+  loading?: boolean;
 }
 
-export default function GoalItem({ goal, className }: GoalItemProps) {
+export default function GoalItem({ goal, className, loading = false }: GoalItemProps) {
+  if (loading) {
+    return (
+      <div className={clsx("py-3.5", className)}>
+        <Skeleton width="75%" height={14} />
+        <Skeleton width="100%" height={8} className="mt-3" />
+        <Skeleton width="45%" height={10} className="mt-3" />
+      </div>
+    );
+  }
+
   const formattedDate = new Date(goal.dueDate).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",

@@ -22,7 +22,7 @@ export default function TopBar() {
   }, [profileOpen]);
 
   return (
-    <header className="sticky top-0 z-50 h-14 bg-ink flex items-center justify-between px-4 flex-shrink-0">
+    <header className="sticky top-0 z-50 min-h-14 bg-ink flex items-center justify-between px-4 pt-safe flex-shrink-0">
       {/* Left — animated dot + wordmark */}
       <div className="flex items-center gap-2.5">
         <span className="w-2.5 h-2.5 rounded-full bg-pulse animate-pulse-dot" />

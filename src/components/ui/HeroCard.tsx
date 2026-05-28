@@ -1,14 +1,55 @@
+"use client";
+
 import clsx from "clsx";
+import { useEffect, useState } from "react";
 import type { Employee } from "@/data/mockData";
 import Badge from "./Badge";
 import Avatar from "./Avatar";
+import Skeleton from "./Skeleton";
 
 interface HeroCardProps {
   employee: Employee;
   className?: string;
+  loading?: boolean;
 }
 
-export default function HeroCard({ employee, className }: HeroCardProps) {
+function useCountUp(target: number, duration = 800) {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    let frame = 0;
+    const start = performance.now();
+    function tick(now: number) {
+      const progress = Math.min(1, (now - start) / duration);
+      setValue(Math.round(target * progress));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    }
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration]);
+
+  return value;
+}
+
+export default function HeroCard({ employee, className, loading = false }: HeroCardProps) {
+  const score = useCountUp(employee.performanceScore);
+
+  if (loading) {
+    return (
+      <div className={clsx("bg-ink rounded-2xl p-5 text-white", className)}>
+        <div className="mb-5 flex items-center gap-3">
+          <Skeleton width={44} height={44} borderRadius="999px" className="bg-white/10" />
+          <div className="flex-1">
+            <Skeleton width="62%" height={16} className="bg-white/10" />
+            <Skeleton width="42%" height={10} className="mt-2 bg-white/10" />
+          </div>
+        </div>
+        <Skeleton width={120} height={64} className="bg-white/10" />
+        <Skeleton width="100%" height={8} className="mt-5 bg-white/10" />
+      </div>
+    );
+  }
+
   return (
     <div className={clsx("bg-ink rounded-2xl p-5 text-white", className)}>
       <div className="flex items-start justify-between mb-5">
@@ -38,7 +79,7 @@ export default function HeroCard({ employee, className }: HeroCardProps) {
             className="text-white font-bold leading-none"
             style={{ fontFamily: "var(--font-syne)", fontSize: "4rem" }}
           >
-            {employee.performanceScore}
+            {score}
           </span>
           <div className="pb-2">
             <span className="text-white/40 text-sm">/100</span>

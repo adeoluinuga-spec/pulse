@@ -1,8 +1,9 @@
 {
-  "name": "Pulse — Performance Intelligence",
+  "name": "Pulse - Performance Intelligence",
   "short_name": "Pulse",
   "description": "AI-powered performance management for modern teams",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f5f2ec",
   "theme_color": "#0d0d0d",

@@ -564,9 +564,11 @@ function BriefingText({ text }: { text: string }) {
     <div className="mt-5 space-y-4">
       {sections.map((section, index) => {
         const next = sections[index + 1];
-        const start = text.indexOf(`${section} —`);
-        const end = next ? text.indexOf(`${next} —`) : -1;
-        const content = start >= 0 ? text.slice(start + section.length + 3, end > start ? end : undefined).trim() : "";
+        const marker = text.includes(`${section} —`) ? `${section} —` : `${section} -`;
+        const nextMarker = next ? (text.includes(`${next} —`) ? `${next} —` : `${next} -`) : "";
+        const start = text.indexOf(marker);
+        const end = nextMarker ? text.indexOf(nextMarker) : -1;
+        const content = start >= 0 ? text.slice(start + marker.length, end > start ? end : undefined).trim() : "";
         return (
           <div key={section}>
             <p className="text-xs font-bold uppercase tracking-widest text-pulse">✦ {section}</p>

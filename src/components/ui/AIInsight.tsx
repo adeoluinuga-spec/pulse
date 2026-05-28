@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { TrendingUp, Star, AlertTriangle, AlertOctagon, CheckCircle } from "lucide-react";
 import type { AIRec, AIRecommendation } from "@/data/mockData";
+import Skeleton from "./Skeleton";
 
 const recConfig: Record<
   AIRecommendation,
@@ -45,9 +46,10 @@ const recConfig: Record<
 interface AIInsightProps {
   aiRec: AIRec;
   className?: string;
+  loading?: boolean;
 }
 
-export default function AIInsight({ aiRec, className }: AIInsightProps) {
+export default function AIInsight({ aiRec, className, loading = false }: AIInsightProps) {
   const config = recConfig[aiRec.recommendation];
   const { label, color, bg, border, Icon } = config;
   const confidencePct = Math.round(aiRec.confidence * 100);
@@ -74,14 +76,23 @@ export default function AIInsight({ aiRec, className }: AIInsightProps) {
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        {aiRec.evidence.map((item, i) => (
-          <div key={i} className="flex items-start gap-2">
-            <CheckCircle size={12} className={clsx("flex-shrink-0 mt-0.5", color)} />
-            <p className="text-xs text-ink/80 leading-relaxed">{item}</p>
-          </div>
-        ))}
-      </div>
+      {loading ? (
+        <div className="space-y-2">
+          <Skeleton width="100%" height={10} />
+          <Skeleton width="92%" height={10} />
+          <Skeleton width="78%" height={10} />
+          <Skeleton width="62%" height={10} />
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {aiRec.evidence.map((item, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <CheckCircle size={12} className={clsx("flex-shrink-0 mt-0.5", color)} />
+              <p className="text-xs text-ink/80 leading-relaxed">{item}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

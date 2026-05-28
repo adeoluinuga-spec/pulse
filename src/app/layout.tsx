@@ -29,7 +29,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Pulse — Performance Intelligence",
+  title: "Pulse - Performance Intelligence",
   description: "AI-powered performance management for modern teams",
   manifest: "/manifest.json",
   appleWebApp: {
