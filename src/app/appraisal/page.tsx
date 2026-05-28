@@ -107,22 +107,44 @@ function makeState(over: Partial<AppraisalState> = {}): AppraisalState {
 }
 
 const INIT_APPRAISALS: Record<string, AppraisalState> = {
-  e1: makeState(),
-  e2: makeState({ selfSubmitted: true, selfRatings: [4, 4, 4] }),
-  e3: makeState({
+  e01: makeState({
+    selfSubmitted: true, selfRatings: [4, 5, 4],
+    managerSubmitted: true, managerRatings: [5, 4, 5, 4, 5],
+    managerComment: "Amara consistently leads by example. Her Q2 close was exceptional and the team responds very well to her coaching style.",
+  }),
+  e02: makeState({ selfSubmitted: true, selfRatings: [3, 4, 3] }),
+  e03: makeState({
+    selfSubmitted: true, selfRatings: [4, 5, 4],
+    managerSubmitted: true, managerRatings: [4, 5, 4, 5, 4],
+    managerComment: "Bolu delivered the best Sales month in 18 months. The Nestlé deal demonstrates strategic thinking at VP level.",
+    hrSignedOff: true, hrAgreed: true,
+  }),
+  e04: makeState({ selfSubmitted: true, selfRatings: [2, 3, 2] }),
+  e05: makeState({
     selfSubmitted: true, selfRatings: [3, 4, 3],
     managerSubmitted: true, managerRatings: [3, 4, 3, 4, 3],
-    managerComment: "Solid progress on the review cycle. The attrition reduction goal needs a more targeted intervention strategy.",
+    managerComment: "Ngozi is making steady progress on the brand campaign. The digital engagement gap needs a clearer action plan for H2.",
   }),
-  e4: makeState({ selfSubmitted: true, selfRatings: [4, 4, 4] }),
-  e5: makeState(),
-  e6: makeState({
-    selfSubmitted: true, selfRatings: [4, 4, 4],
+  e06: makeState({ selfSubmitted: true, selfRatings: [4, 4, 4] }),
+  e07: makeState(),
+  e08: makeState({
+    selfSubmitted: true, selfRatings: [4, 4, 3],
     managerSubmitted: true, managerRatings: [4, 4, 4, 3, 4],
-    managerComment: "Consistently strong CSAT and QBR delivery. Playbook documentation remains the key area to address going forward.",
+    managerComment: "Kemi has run an excellent appraisal cycle and the attrition trend is moving in the right direction. Wellbeing programme needs to accelerate.",
   }),
-  e7: makeState({ selfSubmitted: true, selfRatings: [4, 3, 4] }),
-  e8: makeState(),
+  e09: makeState({
+    selfSubmitted: true, selfRatings: [4, 4, 4],
+    managerSubmitted: true, managerRatings: [5, 4, 5, 4, 4],
+    managerComment: "Femi's strategic direction has delivered a record Q1. Board confidence is high.",
+    hrSignedOff: true, hrAgreed: true,
+  }),
+  e10: makeState({ selfSubmitted: true, selfRatings: [3, 3, 3] }),
+  e11: makeState({
+    selfSubmitted: true, selfRatings: [4, 4, 5],
+    managerSubmitted: true, managerRatings: [4, 5, 4, 4, 4],
+    managerComment: "Derek's CSAT and churn metrics speak for themselves. The CS playbook must be prioritised in the coming weeks.",
+  }),
+  e12: makeState(),
 };
 
 // ── Score helpers ─────────────────────────────────────────────────────────────
