@@ -93,9 +93,9 @@ export default function TopBar() {
                   />
                 )}
 
-                {user.platformRole === "executive_view" && (
+                {(user.platformRole === "executive_view" || user.platformRole === "super_admin") && (
                   <DropItem
-                    href="/dashboard/executive"
+                    href="/executive"
                     Icon={BarChart2}
                     label="Switch to Executive View"
                     accent
