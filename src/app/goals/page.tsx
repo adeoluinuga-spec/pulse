@@ -1,1016 +1,714 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import clsx from "clsx";
-import { Search, ChevronDown, Plus, X } from "lucide-react";
-import { employees, departments } from "@/data/mockData";
-import type { Goal, GoalType, GoalStatus } from "@/data/mockData";
-import { useRole } from "@/context/RoleContext";
-import Avatar from "@/components/ui/Avatar";
-import ProgressBar from "@/components/ui/ProgressBar";
-import { StatCard, SectionLabel } from "@/components/ui";
+import {
+  AlertTriangle,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  Download,
+  FileText,
+  MessageSquare,
+  Plus,
+  Search,
+  Target,
+  X,
+} from "lucide-react";
+import { employees } from "@/data/mockData";
+import { useUser } from "@/context/UserContext";
+import type { Employee, Goal, GoalStatus, GoalType } from "@/types";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+type FilterKey = "all" | "on_track" | "at_risk" | "completed" | "overdue";
+type GoalView = "entry" | "mid" | "manager" | "senior_manager" | "hr" | "executive";
 
-interface GoalWithOwner extends Goal {
+interface GoalRecord extends Goal {
   ownerId: string;
   ownerName: string;
   ownerInitials: string;
   ownerColor: string;
   ownerDept: string;
+  startDate: string;
+  targetMetric: string;
+  parentGoalId?: string;
+  contributors: string[];
+  managerNote?: string;
 }
 
-type FilterKey = "all" | "on_track" | "at_risk" | "completed";
+interface GoalTask {
+  id: string;
+  title: string;
+  assignee: string;
+  dueDate: string;
+  done: boolean;
+}
 
-interface GoalTask      { id: string; label: string; done: boolean; }
-interface GoalHistoryPt { date: string; pct: number; }
-interface GoalComment   { author: string; text: string; time: string; }
+interface GoalHistory {
+  id: string;
+  date: string;
+  oldPct: number;
+  newPct: number;
+  note?: string;
+}
+
+interface GoalComment {
+  id: string;
+  author: string;
+  text: string;
+  date: string;
+}
+
 interface GoalMeta {
-  description: string;
   tasks: GoalTask[];
-  history: GoalHistoryPt[];
+  history: GoalHistory[];
   comments: GoalComment[];
+  files: string[];
+  contributeNote?: string;
 }
 
-// ── Meta enrichment ───────────────────────────────────────────────────────────
+const today = new Date("2026-05-28");
 
-const GOAL_META: Record<string, GoalMeta> = {
-  g1: {
-    description:
-      "Coordinate the full Q2 product roadmap launch, aligning engineering, design, and stakeholders to deliver 8 planned features on schedule.",
-    tasks: [
-      { id: "t1", label: "Finalise roadmap with VP Product", done: true },
-      { id: "t2", label: "Align Engineering on sprint plan", done: true },
-      { id: "t3", label: "Stakeholder sign-off meeting", done: true },
-      { id: "t4", label: "Launch comms to all-hands", done: false },
-    ],
-    history: [
-      { date: "Apr 1", pct: 45 }, { date: "Apr 15", pct: 60 },
-      { date: "May 1", pct: 74 }, { date: "May 15", pct: 88 },
-    ],
-    comments: [
-      { author: "BA", text: "Excellent progress. Keep the momentum going.", time: "2d ago" },
-      { author: "AO", text: "Final comms scheduled for June 28.", time: "1d ago" },
-    ],
-  },
-  g2: {
-    description:
-      "Drive a cross-functional initiative to improve user retention by 15% through onboarding improvements and product engagement features.",
-    tasks: [
-      { id: "t1", label: "Identify retention drop-off points", done: true },
-      { id: "t2", label: "Ship onboarding v2 flow", done: false },
-      { id: "t3", label: "A/B test engagement nudges", done: false },
-    ],
-    history: [
-      { date: "Apr 1", pct: 20 }, { date: "Apr 15", pct: 40 },
-      { date: "May 1", pct: 55 }, { date: "May 15", pct: 65 },
-    ],
-    comments: [
-      { author: "BA", text: "At risk — onboarding v2 needs to ship by June 1.", time: "3d ago" },
-    ],
-  },
-  g6: {
-    description:
-      "Migrate the authentication service from legacy session-based auth to OAuth 2.0 with full backward compatibility and zero downtime.",
-    tasks: [
-      { id: "t1", label: "Audit existing auth flows", done: true },
-      { id: "t2", label: "Implement OAuth provider integration", done: true },
-      { id: "t3", label: "Write migration tests", done: false },
-      { id: "t4", label: "Staged rollout to 10% of users", done: false },
-    ],
-    history: [
-      { date: "Apr 1", pct: 20 }, { date: "Apr 15", pct: 40 },
-      { date: "May 1", pct: 58 }, { date: "May 15", pct: 72 },
-    ],
-    comments: [{ author: "BA", text: "Good pace. Rollout plan looks solid.", time: "1d ago" }],
-  },
-  g16: {
-    description:
-      "Achieve the Q2 revenue target of $2.4M through enterprise deal closures and pipeline activation across all sales verticals.",
-    tasks: [
-      { id: "t1", label: "Close top 3 enterprise prospects", done: true },
-      { id: "t2", label: "Activate 5 dormant pipeline accounts", done: false },
-      { id: "t3", label: "Reach $2.4M by June 30", done: false },
-    ],
-    history: [
-      { date: "Apr 1", pct: 40 }, { date: "Apr 15", pct: 55 },
-      { date: "May 1", pct: 68 }, { date: "May 15", pct: 78 },
-    ],
-    comments: [
-      { author: "ZC", text: "Strong trajectory. 6 weeks to close the remaining gap.", time: "4d ago" },
-    ],
-  },
-  g36: {
-    description:
-      "Deliver accurate Q2 financial reports across all 8 cost centres with zero material errors, meeting all reporting deadlines.",
-    tasks: [
-      { id: "t1", label: "Reconcile all cost centre data", done: false },
-      { id: "t2", label: "Correct April report errors", done: false },
-      { id: "t3", label: "Final review with Finance Director", done: false },
-    ],
-    history: [
-      { date: "Apr 1", pct: 30 }, { date: "Apr 15", pct: 40 },
-      { date: "May 1", pct: 48 }, { date: "May 15", pct: 55 },
-    ],
-    comments: [
-      { author: "HR", text: "Support plan being developed alongside this goal.", time: "2d ago" },
-    ],
-  },
-};
-
-// ── Derived data ──────────────────────────────────────────────────────────────
-
-const initialGoals: GoalWithOwner[] = employees.flatMap((emp) =>
-  emp.goals.map((g) => ({
-    ...g,
-    ownerId: emp.id,
-    ownerName: emp.name,
-    ownerInitials: emp.initials,
-    ownerColor: emp.avatarColor,
-    ownerDept: emp.department,
-  }))
-);
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const STATUS_META: Record<GoalStatus, { label: string; color: string; dot: string }> = {
-  on_track:  { label: "On Track",  color: "text-green",  dot: "bg-green"  },
-  at_risk:   { label: "At Risk",   color: "text-amber",  dot: "bg-amber"  },
-  behind:    { label: "Behind",    color: "text-red",    dot: "bg-red"    },
-  completed: { label: "Completed", color: "text-muted",  dot: "bg-border" },
-};
-
-const TYPE_BADGE: Record<GoalType, string> = {
-  org:        "bg-ink text-white",
-  dept:       "bg-pulse-soft text-pulse",
-  team:       "bg-green-soft text-green",
-  individual: "bg-border text-muted",
-};
-
-const TYPE_LABEL: Record<GoalType, string> = {
-  org: "Org", dept: "Dept", team: "Team", individual: "Individual",
-};
-
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: "all",       label: "All"       },
-  { key: "on_track",  label: "On Track"  },
-  { key: "at_risk",   label: "At Risk"   },
+const filters: { key: FilterKey; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "on_track", label: "On Track" },
+  { key: "at_risk", label: "At Risk" },
   { key: "completed", label: "Completed" },
+  { key: "overdue", label: "Overdue" },
 ];
 
-function matchesFilter(goal: GoalWithOwner, filter: FilterKey): boolean {
+const typeBadge: Record<GoalType, string> = {
+  org: "bg-ink text-white",
+  dept: "bg-pulse text-white",
+  team: "bg-green text-white",
+  individual: "bg-amber text-white",
+};
+
+const typeLabel: Record<GoalType, string> = {
+  org: "Org",
+  dept: "Dept",
+  team: "Team",
+  individual: "Individual",
+};
+
+function daysUntil(date: string) {
+  return Math.ceil((new Date(date).getTime() - today.getTime()) / 86_400_000);
+}
+
+function fmt(date: string) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(date));
+}
+
+function statusFor(percent: number): GoalStatus {
+  if (percent >= 100) return "completed";
+  if (percent >= 65) return "on_track";
+  if (percent >= 35) return "at_risk";
+  return "behind";
+}
+
+function statusLabel(goal: GoalRecord) {
+  if (isOverdue(goal)) return "Overdue";
+  if (goal.status === "on_track") return "On Track";
+  if (goal.status === "completed") return "Completed";
+  return "At Risk";
+}
+
+function isOverdue(goal: GoalRecord) {
+  return goal.status !== "completed" && daysUntil(goal.dueDate) < 0;
+}
+
+function progressColor(percent: number, overdue = false) {
+  if (overdue) return "bg-red";
+  if (percent >= 75) return "bg-green";
+  if (percent >= 50) return "bg-amber";
+  return "bg-red";
+}
+
+function statusClass(goal: GoalRecord) {
+  if (isOverdue(goal)) return "bg-red-soft text-red border-red/20";
+  if (goal.status === "completed") return "bg-green-soft text-green border-green/20";
+  if (goal.status === "on_track") return "bg-green-soft text-green border-green/20";
+  return "bg-amber-soft text-amber border-amber/20";
+}
+
+function initialGoals(): GoalRecord[] {
+  return employees.flatMap((employee, employeeIndex) =>
+    employee.goals.map((goal, goalIndex) => ({
+      ...goal,
+      description: goal.description || `${goal.name} supports ${employee.department}'s contribution to the active Q2 performance cycle.`,
+      ownerId: employee.id,
+      ownerName: employee.name,
+      ownerInitials: employee.initials,
+      ownerColor: employee.avatarColor,
+      ownerDept: employee.department,
+      startDate: goalIndex % 2 === 0 ? "2026-04-01" : "2026-05-01",
+      targetMetric: goal.name.includes("Revenue") ? "Revenue target" : goal.name.includes("Certification") ? "Certificate completion" : "100% completion",
+      contributors: [employee.id, employees[(employeeIndex + 1) % employees.length].id],
+      managerNote: goal.status === "at_risk" || goal.status === "behind" ? "Needs tighter weekly tracking." : undefined,
+    }))
+  );
+}
+
+function makeMeta(goals: GoalRecord[]): Record<string, GoalMeta> {
+  return Object.fromEntries(
+    goals.map((goal) => {
+      const assignee = goal.ownerName;
+      const taskCount = goal.type === "individual" ? 3 : 4;
+      const doneCount = Math.round((goal.percentComplete / 100) * taskCount);
+      return [
+        goal.id,
+        {
+          tasks: Array.from({ length: taskCount }, (_, index) => ({
+            id: `${goal.id}-task-${index}`,
+            title: ["Define success metric", "Complete milestone work", "Share progress update", "Final review and sign-off"][index],
+            assignee,
+            dueDate: index < 2 ? "2026-06-15" : goal.dueDate,
+            done: index < doneCount,
+          })),
+          history: [
+            { id: `${goal.id}-h1`, date: "Apr 15", oldPct: 0, newPct: Math.max(10, goal.percentComplete - 28), note: "Baseline set" },
+            { id: `${goal.id}-h2`, date: "May 15", oldPct: Math.max(10, goal.percentComplete - 28), newPct: goal.percentComplete, note: "Latest update" },
+          ],
+          comments: [
+            { id: `${goal.id}-c1`, author: goal.ownerInitials, text: "Progress updated for the current cycle.", date: "2d ago" },
+          ],
+          files: [`${goal.name.slice(0, 22)} plan.pdf`, "Progress evidence.docx"],
+          contributeNote: `Your work contributes through ${goal.ownerDept} delivery metrics.`,
+        },
+      ];
+    })
+  );
+}
+
+function deriveView(user: Employee): GoalView {
+  if (user.platformRole === "hr_admin" || user.platformRole === "super_admin") return "hr";
+  if (user.platformRole === "executive_view") return "executive";
+  if (user.peopleResponsibility === "senior_manager" || user.peopleResponsibility === "director") return "senior_manager";
+  if (user.peopleResponsibility === "manager") return "manager";
+  if (user.cadre === "entry") return "entry";
+  return "mid";
+}
+
+function canEditGoal(goal: GoalRecord, user: Employee, view: GoalView) {
+  if (view === "hr") return goal.type === "org";
+  if (view === "executive") return false;
+  if (view === "senior_manager") return goal.type !== "org" || goal.contributors.includes(user.id);
+  if (view === "manager") return goal.type === "team" || goal.ownerId === user.id;
+  if (view === "mid") return goal.ownerId === user.id || goal.contributors.includes(user.id);
+  return goal.ownerId === user.id && goal.type === "individual";
+}
+
+function matchesFilter(goal: GoalRecord, filter: FilterKey) {
   if (filter === "all") return true;
-  if (filter === "on_track") return goal.status === "on_track";
+  if (filter === "overdue") return isOverdue(goal);
+  if (filter === "completed") return goal.status === "completed";
   if (filter === "at_risk") return goal.status === "at_risk" || goal.status === "behind";
-  return goal.status === "completed";
+  return goal.status === "on_track";
 }
-
-function dueFmt(dueDate: string, includeYear = true) {
-  return new Date(dueDate).toLocaleDateString("en-GB", {
-    day: "numeric", month: "short", ...(includeYear ? { year: "numeric" } : {}),
-  });
-}
-
-// ── GoalCard ──────────────────────────────────────────────────────────────────
-
-function GoalCard({
-  goal,
-  showOwner = false,
-  compact = false,
-  onSelect,
-}: {
-  goal: GoalWithOwner;
-  showOwner?: boolean;
-  compact?: boolean;
-  onSelect: (g: GoalWithOwner) => void;
-}) {
-  const sm = STATUS_META[goal.status];
-
-  return (
-    <button
-      onClick={() => onSelect(goal)}
-      className="w-full text-left bg-card rounded-2xl p-4 border border-border"
-    >
-      <div className="flex items-start justify-between gap-2 mb-2.5">
-        <p className="text-sm font-semibold text-ink leading-snug flex-1 min-w-0 line-clamp-2">
-          {goal.name}
-        </p>
-        <span className={clsx("shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded", TYPE_BADGE[goal.type])}>
-          {TYPE_LABEL[goal.type]}
-        </span>
-      </div>
-
-      {showOwner && (
-        <div className="flex items-center gap-1.5 mb-2">
-          <Avatar initials={goal.ownerInitials} color={goal.ownerColor} size="xs" />
-          <span className="text-[11px] text-muted truncate">{goal.ownerName} · {goal.ownerDept}</span>
-        </div>
-      )}
-
-      <ProgressBar value={goal.percentComplete} status={goal.status} height="thin" className="mb-2" />
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", sm.dot)} />
-          <span className={clsx("text-xs font-medium", sm.color)}>{sm.label}</span>
-        </div>
-        <div className="flex items-center gap-2 text-[11px] text-muted">
-          <span>{goal.percentComplete}%</span>
-          {!compact && (
-            <>
-              <span>· {dueFmt(goal.dueDate, false)}</span>
-              <span>· {goal.weight}%</span>
-            </>
-          )}
-        </div>
-      </div>
-    </button>
-  );
-}
-
-// ── GoalDetailSheet ───────────────────────────────────────────────────────────
-
-function GoalDetailSheet({
-  goal,
-  canEdit,
-  onClose,
-  onUpdateProgress,
-}: {
-  goal: GoalWithOwner;
-  canEdit: boolean;
-  onClose: () => void;
-  onUpdateProgress: (goalId: string, pct: number) => void;
-}) {
-  const meta = GOAL_META[goal.id] as GoalMeta | undefined;
-  const sm   = STATUS_META[goal.status];
-  const [draft, setDraft] = useState(goal.percentComplete);
-
-  return (
-    <>
-      <div className="fixed inset-0 z-[60] bg-black/40" onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 z-[70] bg-card rounded-t-3xl max-h-[88vh] flex flex-col">
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-2 shrink-0">
-          <div className="w-10 h-1 bg-border rounded-full" />
-        </div>
-
-        <div className="overflow-y-auto flex-1 px-5 pb-10 space-y-5">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                <span className={clsx("text-[10px] font-semibold px-1.5 py-0.5 rounded", TYPE_BADGE[goal.type])}>
-                  {TYPE_LABEL[goal.type]}
-                </span>
-                <div className="flex items-center gap-1">
-                  <span className={clsx("w-1.5 h-1.5 rounded-full", sm.dot)} />
-                  <span className={clsx("text-xs font-medium", sm.color)}>{sm.label}</span>
-                </div>
-                <span className="text-[11px] text-muted">Due {dueFmt(goal.dueDate)}</span>
-              </div>
-              <h2 className="text-base font-bold text-ink leading-snug" style={{ fontFamily: "var(--font-syne)" }}>
-                {goal.name}
-              </h2>
-            </div>
-            <button
-              onClick={onClose}
-              className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-border text-muted"
-            >
-              <X size={14} />
-            </button>
-          </div>
-
-          {/* Owner */}
-          <div className="flex items-center gap-2.5">
-            <Avatar initials={goal.ownerInitials} color={goal.ownerColor} size="sm" />
-            <div>
-              <p className="text-sm font-semibold text-ink">{goal.ownerName}</p>
-              <p className="text-xs text-muted">{goal.ownerDept} · Weight {goal.weight}%</p>
-            </div>
-          </div>
-
-          {/* Description */}
-          {meta?.description && (
-            <p className="text-sm text-muted leading-relaxed">{meta.description}</p>
-          )}
-
-          {/* Progress */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-ink">Progress</span>
-              <span className="text-sm font-bold text-ink">{canEdit ? draft : goal.percentComplete}%</span>
-            </div>
-            <ProgressBar value={canEdit ? draft : goal.percentComplete} status={goal.status} />
-            {canEdit && (
-              <div className="pt-1 space-y-3">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={draft}
-                  onChange={(e) => setDraft(Number(e.target.value))}
-                  className="w-full accent-pulse"
-                />
-                <button
-                  className="w-full py-2.5 bg-pulse text-white rounded-xl text-sm font-semibold"
-                  onClick={() => { onUpdateProgress(goal.id, draft); onClose(); }}
-                >
-                  Save Progress
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Tasks */}
-          {meta?.tasks && meta.tasks.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-ink">Key Tasks</p>
-              <div className="bg-paper rounded-xl divide-y divide-border overflow-hidden">
-                {meta.tasks.map((t) => (
-                  <div key={t.id} className="flex items-center gap-3 px-4 py-3">
-                    <div className={clsx(
-                      "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
-                      t.done ? "bg-green border-green" : "border-border"
-                    )}>
-                      {t.done && <span className="text-white text-[9px] leading-none">✓</span>}
-                    </div>
-                    <span className={clsx("text-sm", t.done ? "line-through text-muted" : "text-ink")}>
-                      {t.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Progress history */}
-          {meta?.history && meta.history.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-ink">Progress History</p>
-              <div className="flex items-end gap-3" style={{ height: "72px" }}>
-                {meta.history.map((h) => (
-                  <div key={h.date} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full flex items-end" style={{ height: "48px" }}>
-                      <div
-                        className="w-full bg-pulse rounded-sm opacity-80"
-                        style={{ height: `${(h.pct / 100) * 48}px` }}
-                      />
-                    </div>
-                    <span className="text-[9px] text-muted">{h.date}</span>
-                    <span className="text-[9px] font-semibold text-ink">{h.pct}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Comments */}
-          {meta?.comments && meta.comments.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-ink">Comments</p>
-              <div className="space-y-2">
-                {meta.comments.map((c, i) => (
-                  <div key={i} className="flex gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-ink text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                      {c.author}
-                    </div>
-                    <div className="flex-1 bg-paper rounded-xl px-3 py-2.5">
-                      <p className="text-sm text-ink leading-snug">{c.text}</p>
-                      <p className="text-[10px] text-muted mt-1">{c.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ── GoalCreateSheet ───────────────────────────────────────────────────────────
-
-function GoalCreateSheet({
-  role,
-  onClose,
-  onCreate,
-}: {
-  role: string;
-  onClose: () => void;
-  onCreate: (goal: GoalWithOwner) => void;
-}) {
-  const [name,       setName]       = useState("");
-  const [type,       setType]       = useState<GoalType>(role === "hr" ? "org" : "team");
-  const [dueDate,    setDueDate]    = useState("2026-12-31");
-  const [weight,     setWeight]     = useState(20);
-  const [assignTo,   setAssignTo]   = useState(employees[0].id);
-  const [alignedDept,setAlignedDept]= useState("Engineering");
-  const deptNames = departments.map((d) => d.name);
-
-  function handleCreate() {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    const emp = employees.find((e) => e.id === assignTo) ?? employees[0];
-    onCreate({
-      id: `g_${Date.now()}`,
-      name: trimmed,
-      type,
-      percentComplete: 0,
-      dueDate,
-      weight,
-      status: "on_track",
-      ownerId: emp.id,
-      ownerName: emp.name,
-      ownerInitials: emp.initials,
-      ownerColor: emp.avatarColor,
-      ownerDept: emp.department,
-    });
-    onClose();
-  }
-
-  return (
-    <>
-      <div className="fixed inset-0 z-[60] bg-black/40" onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 z-[70] bg-card rounded-t-3xl max-h-[90vh] flex flex-col">
-        <div className="flex justify-center pt-3 pb-2 shrink-0">
-          <div className="w-10 h-1 bg-border rounded-full" />
-        </div>
-
-        <div className="overflow-y-auto flex-1 px-5 pb-10 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>
-              Create Goal
-            </h2>
-            <button
-              onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-border text-muted"
-            >
-              <X size={14} />
-            </button>
-          </div>
-
-          {/* Name */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted uppercase tracking-widest">
-              Goal Name
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Improve customer NPS by 15 pts"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-paper border border-border rounded-xl px-3.5 py-2.5 text-sm text-ink placeholder:text-muted focus:outline-none focus:border-pulse"
-            />
-          </div>
-
-          {/* Type */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted uppercase tracking-widest">
-              Type
-            </label>
-            <div className="flex gap-2 flex-wrap">
-              {(["org", "dept", "team", "individual"] as GoalType[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setType(t)}
-                  className={clsx(
-                    "text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors",
-                    type === t
-                      ? "bg-pulse text-white border-pulse"
-                      : "bg-card text-muted border-border"
-                  )}
-                >
-                  {TYPE_LABEL[t]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Assign to — manager only */}
-          {role === "manager" && (
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted uppercase tracking-widest">
-                Assign To
-              </label>
-              <select
-                value={assignTo}
-                onChange={(e) => setAssignTo(e.target.value)}
-                className="w-full bg-paper border border-border rounded-xl px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:border-pulse"
-              >
-                {employees.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name} — {e.department}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Aligned dept — HR only */}
-          {role === "hr" && (
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted uppercase tracking-widest">
-                Aligned Department
-              </label>
-              <select
-                value={alignedDept}
-                onChange={(e) => setAlignedDept(e.target.value)}
-                className="w-full bg-paper border border-border rounded-xl px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:border-pulse"
-              >
-                {deptNames.map((d) => <option key={d}>{d}</option>)}
-              </select>
-            </div>
-          )}
-
-          {/* Due date */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted uppercase tracking-widest">
-              Due Date
-            </label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full bg-paper border border-border rounded-xl px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:border-pulse"
-            />
-          </div>
-
-          {/* Weight */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-muted uppercase tracking-widest">
-                Weight
-              </label>
-              <span className="text-sm font-bold text-ink">{weight}%</span>
-            </div>
-            <input
-              type="range"
-              min={5}
-              max={50}
-              step={5}
-              value={weight}
-              onChange={(e) => setWeight(Number(e.target.value))}
-              className="w-full accent-pulse"
-            />
-          </div>
-
-          <button
-            onClick={handleCreate}
-            disabled={!name.trim()}
-            className="w-full py-3 bg-pulse text-white rounded-xl text-sm font-semibold disabled:opacity-40 transition-opacity"
-          >
-            Create Goal
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ── EmployeeView ──────────────────────────────────────────────────────────────
-
-function EmployeeView({
-  goals,
-  filter,
-  onSelect,
-}: {
-  goals: GoalWithOwner[];
-  filter: FilterKey;
-  onSelect: (g: GoalWithOwner) => void;
-}) {
-  const myGoals = goals
-    .filter((g) => g.ownerId === employees[0].id && matchesFilter(g, filter))
-    .sort((a, b) => b.weight - a.weight);
-
-  const teamGoals = goals
-    .filter((g) => (g.type === "team" || g.type === "dept") && g.ownerId !== employees[0].id && matchesFilter(g, filter))
-    .slice(0, 4);
-
-  const orgGoals = goals.filter(
-    (g) => g.type === "org" && g.ownerId !== employees[0].id && matchesFilter(g, filter)
-  );
-
-  return (
-    <>
-      <section className="animate-fade-up px-4">
-        <SectionLabel right={`${myGoals.length} goals`}>My Goals</SectionLabel>
-        {myGoals.length === 0 ? (
-          <div className="bg-card rounded-2xl p-5 border border-border text-center">
-            <p className="text-sm text-muted">No goals match this filter.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {myGoals.map((g) => <GoalCard key={g.id} goal={g} onSelect={onSelect} />)}
-          </div>
-        )}
-      </section>
-
-      {teamGoals.length > 0 && (
-        <section className="animate-fade-up px-4">
-          <SectionLabel>Team &amp; Dept Goals</SectionLabel>
-          <div className="space-y-3">
-            {teamGoals.map((g) => (
-              <GoalCard key={g.id} goal={g} showOwner compact onSelect={onSelect} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {orgGoals.length > 0 && (
-        <section className="animate-fade-up px-4">
-          <SectionLabel>Org Goals</SectionLabel>
-          <div className="space-y-3">
-            {orgGoals.map((g) => (
-              <GoalCard key={g.id} goal={g} showOwner compact onSelect={onSelect} />
-            ))}
-          </div>
-        </section>
-      )}
-    </>
-  );
-}
-
-// ── ManagerView ───────────────────────────────────────────────────────────────
-
-function ManagerView({
-  goals,
-  filter,
-  onSelect,
-  onShowCreate,
-}: {
-  goals: GoalWithOwner[];
-  filter: FilterKey;
-  onSelect: (g: GoalWithOwner) => void;
-  onShowCreate: () => void;
-}) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-
-  const teamGoals = goals.filter(
-    (g) => (g.type === "team" || g.type === "dept") && matchesFilter(g, filter)
-  );
-
-  const byEmployee = useMemo(() => {
-    const map = new Map<string, {
-      ownerId: string; ownerName: string; ownerInitials: string;
-      ownerColor: string; ownerDept: string; goals: GoalWithOwner[];
-    }>();
-    for (const g of goals.filter((g) => matchesFilter(g, filter))) {
-      if (!map.has(g.ownerId)) {
-        map.set(g.ownerId, {
-          ownerId: g.ownerId, ownerName: g.ownerName, ownerInitials: g.ownerInitials,
-          ownerColor: g.ownerColor, ownerDept: g.ownerDept, goals: [],
-        });
-      }
-      map.get(g.ownerId)!.goals.push(g);
-    }
-    return Array.from(map.values());
-  }, [goals, filter]);
-
-  function toggle(id: string) {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }
-
-  return (
-    <>
-      <section className="animate-fade-up px-4">
-        <SectionLabel
-          right={
-            <button
-              onClick={onShowCreate}
-              className="flex items-center gap-1 text-xs font-semibold text-pulse"
-            >
-              <Plus size={12} />
-              New Goal
-            </button>
-          }
-        >
-          Team Goals ({teamGoals.length})
-        </SectionLabel>
-        {teamGoals.length === 0 ? (
-          <div className="bg-card rounded-2xl p-5 border border-border text-center">
-            <p className="text-sm text-muted">No team goals match this filter.</p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-3">
-            {teamGoals.map((g) => <GoalCard key={g.id} goal={g} showOwner onSelect={onSelect} />)}
-          </div>
-        )}
-      </section>
-
-      <section className="animate-fade-up px-4">
-        <SectionLabel>Individual Goals by Person</SectionLabel>
-        <div className="space-y-3">
-          {byEmployee.map(({ ownerId, ownerName, ownerInitials, ownerColor, ownerDept, goals: empGoals }) => {
-            const isOpen    = !collapsed.has(ownerId);
-            const onTrack   = empGoals.filter((g) => g.status === "on_track").length;
-            const atRisk    = empGoals.filter((g) => g.status === "at_risk" || g.status === "behind").length;
-
-            return (
-              <div key={ownerId} className="bg-card rounded-2xl border border-border overflow-hidden">
-                <button
-                  className="w-full flex items-center gap-3 px-4 py-3"
-                  onClick={() => toggle(ownerId)}
-                >
-                  <Avatar initials={ownerInitials} color={ownerColor} size="sm" />
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-semibold text-ink">{ownerName}</p>
-                    <p className="text-xs text-muted">{ownerDept} · {empGoals.length} goals</p>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {onTrack > 0 && (
-                      <span className="text-[10px] font-semibold text-green bg-green-soft px-1.5 py-0.5 rounded-full">
-                        {onTrack} on track
-                      </span>
-                    )}
-                    {atRisk > 0 && (
-                      <span className="text-[10px] font-semibold text-red bg-red-soft px-1.5 py-0.5 rounded-full">
-                        {atRisk} risk
-                      </span>
-                    )}
-                    <ChevronDown
-                      size={14}
-                      className={clsx("text-muted transition-transform duration-200", isOpen && "rotate-180")}
-                    />
-                  </div>
-                </button>
-                <div
-                  className="overflow-hidden transition-all duration-300 ease-in-out"
-                  style={{ maxHeight: isOpen ? `${empGoals.length * 140}px` : "0px" }}
-                >
-                  <div className="px-3 pb-3 space-y-2">
-                    {empGoals.map((g) => (
-                      <GoalCard key={g.id} goal={g} compact onSelect={onSelect} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-    </>
-  );
-}
-
-// ── HRView ────────────────────────────────────────────────────────────────────
-
-function HRView({
-  goals,
-  filter,
-  onSelect,
-  onShowCreate,
-}: {
-  goals: GoalWithOwner[];
-  filter: FilterKey;
-  onSelect: (g: GoalWithOwner) => void;
-  onShowCreate: () => void;
-}) {
-  const total          = goals.length;
-  const onTrackCount   = goals.filter((g) => g.status === "on_track").length;
-  const atRiskCount    = goals.filter((g) => g.status === "at_risk" || g.status === "behind").length;
-  const completedCount = goals.filter((g) => g.status === "completed").length;
-  const onTrackPct     = total > 0 ? Math.round((onTrackCount / total) * 100) : 0;
-
-  const orgGoals = goals.filter((g) => g.type === "org" && matchesFilter(g, filter));
-
-  return (
-    <>
-      <section className="animate-fade-up px-4">
-        <SectionLabel>Goal Health Overview</SectionLabel>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard label="Total Goals"     value={total}           />
-          <StatCard label="On Track"        value={`${onTrackPct}%`} sub="of all goals"   />
-          <StatCard label="At Risk / Behind" value={atRiskCount}    sub="need attention"  />
-          <StatCard label="Completed"        value={completedCount}                        />
-        </div>
-      </section>
-
-      <section className="animate-fade-up px-4">
-        <SectionLabel
-          right={
-            <button
-              onClick={onShowCreate}
-              className="flex items-center gap-1 text-xs font-semibold text-pulse"
-            >
-              <Plus size={12} />
-              Create Org Goal
-            </button>
-          }
-        >
-          Org Goals ({orgGoals.length})
-        </SectionLabel>
-        {orgGoals.length === 0 ? (
-          <div className="bg-card rounded-2xl p-5 border border-border text-center">
-            <p className="text-sm text-muted">No org goals match this filter.</p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-3">
-            {orgGoals.map((g) => (
-              <GoalCard key={g.id} goal={g} showOwner onSelect={onSelect} />
-            ))}
-          </div>
-        )}
-      </section>
-    </>
-  );
-}
-
-// ── ExecutiveView ─────────────────────────────────────────────────────────────
-
-function ExecutiveView({
-  goals,
-  filter,
-  onSelect,
-}: {
-  goals: GoalWithOwner[];
-  filter: FilterKey;
-  onSelect: (g: GoalWithOwner) => void;
-}) {
-  const allOrg = goals.filter((g) => g.type === "org");
-  const avgPct = allOrg.length
-    ? Math.round(allOrg.reduce((s, g) => s + g.percentComplete, 0) / allOrg.length)
-    : 0;
-  const onTrackOrg = allOrg.filter(
-    (g) => g.status === "on_track" || g.status === "completed"
-  ).length;
-
-  const visible = allOrg
-    .filter((g) => matchesFilter(g, filter))
-    .sort((a, b) => b.percentComplete - a.percentComplete);
-
-  return (
-    <>
-      <section className="animate-fade-up px-4">
-        <SectionLabel>Company Objectives</SectionLabel>
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard label="Org Goals"    value={allOrg.length}    />
-          <StatCard label="Avg Progress" value={`${avgPct}%`} accent />
-          <StatCard label="On Track"     value={onTrackOrg}        />
-        </div>
-      </section>
-
-      <section className="animate-fade-up px-4">
-        <SectionLabel right={`${visible.length} shown`}>Strategic Objectives</SectionLabel>
-        {visible.length === 0 ? (
-          <div className="bg-card rounded-2xl p-5 border border-border text-center">
-            <p className="text-sm text-muted">No org goals match this filter.</p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-3">
-            {visible.map((g) => (
-              <GoalCard key={g.id} goal={g} showOwner onSelect={onSelect} />
-            ))}
-          </div>
-        )}
-      </section>
-    </>
-  );
-}
-
-// ── GoalsPage ─────────────────────────────────────────────────────────────────
 
 export default function GoalsPage() {
-  const { role } = useRole();
-  const [allGoals, setAllGoals]         = useState<GoalWithOwner[]>(initialGoals);
-  const [filter, setFilter]             = useState<FilterKey>("all");
-  const [search, setSearch]             = useState("");
-  const [selectedGoal, setSelectedGoal] = useState<GoalWithOwner | null>(null);
-  const [showCreate, setShowCreate]     = useState(false);
+  const { user } = useUser();
+  const view = deriveView(user);
+  const [goals, setGoals] = useState<GoalRecord[]>(() => initialGoals());
+  const [meta, setMeta] = useState<Record<string, GoalMeta>>(() => makeMeta(initialGoals()));
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [timeline, setTimeline] = useState(false);
+  const [toast, setToast] = useState("");
+  const [collapsedOrg, setCollapsedOrg] = useState(view === "entry");
 
-  function handleUpdateProgress(goalId: string, pct: number) {
-    setAllGoals((prev) =>
-      prev.map((g) =>
-        g.id !== goalId ? g : {
-          ...g,
-          percentComplete: pct,
-          status:
-            pct >= 100 ? "completed" :
-            pct >= 65  ? "on_track"  :
-            pct >= 35  ? "at_risk"   : "behind",
-        }
-      )
-    );
-  }
+  const selectedGoal = goals.find((goal) => goal.id === selectedId) ?? null;
 
-  function handleCreate(goal: GoalWithOwner) {
-    setAllGoals((prev) => [goal, ...prev]);
-  }
-
-  const searched = useMemo(() => {
+  const visibleGoals = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return q
-      ? allGoals.filter(
-          (g) => g.name.toLowerCase().includes(q) || g.ownerName.toLowerCase().includes(q)
-        )
-      : allGoals;
-  }, [allGoals, search]);
+    return goals.filter((goal) => {
+      const searchHit = !q || [goal.name, goal.ownerName, goal.ownerDept, goal.type].some((value) => value.toLowerCase().includes(q));
+      return searchHit && matchesFilter(goal, filter);
+    });
+  }, [goals, search, filter]);
 
-  const totalFiltered = searched.filter((g) => matchesFilter(g, filter)).length;
+  function showToast(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast(""), 2400);
+  }
+
+  function updateProgress(goalId: string, percent: number, note?: string) {
+    const current = goals.find((goal) => goal.id === goalId);
+    if (!current) return;
+    setGoals((prev) => prev.map((goal) => goal.id === goalId ? { ...goal, percentComplete: percent, status: statusFor(percent) } : goal));
+    setMeta((prev) => ({
+      ...prev,
+      [goalId]: {
+        ...prev[goalId],
+        history: [
+          ...prev[goalId].history,
+          { id: `${goalId}-h-${Date.now()}`, date: "Today", oldPct: current.percentComplete, newPct: percent, note },
+        ],
+      },
+    }));
+    showToast("Goal progress updated");
+  }
+
+  function toggleTask(goalId: string, taskId: string) {
+    const goalMeta = meta[goalId];
+    if (!goalMeta) return;
+    const nextTasks = goalMeta.tasks.map((task) => task.id === taskId ? { ...task, done: !task.done } : task);
+    const percent = Math.round((nextTasks.filter((task) => task.done).length / nextTasks.length) * 100);
+    setMeta((prev) => ({ ...prev, [goalId]: { ...prev[goalId], tasks: nextTasks } }));
+    updateProgress(goalId, percent, "Task checklist updated");
+  }
+
+  function addComment(goalId: string, text: string) {
+    if (!text.trim()) return;
+    setMeta((prev) => ({
+      ...prev,
+      [goalId]: {
+        ...prev[goalId],
+        comments: [...prev[goalId].comments, { id: `${goalId}-c-${Date.now()}`, author: user.initials, text: text.trim(), date: "Just now" }],
+      },
+    }));
+    showToast("Comment added");
+  }
+
+  function markAtRisk(goalId: string) {
+    setGoals((prev) => prev.map((goal) => goal.id === goalId ? { ...goal, status: "at_risk", managerNote: "Marked at risk by manager." } : goal));
+    showToast("Goal marked at risk. Employee notified.");
+  }
+
+  function createGoal(goal: Omit<GoalRecord, "id" | "ownerInitials" | "ownerColor" | "ownerName" | "ownerDept"> & { owner: Employee }) {
+    const next: GoalRecord = {
+      ...goal,
+      id: `g-new-${Date.now()}`,
+      ownerId: goal.owner.id,
+      ownerName: goal.owner.name,
+      ownerInitials: goal.owner.initials,
+      ownerColor: goal.owner.avatarColor,
+      ownerDept: goal.owner.department,
+    };
+    setGoals((prev) => [next, ...prev]);
+    setMeta((prev) => ({ ...prev, ...makeMeta([next]) }));
+    setCreateOpen(false);
+    showToast("Goal created and notification sent");
+  }
+
+  const canCreate = view === "manager" || view === "senior_manager" || view === "hr";
+  const showTimeline = view === "mid" || view === "manager" || view === "senior_manager";
 
   return (
     <div className="dashboard-page space-y-5">
+      {toast && <Toast>{toast}</Toast>}
 
-      {/* Header + search + filter chips */}
-      <section className="animate-fade-up px-4">
-        <div className="flex items-start justify-between gap-3 mb-4">
+      <section className="px-4 pt-1">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>
-              Goals
-            </h1>
-            <p className="text-sm text-muted mt-0.5">
-              {totalFiltered} goal{totalFiltered !== 1 ? "s" : ""} · {role} view
-            </p>
+            <h1 className="font-syne text-2xl font-bold text-ink">Goals</h1>
+            <p className="mt-0.5 text-sm text-muted">{visibleGoals.length} shown · {view.replace("_", " ")} view</p>
           </div>
-          {(role === "manager" || role === "hr") && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="shrink-0 flex items-center gap-1.5 px-4 py-2 bg-pulse text-white rounded-xl text-sm font-semibold"
-            >
-              <Plus size={14} />
-              Goal
-            </button>
-          )}
+          <div className="flex gap-2">
+            {showTimeline && (
+              <button onClick={() => setTimeline((value) => !value)} className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold text-muted">
+                {timeline ? "Cards" : "Timeline"}
+              </button>
+            )}
+            {canCreate && (
+              <button onClick={() => setCreateOpen(true)} className="flex items-center gap-1 rounded-xl bg-pulse px-3 py-2 text-xs font-bold text-white">
+                <Plus size={14} /> {view === "hr" ? "Org Goal" : "Create Goal"}
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-3">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+        <div className="relative">
+          <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
-            type="text"
-            placeholder="Search goals or people…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-card border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-ink placeholder:text-muted focus:outline-none focus:border-pulse"
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search goals, owners, departments..."
+            className="w-full rounded-xl border border-border bg-card py-3 pl-10 pr-4 text-base text-ink outline-none focus:border-pulse"
           />
         </div>
 
-        {/* Filter chips */}
-        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={clsx(
-                "shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors",
-                filter === f.key
-                  ? "bg-pulse text-white border-pulse"
-                  : "bg-card text-muted border-border"
-              )}
-            >
-              {f.label}
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-0.5">
+          {filters.map((item) => (
+            <button key={item.key} onClick={() => setFilter(item.key)} className={clsx("shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold", filter === item.key ? "border-pulse bg-pulse text-white" : "border-border bg-card text-muted")}>
+              {item.label}
             </button>
           ))}
         </div>
       </section>
 
-      {/* Role-aware content */}
-      {role === "employee"  && (
-        <EmployeeView goals={searched} filter={filter} onSelect={setSelectedGoal} />
-      )}
-      {role === "manager" && (
-        <ManagerView
-          goals={searched}
-          filter={filter}
-          onSelect={setSelectedGoal}
-          onShowCreate={() => setShowCreate(true)}
+      {timeline && showTimeline ? (
+        <Timeline goals={visibleGoals} onSelect={(goal) => setSelectedId(goal.id)} />
+      ) : (
+        <RoleContent
+          goals={visibleGoals}
+          user={user}
+          view={view}
+          collapsedOrg={collapsedOrg}
+          setCollapsedOrg={setCollapsedOrg}
+          onSelect={(goal) => setSelectedId(goal.id)}
+          onMarkAtRisk={markAtRisk}
         />
-      )}
-      {role === "hr" && (
-        <HRView
-          goals={searched}
-          filter={filter}
-          onSelect={setSelectedGoal}
-          onShowCreate={() => setShowCreate(true)}
-        />
-      )}
-      {role === "executive" && (
-        <ExecutiveView goals={searched} filter={filter} onSelect={setSelectedGoal} />
       )}
 
-      {/* Detail sheet */}
       {selectedGoal && (
         <GoalDetailSheet
-          key={selectedGoal.id}
           goal={selectedGoal}
-          canEdit={role === "manager" || role === "hr"}
-          onClose={() => setSelectedGoal(null)}
-          onUpdateProgress={handleUpdateProgress}
+          meta={meta[selectedGoal.id]}
+          canEdit={canEditGoal(selectedGoal, user, view)}
+          canMarkAtRisk={view === "manager" || view === "senior_manager"}
+          onClose={() => setSelectedId(null)}
+          onToggleTask={toggleTask}
+          onUpdateProgress={updateProgress}
+          onAddComment={addComment}
+          onMarkAtRisk={markAtRisk}
         />
       )}
 
-      {/* Create sheet */}
-      {showCreate && (
+      {createOpen && (
         <GoalCreateSheet
-          role={role}
-          onClose={() => setShowCreate(false)}
-          onCreate={handleCreate}
+          user={user}
+          view={view}
+          goals={goals}
+          onClose={() => setCreateOpen(false)}
+          onCreate={createGoal}
         />
       )}
+    </div>
+  );
+}
+
+function RoleContent({ goals, user, view, collapsedOrg, setCollapsedOrg, onSelect, onMarkAtRisk }: { goals: GoalRecord[]; user: Employee; view: GoalView; collapsedOrg: boolean; setCollapsedOrg: (value: boolean) => void; onSelect: (goal: GoalRecord) => void; onMarkAtRisk: (goalId: string) => void }) {
+  const mine = goals.filter((goal) => goal.ownerId === user.id && goal.type === "individual");
+  const team = goals.filter((goal) => goal.type === "team" && (goal.ownerDept === user.department || goal.contributors.includes(user.id)));
+  const dept = goals.filter((goal) => goal.type === "dept" && goal.ownerDept === user.department);
+  const orgGoals = goals.filter((goal) => goal.type === "org");
+
+  if (view === "hr" || view === "executive") {
+    const onTrack = orgGoals.filter((goal) => goal.status === "on_track").length;
+    const atRisk = orgGoals.filter((goal) => goal.status === "at_risk" || goal.status === "behind" || isOverdue(goal)).length;
+    const completed = orgGoals.filter((goal) => goal.status === "completed").length;
+    return (
+      <>
+        <section className="px-4">
+          <div className="flex flex-wrap gap-2">
+            <MiniChip tone="green">{onTrack} on track</MiniChip>
+            <MiniChip tone="amber">{atRisk} at risk</MiniChip>
+            <MiniChip tone="ink">{completed} completed</MiniChip>
+          </div>
+        </section>
+        <GoalSection title="Org Goals" goals={orgGoals} empty="No org goals match this search." onSelect={onSelect} editable={view === "hr"} />
+      </>
+    );
+  }
+
+  if (view === "manager" || view === "senior_manager") {
+    const teamMembers = employees.filter((employee) => employee.department === user.department && employee.id !== user.id);
+    return (
+      <>
+        <GoalSection title="My Goals" goals={mine} empty="No personal goals match this search." onSelect={onSelect} editable />
+        <GoalSection title="Team Goals" goals={team} empty="No team goals match this search." onSelect={onSelect} editable onMarkAtRisk={onMarkAtRisk} />
+        {view === "senior_manager" && <GoalSection title="Department Goals" goals={dept} empty="No department goals match this search." onSelect={onSelect} editable />}
+        <PeopleGoals goals={goals.filter((goal) => goal.type === "individual" && goal.ownerDept === user.department)} people={teamMembers} onSelect={onSelect} />
+        {view === "senior_manager" && <ManagerPerformance managers={teamMembers.filter((employee) => employee.peopleResponsibility !== "none")} goals={goals} />}
+      </>
+    );
+  }
+
+  if (view === "mid") {
+    return (
+      <>
+        <GoalSection title="My Goals" goals={mine} empty="No personal goals match this search." onSelect={onSelect} editable />
+        <GoalSection title="Team Goals" goals={team} empty="No team goals match this search." onSelect={onSelect} editable />
+        <GoalSection title="Dept Goals" goals={dept} empty="No department goals match this search." onSelect={onSelect} />
+        <GoalSection title="Org Goals" goals={orgGoals} empty="No org goals match this search." onSelect={onSelect} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <GoalSection title="My Goals" goals={mine} empty="No personal goals match this search." onSelect={onSelect} editable />
+      <GoalSection title="Team Goals" goals={team} empty="No team goals match this search." onSelect={onSelect} helper="How I contribute notes are available in each goal detail." />
+      <section className="px-4">
+        <button onClick={() => setCollapsedOrg(!collapsedOrg)} className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left">
+          <div>
+            <p className="text-sm font-bold text-ink">Org Goals</p>
+            <p className="text-xs text-muted">Your company is working toward these goals. Your work contributes to them.</p>
+          </div>
+          <ChevronDown size={16} className={clsx("text-muted transition", !collapsedOrg && "rotate-180")} />
+        </button>
+      </section>
+      {!collapsedOrg && <GoalSection title="" goals={orgGoals.slice(0, 3)} empty="No org goals match this search." onSelect={onSelect} />}
+    </>
+  );
+}
+
+function GoalSection({ title, goals, empty, helper, editable, onSelect, onMarkAtRisk }: { title: string; goals: GoalRecord[]; empty: string; helper?: string; editable?: boolean; onSelect: (goal: GoalRecord) => void; onMarkAtRisk?: (goalId: string) => void }) {
+  return (
+    <section className="px-4">
+      {title && <div className="mb-2 flex items-end justify-between"><h2 className="text-xs font-bold uppercase tracking-widest text-muted">{title}</h2><span className="text-xs text-muted">{goals.length}</span></div>}
+      {helper && <p className="mb-2 text-xs text-muted">{helper}</p>}
+      {goals.length ? (
+        <div className="space-y-3">
+          {goals.map((goal) => <GoalCard key={goal.id} goal={goal} editable={editable} onSelect={onSelect} onMarkAtRisk={onMarkAtRisk} />)}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border bg-card p-5 text-center text-sm text-muted">{empty}</div>
+      )}
+    </section>
+  );
+}
+
+function GoalCard({ goal, editable, onSelect, onMarkAtRisk }: { goal: GoalRecord; editable?: boolean; onSelect: (goal: GoalRecord) => void; onMarkAtRisk?: (goalId: string) => void }) {
+  const days = daysUntil(goal.dueDate);
+  return (
+    <article className="rounded-xl border border-border bg-card p-4">
+      <button onClick={() => onSelect(goal)} className="w-full text-left">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+              <span className={clsx("rounded px-2 py-0.5 text-[10px] font-bold", typeBadge[goal.type])}>{typeLabel[goal.type]}</span>
+              <span className={clsx("rounded-full border px-2 py-0.5 text-[10px] font-bold", statusClass(goal))}>{statusLabel(goal)}</span>
+            </div>
+            <h3 className="font-syne text-sm font-semibold leading-snug text-ink">{goal.name}</h3>
+          </div>
+          <span className="shrink-0 rounded-full bg-paper px-2 py-1 text-[10px] font-bold text-muted">{goal.weight}% weight</span>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <Avatar initials={goal.ownerInitials} color={goal.ownerColor} />
+          <span className="truncate text-xs text-muted">{goal.ownerName} · {goal.ownerDept}</span>
+        </div>
+        <div className="mt-3">
+          <div className="mb-1 flex justify-between text-xs"><span className="font-bold text-ink">{goal.percentComplete}% complete</span><span className={clsx(days < 7 && goal.status !== "completed" ? "text-red" : "text-muted")}>{fmt(goal.dueDate)} · {days >= 0 ? `${days} days` : `${Math.abs(days)} days late`}</span></div>
+          <div className="h-2 overflow-hidden rounded-full bg-border"><div className={clsx("h-full rounded-full", progressColor(goal.percentComplete, isOverdue(goal)))} style={{ width: `${goal.percentComplete}%` }} /></div>
+        </div>
+      </button>
+      {editable && (
+        <div className="mt-3 flex gap-2">
+          <button onClick={() => onSelect(goal)} className="rounded-lg bg-ink px-3 py-2 text-xs font-bold text-white">Edit</button>
+          {onMarkAtRisk && <button onClick={() => onMarkAtRisk(goal.id)} className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-muted">Mark At-Risk</button>}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function GoalDetailSheet({ goal, meta, canEdit, canMarkAtRisk, onClose, onToggleTask, onUpdateProgress, onAddComment, onMarkAtRisk }: { goal: GoalRecord; meta: GoalMeta; canEdit: boolean; canMarkAtRisk: boolean; onClose: () => void; onToggleTask: (goalId: string, taskId: string) => void; onUpdateProgress: (goalId: string, pct: number, note?: string) => void; onAddComment: (goalId: string, text: string) => void; onMarkAtRisk: (goalId: string) => void }) {
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [draftPct, setDraftPct] = useState(goal.percentComplete);
+  const [note, setNote] = useState("");
+  const [comment, setComment] = useState("");
+
+  return (
+    <BottomSheet onClose={onClose}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="mb-2 flex flex-wrap gap-1.5"><span className={clsx("rounded px-2 py-0.5 text-[10px] font-bold", typeBadge[goal.type])}>{typeLabel[goal.type]}</span><span className={clsx("rounded-full border px-2 py-0.5 text-[10px] font-bold", statusClass(goal))}>{statusLabel(goal)}</span></div>
+          <h2 className="font-syne text-lg font-bold leading-snug text-ink">{goal.name}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted">{goal.description}</p>
+        </div>
+        <button onClick={onClose} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-paper text-muted"><X size={15} /></button>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
+        <Info label="Owner" value={goal.ownerName} />
+        <Info label="Due" value={fmt(goal.dueDate)} />
+        <Info label="Weight" value={`${goal.weight}%`} />
+        <Info label="Metric" value={goal.targetMetric} />
+      </div>
+
+      <div className="mt-5">
+        <SectionTitle icon={Target}>Task Checklist</SectionTitle>
+        <div className="divide-y divide-border rounded-xl border border-border">
+          {meta.tasks.map((task) => (
+            <button key={task.id} disabled={!canEdit} onClick={() => onToggleTask(goal.id, task.id)} className="flex w-full items-center gap-3 p-3 text-left disabled:cursor-default">
+              <span className={clsx("grid h-5 w-5 place-items-center rounded border", task.done ? "border-green bg-green text-white" : "border-border")}><Check size={12} /></span>
+              <span className={clsx("flex-1 text-sm", task.done ? "text-muted line-through" : "text-ink")}>{task.title}</span>
+              <span className="text-[10px] text-muted">{task.assignee} · {fmt(task.dueDate)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <SectionTitle icon={CalendarDays}>Progress History</SectionTitle>
+        <div className="space-y-3">
+          {meta.history.map((item) => <div key={item.id} className="border-l-2 border-pulse/25 pl-3 text-sm"><p className="font-bold text-ink">{item.date}: {item.oldPct}% → {item.newPct}%</p>{item.note && <p className="text-xs text-muted">{item.note}</p>}</div>)}
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <SectionTitle icon={MessageSquare}>Comments</SectionTitle>
+        <div className="space-y-2">
+          {meta.comments.map((item) => <div key={item.id} className="rounded-xl bg-paper p-3"><p className="text-sm text-ink">{item.text}</p><p className="mt-1 text-[10px] text-muted">{item.author} · {item.date}</p></div>)}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <input value={comment} onChange={(event) => setComment(event.target.value)} placeholder={canEdit ? "Add a comment..." : "Add manager comment..."} className="min-w-0 flex-1 rounded-xl border border-border px-3 py-2 text-base outline-none focus:border-pulse" />
+          <button onClick={() => { onAddComment(goal.id, comment); setComment(""); }} className="rounded-xl bg-ink px-3 py-2 text-xs font-bold text-white">Add</button>
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <SectionTitle icon={FileText}>Files</SectionTitle>
+        <div className="grid gap-2">
+          {meta.files.map((file) => <button key={file} className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm text-muted"><span>{file}</span><Download size={14} /></button>)}
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        {canEdit && <button onClick={() => setProgressOpen(true)} className="rounded-xl bg-pulse px-4 py-3 text-sm font-bold text-white">Update Progress</button>}
+        {canMarkAtRisk && <button onClick={() => onMarkAtRisk(goal.id)} className="rounded-xl border border-border px-4 py-3 text-sm font-bold text-muted"><AlertTriangle size={14} className="mr-1 inline" />Mark At-Risk</button>}
+      </div>
+
+      {progressOpen && (
+        <div className="fixed inset-0 z-[240] grid place-items-center bg-black/45 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-card p-5 shadow-[var(--shadow-lg)]">
+            <h3 className="font-syne text-lg font-bold text-ink">Update Progress</h3>
+            <p className="mt-2 text-sm text-muted">{draftPct}% complete</p>
+            <input type="range" min={0} max={100} value={draftPct} onChange={(event) => setDraftPct(Number(event.target.value))} className="mt-4 w-full accent-pulse" />
+            <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add a short note" className="mt-3 min-h-24 w-full rounded-xl border border-border px-3 py-2 text-base outline-none focus:border-pulse" />
+            <div className="mt-3 flex gap-2">
+              <button onClick={() => setProgressOpen(false)} className="flex-1 rounded-xl border border-border py-2 text-sm font-bold text-muted">Cancel</button>
+              <button onClick={() => { onUpdateProgress(goal.id, draftPct, note); setProgressOpen(false); }} className="flex-1 rounded-xl bg-pulse py-2 text-sm font-bold text-white">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </BottomSheet>
+  );
+}
+
+function GoalCreateSheet({ user, view, goals, onClose, onCreate }: { user: Employee; view: GoalView; goals: GoalRecord[]; onClose: () => void; onCreate: (goal: Omit<GoalRecord, "id" | "ownerInitials" | "ownerColor" | "ownerName" | "ownerDept"> & { owner: Employee }) => void }) {
+  const lockedOrg = view === "hr";
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [type, setType] = useState<GoalType>(lockedOrg ? "org" : "team");
+  const [ownerId, setOwnerId] = useState(user.id);
+  const [dueDate, setDueDate] = useState("2026-09-30");
+  const [metric, setMetric] = useState("100% completion");
+  const [weight, setWeight] = useState(10);
+  const [parentGoalId, setParentGoalId] = useState("");
+  const owner = employees.find((employee) => employee.id === ownerId) ?? user;
+  const remainingWeight = Math.max(0, 100 - goals.filter((goal) => goal.ownerId === ownerId && goal.type === "individual").reduce((sum, goal) => sum + goal.weight, 0));
+  const allowedTypes: GoalType[] = lockedOrg ? ["org"] : view === "manager" ? ["individual", "team", "dept"] : ["individual", "team", "dept", "org"];
+
+  return (
+    <BottomSheet onClose={onClose}>
+      <h2 className="font-syne text-lg font-bold text-ink">{lockedOrg ? "Create Org Goal" : "Create Goal"}</h2>
+      <div className="mt-4 grid gap-3">
+        <Input label="Goal name" value={name} onChange={setName} />
+        <label className="text-xs font-bold uppercase tracking-widest text-muted">Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1 min-h-24 w-full rounded-xl border border-border px-3 py-2 text-base normal-case tracking-normal text-ink outline-none focus:border-pulse" /></label>
+        <label className="text-xs font-bold uppercase tracking-widest text-muted">Type<select value={type} onChange={(event) => setType(event.target.value as GoalType)} disabled={lockedOrg} className="mt-1 w-full rounded-xl border border-border px-3 py-2 text-base normal-case tracking-normal text-ink"><option value="individual" disabled={!allowedTypes.includes("individual")}>Individual</option><option value="team" disabled={!allowedTypes.includes("team")}>Team</option><option value="dept" disabled={!allowedTypes.includes("dept")}>Dept</option><option value="org" disabled={!allowedTypes.includes("org")}>Org</option></select></label>
+        <label className="text-xs font-bold uppercase tracking-widest text-muted">Assign to<select value={ownerId} onChange={(event) => setOwnerId(event.target.value)} className="mt-1 w-full rounded-xl border border-border px-3 py-2 text-base normal-case tracking-normal text-ink">{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.department}</option>)}</select></label>
+        <Input label="Due date" value={dueDate} onChange={setDueDate} type="date" />
+        <Input label="Target metric" value={metric} onChange={setMetric} />
+        <label className="text-xs font-bold uppercase tracking-widest text-muted">Linked to<select value={parentGoalId} onChange={(event) => setParentGoalId(event.target.value)} className="mt-1 w-full rounded-xl border border-border px-3 py-2 text-base normal-case tracking-normal text-ink"><option value="">No parent goal</option>{goals.filter((goal) => goal.type !== "individual").map((goal) => <option key={goal.id} value={goal.id}>{goal.name}</option>)}</select></label>
+        <label className="text-xs font-bold uppercase tracking-widest text-muted">Weight: {weight}% <span className="normal-case tracking-normal text-muted">(remaining budget: {remainingWeight}%)</span><input type="number" min={0} max={remainingWeight || 100} value={weight} onChange={(event) => setWeight(Number(event.target.value))} className="mt-1 w-full rounded-xl border border-border px-3 py-2 text-base normal-case tracking-normal text-ink" /></label>
+        <button disabled={!name.trim() || weight > (remainingWeight || 100)} onClick={() => onCreate({ name, description, type, status: "on_track", percentComplete: 0, dueDate, weight, startDate: "2026-05-28", targetMetric: metric, parentGoalId: parentGoalId || undefined, contributors: [owner.id], ownerId: owner.id, owner })} className="rounded-xl bg-pulse py-3 text-sm font-bold text-white disabled:opacity-50">Create Goal</button>
+      </div>
+    </BottomSheet>
+  );
+}
+
+function Timeline({ goals, onSelect }: { goals: GoalRecord[]; onSelect: (goal: GoalRecord) => void }) {
+  return (
+    <section className="px-4">
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="relative mb-3 h-6 border-l border-r border-border"><div className="absolute left-[58%] top-0 h-full w-0.5 bg-pulse" /><span className="absolute left-[58%] top-0 -translate-x-1/2 text-[10px] font-bold text-pulse">Today</span></div>
+        <div className="space-y-3">
+          {goals.map((goal, index) => {
+            const start = 5 + (index % 4) * 9;
+            const width = Math.min(90 - start, 34 + daysUntil(goal.dueDate) / 3);
+            const risk = daysUntil(goal.dueDate) < 14 && goal.percentComplete < 60;
+            return (
+              <button key={goal.id} onClick={() => onSelect(goal)} className="w-full text-left">
+                <div className="mb-1 flex justify-between gap-2 text-xs"><span className="truncate font-bold text-ink">{goal.name}</span>{risk && <span className="text-red">At-risk</span>}</div>
+                <div className="relative h-8 rounded-lg bg-paper"><div className={clsx("absolute top-1 h-6 rounded-lg", progressColor(goal.percentComplete, risk))} style={{ left: `${start}%`, width: `${width}%` }}><div className="h-full rounded-lg bg-white/30" style={{ width: `${goal.percentComplete}%` }} /></div></div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PeopleGoals({ people, goals, onSelect }: { people: Employee[]; goals: GoalRecord[]; onSelect: (goal: GoalRecord) => void }) {
+  const [open, setOpen] = useState<string | null>(people[0]?.id ?? null);
+  return (
+    <section className="px-4">
+      <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">Individual Goals by Person</h2>
+      <div className="space-y-3">
+        {people.map((person) => {
+          const personGoals = goals.filter((goal) => goal.ownerId === person.id);
+          if (!personGoals.length) return null;
+          const completion = Math.round(personGoals.reduce((sum, goal) => sum + goal.percentComplete, 0) / personGoals.length);
+          return (
+            <div key={person.id} className="overflow-hidden rounded-xl border border-border bg-card">
+              <button onClick={() => setOpen(open === person.id ? null : person.id)} className="flex w-full items-center gap-3 p-4 text-left">
+                <Avatar initials={person.initials} color={person.avatarColor} />
+                <div className="flex-1"><p className="text-sm font-bold text-ink">{person.name}</p><p className="text-xs text-muted">{completion}% overall completion</p></div>
+                <ChevronDown size={16} className={clsx("text-muted transition", open === person.id && "rotate-180")} />
+              </button>
+              {open === person.id && <div className="space-y-2 p-3 pt-0">{personGoals.map((goal) => <GoalCard key={goal.id} goal={goal} onSelect={onSelect} />)}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ManagerPerformance({ managers, goals }: { managers: Employee[]; goals: GoalRecord[] }) {
+  return (
+    <section className="px-4">
+      <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">Manager Performance</h2>
+      <div className="grid gap-2">
+        {managers.map((manager, index) => {
+          const managerGoals = goals.filter((goal) => goal.ownerDept === manager.department);
+          const avgGoal = managerGoals.length ? Math.round(managerGoals.reduce((sum, goal) => sum + goal.percentComplete, 0) / managerGoals.length) : 0;
+          return <div key={manager.id} className="rounded-xl border border-border bg-card p-3"><p className="text-sm font-bold text-ink">{manager.name}</p><p className="text-xs text-muted">Team avg goal completion {avgGoal}% · {index % 2 === 0 ? "↑ 4" : "↓ 2"} vs last month</p></div>;
+        })}
+      </div>
+    </section>
+  );
+}
+
+function Avatar({ initials, color }: { initials: string; color: string }) {
+  return <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: color }}>{initials}</span>;
+}
+
+function SectionTitle({ children, icon: Icon }: { children: string; icon: typeof Target }) {
+  return <div className="mb-2 flex items-center gap-2 text-sm font-bold text-ink"><Icon size={15} className="text-pulse" />{children}</div>;
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-xl bg-paper p-3"><p className="text-[10px] font-bold uppercase tracking-widest text-muted">{label}</p><p className="mt-1 truncate text-sm font-bold text-ink">{value}</p></div>;
+}
+
+function Input({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
+  return <label className="text-xs font-bold uppercase tracking-widest text-muted">{label}<input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="mt-1 w-full rounded-xl border border-border px-3 py-2 text-base normal-case tracking-normal text-ink outline-none focus:border-pulse" /></label>;
+}
+
+function MiniChip({ children, tone }: { children: ReactNode; tone: "green" | "amber" | "ink" }) {
+  const cls = tone === "green" ? "bg-green-soft text-green" : tone === "amber" ? "bg-amber-soft text-amber" : "bg-ink/5 text-muted";
+  return <span className={clsx("rounded-full px-3 py-1.5 text-xs font-bold", cls)}>{children}</span>;
+}
+
+function Toast({ children }: { children: ReactNode }) {
+  return <div className="fixed left-1/2 top-4 z-[250] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-sm font-bold text-white shadow-[var(--shadow-lg)]">{children}</div>;
+}
+
+function BottomSheet({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[220]">
+      <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/45" />
+      <div className="absolute inset-x-0 bottom-0 mx-auto max-h-[88vh] max-w-[430px] overflow-y-auto rounded-t-[24px] bg-card p-5 shadow-[0_-12px_45px_rgba(0,0,0,0.2)]">
+        <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-border" />
+        {children}
+      </div>
     </div>
   );
 }
