@@ -83,9 +83,9 @@ export default function TopBar() {
                 <DropItem href="/profile" Icon={User} label="My Profile" onClick={() => setProfileOpen(false)} />
                 <DropItem href="/settings" Icon={Settings} label="Settings" onClick={() => setProfileOpen(false)} />
 
-                {user.platformRole === "hr_admin" && (
+                {(user.platformRole === "hr_admin" || user.platformRole === "super_admin") && (
                   <DropItem
-                    href="/dashboard/hr"
+                    href="/hr"
                     Icon={Users}
                     label="Switch to HR View"
                     accent
