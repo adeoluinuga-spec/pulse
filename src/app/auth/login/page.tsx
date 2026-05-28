@@ -2,110 +2,120 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, Check, ChevronRight, Loader2, Mail, Phone, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  Building2,
+  Camera,
+  Check,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Loader2,
+  LockKeyhole,
+  Mail,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { employees } from "@/data/mockData";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/Toast";
 
-type AuthStep = "email" | "phone" | "otp" | "welcome" | "profile";
+type AuthStep = "login" | "otp" | "welcome" | "profile";
+
+const DEMO_OTP = "123456";
 
 const insights = [
-  "Visibility creates accountability.",
-  "Growth compounds through consistency.",
-  "High-performing teams communicate early.",
-  "Pulse helps organizations see what matters.",
-  "Alignment is calmer when the work is visible.",
+  "Consistency compounds faster than intensity.",
+  "High-performing teams communicate before problems escalate.",
+  "Pulse helps Zenith Corp see what matters.",
+  "Execution is strategy revealed.",
 ];
 
-const organizationThemes = [
-  { match: "harvesters", name: "Harvesters", message: "Welcome into a calmer rhythm for ministry and execution." },
-  { match: "episode", name: "Episode Interiors", message: "A thoughtful operating layer for beautiful work." },
-  { match: "zenithcorp", name: "Zenith Corp", message: "Your intelligent workspace for performance, support, and progress." },
+const controlledByOrg = [
+  "Department",
+  "Band",
+  "Compensation",
+  "Permissions",
+  "Reporting structure",
+  "Cadre",
+  "People responsibility",
 ];
 
-function organizationFromEmail(email: string) {
-  const lower = email.toLowerCase();
-  return organizationThemes.find((org) => lower.includes(org.match)) ?? {
-    name: "your organization",
-    message: "Your intelligent workspace for performance, support, and progress.",
-  };
+function isZenithEmail(email: string) {
+  return email.toLowerCase().includes("@zenithcorp.com") || email.toLowerCase().includes("@zenithcorp.ng");
 }
 
 function firstNameFromEmail(email: string) {
   const employee = employees.find((emp) => emp.email.toLowerCase() === email.toLowerCase());
   if (employee) return employee.name.split(" ")[0];
-  return email.split("@")[0]?.split(/[._-]/)[0] || "there";
+
+  const local = email.split("@")[0] || "Adeolu";
+  const first = local.split(/[._-]/)[0] || "Adeolu";
+  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
 }
 
 export default function LoginPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const photoInputRef = useRef<HTMLInputElement | null>(null);
-  const [step, setStep] = useState<AuthStep>("email");
+  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const [step, setStep] = useState<AuthStep>("login");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState("");
+  const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [emergencyContact, setEmergencyContact] = useState("");
   const [nextOfKin, setNextOfKin] = useState("");
 
   const insight = useMemo(() => insights[new Date().getDate() % insights.length], []);
-  const organization = useMemo(() => organizationFromEmail(email), [email]);
+  const connected = isZenithEmail(email);
   const firstName = useMemo(() => firstNameFromEmail(email), [email]);
 
-  function continueFromEmail(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!email.includes("@")) {
-      showToast("Enter your company email", "warning");
-      return;
-    }
-    setStep("phone");
-  }
-
-  async function requestOtp(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (phone.trim().length < 7) {
-      showToast("Enter a valid phone number", "warning");
-      return;
-    }
-
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false,
-      },
-    });
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
 
     if (error) {
-      showToast("We could not send your access code. Please check your email.", "error");
+      showToast("Invalid email or password", "error");
       return;
     }
 
     setStep("otp");
-    showToast("Access code sent to your email", "success");
+  }
+
+  function updateOtp(index: number, value: string) {
+    const digit = value.replace(/\D/g, "").slice(-1);
+    setOtpDigits((current) => current.map((item, itemIndex) => (itemIndex === index ? digit : item)));
+    if (digit && index < 5) otpRefs.current[index + 1]?.focus();
+  }
+
+  function handleOtpKey(index: number, event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Backspace" && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
   }
 
   async function verifyOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: otp.replace(/\s/g, ""),
-      type: "email",
-    });
+    await new Promise((resolve) => window.setTimeout(resolve, 800));
     setLoading(false);
 
-    if (error) {
-      showToast("Invalid or expired access code", "error");
+    if (otpDigits.join("") !== DEMO_OTP) {
+      showToast("Invalid verification code", "error");
       return;
     }
 
+    showToast("Identity verified", "success");
     setStep("welcome");
   }
 
@@ -126,12 +136,14 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-paper text-ink md:grid md:grid-cols-[1.05fr_0.95fr]">
-      <section className="relative flex min-h-[48vh] flex-col justify-between overflow-hidden bg-ink px-6 pb-8 pt-7 text-white md:m-6 md:min-h-[calc(100vh-48px)] md:rounded-[36px] md:px-10 md:py-10">
-        <div className="absolute inset-0 opacity-80">
-          <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-pulse/20 blur-3xl" />
-          <div className="absolute bottom-12 right-0 h-96 w-96 rounded-full bg-white/8 blur-3xl" />
-          <div className="absolute inset-x-10 bottom-1/4 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(232,68,10,0.08),transparent_28rem),linear-gradient(135deg,var(--cream),var(--paper))] text-ink md:grid md:grid-cols-[1.08fr_0.92fr]">
+      <section className="relative flex min-h-[50vh] flex-col justify-between overflow-hidden bg-ink px-6 pb-8 pt-7 text-white md:m-6 md:min-h-[calc(100vh-48px)] md:rounded-[38px] md:px-10 md:py-10">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-24 top-16 h-80 w-80 animate-pulse rounded-full bg-pulse/18 blur-3xl" />
+          <div className="absolute bottom-10 right-[-80px] h-[28rem] w-[28rem] rounded-full bg-white/[0.07] blur-3xl" />
+          <div className="absolute left-10 right-10 top-1/2 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+          <div className="absolute bottom-24 left-10 h-40 w-[78%] rounded-full border border-white/10" />
+          <div className="absolute bottom-32 left-20 h-24 w-[54%] rounded-full border border-pulse/20" />
         </div>
 
         <div className="relative z-10 flex items-center justify-between gap-4">
@@ -142,97 +154,131 @@ export default function LoginPage() {
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/36">Living Work OS</p>
             </div>
           </div>
-          <span className="hidden rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-xs font-bold text-white/58 md:inline-flex">
-            Pulse for {organization.name}
+          <span className="hidden rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-white/62 md:inline-flex">
+            Pulse for Zenith Corp
           </span>
         </div>
 
-        <div className="relative z-10 max-w-2xl">
+        <div className="relative z-10 max-w-2xl py-12 md:py-0">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-pulse">
             <Sparkles size={15} />
-            <span className="text-xs font-bold">Pulse noticed</span>
+            <span className="text-xs font-bold">Zenith intelligence layer</span>
           </div>
-          <h1 className="mt-6 max-w-xl font-syne text-[42px] font-bold leading-[0.96] tracking-normal md:text-7xl">
-            Enter your intelligent work life.
+          <h1 className="mt-6 max-w-xl font-syne text-[44px] font-bold leading-[0.96] md:text-7xl">
+            Work, understood better.
           </h1>
           <p className="mt-6 max-w-md text-base leading-relaxed text-white/58">
-            {insight} Pulse brings growth, alignment, support, and transparent progress into one calm workspace.
+            A unified intelligent workspace for performance, growth, collaboration, and organizational clarity.
           </p>
         </div>
 
-        <div className="relative z-10 grid gap-3 text-sm text-white/54 md:grid-cols-3">
-          {["Growth", "Alignment", "Support"].map((item) => (
-            <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 backdrop-blur">
-              <p className="font-bold text-white">{item}</p>
-              <p className="mt-1 text-xs leading-relaxed text-white/40">Quiet intelligence for daily execution.</p>
+        <div className="relative z-10 grid gap-4 md:grid-cols-[1fr_0.72fr] md:items-end">
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.055] p-4 backdrop-blur">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/32">Today&apos;s operating note</p>
+            <p className="mt-3 font-syne text-xl font-bold leading-snug text-white">{insight}</p>
+          </div>
+          <div className="hidden rounded-[24px] border border-white/10 bg-white/[0.045] p-4 md:block">
+            <div className="flex items-center justify-between">
+              <span className="h-2 w-2 rounded-full bg-pulse shadow-[0_0_0_7px_rgba(232,68,10,0.12)]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Live clarity</span>
             </div>
-          ))}
+            <div className="mt-6 space-y-2">
+              {[72, 48, 88].map((width, index) => (
+                <div key={width} className="h-2 rounded-full bg-white/10">
+                  <div className="h-full rounded-full bg-pulse/80 transition-all duration-700" style={{ width: `${width - index * 4}%` }} />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="flex min-h-[52vh] items-center justify-center px-4 py-8 md:min-h-screen md:px-10">
+      <section className="flex min-h-[50vh] items-center justify-center px-4 py-8 md:min-h-screen md:px-10">
         <div className="w-full max-w-[470px]">
           <Progress step={step} />
-          <div className="mt-5 overflow-hidden rounded-[32px] border border-border bg-card/96 p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] backdrop-blur md:p-8">
-            {step === "email" && (
-              <form onSubmit={continueFromEmail} className="animate-fade-up">
-                <Eyebrow icon={<Mail size={14} />} text="Company access" />
-                <h2 className="mt-4 font-syne text-3xl font-bold text-ink">Start with your company email.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-muted">Pulse is invite-only. Your organization controls role, reporting line, band, and permissions.</p>
+          <div className="mt-5 overflow-hidden rounded-[34px] border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-8">
+            {step === "login" && (
+              <form onSubmit={handleLogin} className="animate-fade-up">
+                <Eyebrow icon={<Building2 size={14} />} text="Pulse for Zenith Corp" />
+                <h2 className="mt-4 font-syne text-3xl font-bold leading-tight text-ink">Enter Zenith Corp&apos;s intelligent workspace.</h2>
+                <p className="mt-3 text-sm leading-relaxed text-muted">Sign in with your company credentials. Pulse will connect you to the right workspace automatically.</p>
+
                 <label className="mt-7 block text-xs font-bold uppercase tracking-widest text-muted">
                   Company Email
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    required
-                    autoComplete="email"
-                    placeholder="you@company.com"
-                    className="mt-2 h-14 w-full rounded-2xl border border-border bg-paper px-4 text-base font-medium text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)]"
-                  />
+                  <div className="relative mt-2">
+                    <Mail size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      required
+                      autoComplete="email"
+                      placeholder="adeolu@zenithcorp.com"
+                      className="h-14 w-full rounded-2xl border border-border bg-paper pl-11 pr-4 text-base font-medium text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)]"
+                    />
+                  </div>
                 </label>
-                <PrimaryButton loading={loading}>Continue</PrimaryButton>
-              </form>
-            )}
 
-            {step === "phone" && (
-              <form onSubmit={requestOtp} className="animate-fade-up">
-                <Eyebrow icon={<Phone size={14} />} text={`Pulse for ${organization.name}`} />
-                <h2 className="mt-4 font-syne text-3xl font-bold text-ink">Add your phone number.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-muted">{organization.message} We use this to keep your profile current and support future secure verification.</p>
-                <label className="mt-7 block text-xs font-bold uppercase tracking-widest text-muted">
-                  Phone Number
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    required
-                    autoComplete="tel"
-                    placeholder="+234 801 234 5678"
-                    className="mt-2 h-14 w-full rounded-2xl border border-border bg-paper px-4 text-base font-medium text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)]"
-                  />
+                <div className={`mt-3 overflow-hidden rounded-2xl border transition-all duration-300 ${connected ? "max-h-28 border-green/20 bg-green-soft/70 p-3 opacity-100" : "max-h-0 border-transparent opacity-0"}`}>
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-ink font-syne text-sm font-black text-white">Z</span>
+                    <div>
+                      <p className="text-sm font-black text-green">Connected to Zenith Corp</p>
+                      <p className="text-xs text-muted">Workspace theme and access layer detected.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-muted">
+                  Password
+                  <div className="relative mt-2">
+                    <LockKeyhole size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      required
+                      autoComplete="current-password"
+                      className="h-14 w-full rounded-2xl border border-border bg-paper pl-11 pr-12 text-base font-medium text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)]"
+                    />
+                    <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full text-muted transition hover:bg-pulse-soft hover:text-pulse">
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </label>
-                <PrimaryButton loading={loading}>Send access code</PrimaryButton>
-                <button type="button" onClick={() => setStep("email")} className="mt-4 text-sm font-bold text-muted hover:text-pulse">Use a different email</button>
+
+                <PrimaryButton loading={loading} disabled={!email.trim() || !password.trim()}>Continue</PrimaryButton>
+                <Link href="/auth/reset" className="mt-5 block text-center text-sm font-bold text-muted transition hover:text-pulse">
+                  Forgot Password
+                </Link>
               </form>
             )}
 
             {step === "otp" && (
               <form onSubmit={verifyOtp} className="animate-fade-up">
-                <Eyebrow icon={<ShieldCheck size={14} />} text="Secure verification" />
-                <h2 className="mt-4 font-syne text-3xl font-bold text-ink">Enter your access code.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-muted">We sent a one-time code to <span className="font-bold text-ink">{email}</span>.</p>
-                <input
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="000000"
-                  className="mt-7 h-16 w-full rounded-3xl border border-border bg-paper px-5 text-center font-syne text-3xl font-bold tracking-[0.32em] text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)]"
-                />
-                <PrimaryButton loading={loading} disabled={otp.length < 6}>Verify and continue</PrimaryButton>
-                <button type="button" onClick={() => setStep("phone")} className="mt-4 text-sm font-bold text-muted hover:text-pulse">Edit phone number</button>
+                <Eyebrow icon={<ShieldCheck size={14} />} text="Identity check" />
+                <h2 className="mt-4 font-syne text-3xl font-bold leading-tight text-ink">Verify Your Identity</h2>
+                <p className="mt-3 text-sm leading-relaxed text-muted">
+                  We sent a secure verification code to your Zenith Corp email.
+                </p>
+                <div className="mt-7 grid grid-cols-6 gap-2 md:gap-3">
+                  {otpDigits.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(node) => { otpRefs.current[index] = node; }}
+                      value={digit}
+                      onChange={(event) => updateOtp(index, event.target.value)}
+                      onKeyDown={(event) => handleOtpKey(index, event)}
+                      inputMode="numeric"
+                      maxLength={1}
+                      className="h-14 rounded-2xl border border-border bg-paper text-center font-syne text-2xl font-bold text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)] md:h-16"
+                    />
+                  ))}
+                </div>
+                <p className="mt-4 rounded-2xl bg-pulse-soft px-4 py-3 text-xs font-bold text-pulse">
+                  For demo purposes, use code: {DEMO_OTP}
+                </p>
+                <PrimaryButton loading={loading} disabled={otpDigits.join("").length < 6}>Verify and continue</PrimaryButton>
               </form>
             )}
 
@@ -243,25 +289,25 @@ export default function LoginPage() {
                 </div>
                 <h2 className="mt-5 font-syne text-4xl font-bold leading-tight text-ink">Welcome to Pulse, {firstName}.</h2>
                 <p className="mt-4 text-sm leading-relaxed text-muted">
-                  Pulse helps employees grow, stay aligned, receive support, track progress, and succeed transparently.
+                  Pulse helps Zenith Corp employees stay aligned, grow intentionally, receive support, track performance transparently, and work with clarity.
                 </p>
                 <div className="mt-6 grid gap-2">
-                  {["Growth without guesswork", "Support before work feels heavy", "Transparent progress in one place"].map((item) => (
+                  {["Stay aligned", "Grow intentionally", "Receive support", "Track performance transparently"].map((item) => (
                     <div key={item} className="flex items-center gap-3 rounded-2xl bg-paper px-4 py-3 text-sm font-bold text-ink">
                       <Check size={16} className="text-green" />
                       {item}
                     </div>
                   ))}
                 </div>
-                <PrimaryButton onClick={() => setStep("profile")}>Complete your profile</PrimaryButton>
+                <PrimaryButton onClick={() => setStep("profile")}>Complete Your Profile</PrimaryButton>
               </div>
             )}
 
             {step === "profile" && (
               <form onSubmit={completeProfile} className="animate-fade-up">
-                <Eyebrow icon={<Camera size={14} />} text="Profile basics" />
-                <h2 className="mt-4 font-syne text-3xl font-bold text-ink">Complete only what belongs to you.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-muted">Your organization will complete the rest: department, band, compensation, role, reporting line, and permissions.</p>
+                <Eyebrow icon={<Camera size={14} />} text="Your profile basics" />
+                <h2 className="mt-4 font-syne text-3xl font-bold leading-tight text-ink">Complete only what belongs to you.</h2>
+                <p className="mt-3 text-sm leading-relaxed text-muted">Your organization will complete the rest.</p>
 
                 <button type="button" onClick={() => photoInputRef.current?.click()} className="mt-7 flex w-full items-center gap-4 rounded-3xl border border-border bg-paper p-4 text-left transition hover:border-pulse/35 hover:bg-card active:scale-[0.99]">
                   <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-ink text-sm font-black text-white ring-4 ring-white">
@@ -276,10 +322,19 @@ export default function LoginPage() {
                 <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => handlePhoto(event.target.files?.[0])} />
 
                 <div className="mt-5 grid gap-3">
-                  <TextField label="Phone" value={phone} onChange={setPhone} placeholder="+234 801 234 5678" />
+                  <TextField label="Phone Number" value={phone} onChange={setPhone} placeholder="+234 801 234 5678" />
                   <TextField label="Address" value={address} onChange={setAddress} placeholder="Home address" />
                   <TextField label="Emergency Contact" value={emergencyContact} onChange={setEmergencyContact} placeholder="Name, relationship, phone" />
                   <TextField label="Next of Kin" value={nextOfKin} onChange={setNextOfKin} placeholder="Name and phone" />
+                </div>
+
+                <div className="mt-5 rounded-3xl border border-border bg-paper p-4">
+                  <p className="text-xs font-black uppercase tracking-widest text-muted">Controlled by HR/IT</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {controlledByOrg.map((item) => (
+                      <span key={item} className="rounded-full bg-card px-3 py-1.5 text-[11px] font-bold text-muted">{item}</span>
+                    ))}
+                  </div>
                 </div>
 
                 <PrimaryButton disabled={!phone.trim() || !address.trim() || !emergencyContact.trim() || !nextOfKin.trim()}>
@@ -295,7 +350,7 @@ export default function LoginPage() {
 }
 
 function Progress({ step }: { step: AuthStep }) {
-  const steps: AuthStep[] = ["email", "phone", "otp", "welcome", "profile"];
+  const steps: AuthStep[] = ["login", "otp", "welcome", "profile"];
   const current = steps.indexOf(step);
 
   return (
