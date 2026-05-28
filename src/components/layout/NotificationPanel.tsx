@@ -89,7 +89,7 @@ export default function NotificationPanel() {
               <div className="w-12 h-12 rounded-full bg-border flex items-center justify-center">
                 <Bell size={20} className="text-muted" />
               </div>
-              <p className="text-sm font-semibold text-ink">You're all caught up ✓</p>
+              <p className="text-sm font-semibold text-ink">You&apos;re all caught up</p>
               <p className="text-xs text-muted leading-relaxed">
                 No notifications right now. Check back later.
               </p>

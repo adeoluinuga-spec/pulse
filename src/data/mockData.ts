@@ -9,8 +9,6 @@ import type {
   Training,
   WellbeingEntry,
   Document,
-  LeaveBalance,
-  LeaveRequest,
   Meeting,
   Task,
   Notification,

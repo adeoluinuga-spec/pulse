@@ -4,7 +4,6 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
   type ReactNode,
 } from "react";
@@ -42,13 +41,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const user = employees.find((e) => e.id === userId) ?? employees[0];
 
-  useEffect(() => {
-    const emp = employees.find((e) => e.id === userId) ?? employees[0];
-    setNotifs([...emp.notifications]);
-  }, [userId]);
-
   const setActiveUser = useCallback((id: string) => {
+    const emp = employees.find((employee) => employee.id === id) ?? employees[0];
     setUserId(id);
+    setNotifs([...emp.notifications]);
   }, []);
 
   const hasUnread = notifs.some((n) => !n.read);
