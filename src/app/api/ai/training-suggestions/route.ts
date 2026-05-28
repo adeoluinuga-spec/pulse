@@ -1,10 +1,5 @@
-import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
-
-const client = new OpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY,
-  baseURL: "https://api.deepseek.com",
-});
+import { getDeepSeekClient } from "@/lib/deepseek";
 
 const fallback = [
   {
@@ -42,7 +37,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const response = await client.chat.completions.create({
+    const response = await getDeepSeekClient().chat.completions.create({
       model: "deepseek-chat",
       max_tokens: 1000,
       messages: [

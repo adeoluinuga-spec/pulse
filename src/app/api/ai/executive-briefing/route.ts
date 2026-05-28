@@ -1,10 +1,5 @@
-import OpenAI from "openai";
 import { NextResponse } from "next/server";
-
-const client = new OpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY,
-  baseURL: "https://api.deepseek.com",
-});
+import { getDeepSeekClient } from "@/lib/deepseek";
 
 function fallbackBriefing(body: Record<string, unknown>) {
   const orgName = typeof body.orgName === "string" ? body.orgName : "Zenith Corp";
@@ -22,7 +17,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
 
-    const response = await client.chat.completions.create({
+    const response = await getDeepSeekClient().chat.completions.create({
       model: "deepseek-chat",
       max_tokens: 1000,
       messages: [
