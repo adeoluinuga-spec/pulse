@@ -75,7 +75,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (error) {
-      showToast("Could not send code. Try again.", "error");
+      showToast(error.message || "Could not send code. Try again.", "error");
       return;
     }
 
