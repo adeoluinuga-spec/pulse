@@ -73,7 +73,7 @@ export default function AdminPage() {
         setError(json.error ?? "Something went wrong");
       } else {
         setDone(json.message ?? "Organisation created.");
-        setForm({ name: "", slug: "", currency: "NGN", cadence: "quarterly", hrAdminEmail: "" });
+        setForm({ name: "", slug: "", currency: "NGN", cadence: "quarterly", hrAdminEmail: "", firstInviteeRole: "hr_admin" });
       }
     } catch {
       setError("Network error. Try again.");
