@@ -112,9 +112,30 @@ export default function LoginPage() {
 
     showToast("Identity verified", "success");
 
-    const superAdminEmail = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL;
-    if (superAdminEmail && email.toLowerCase() === superAdminEmail.toLowerCase()) {
+    // Check who just verified — read from the live session, not build-time env vars
+    const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+    const verifiedEmail = verifiedUser?.email?.toLowerCase() ?? "";
+    const superAdminEmail = (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL ?? "").toLowerCase();
+
+    if (superAdminEmail && verifiedEmail === superAdminEmail) {
       router.replace("/admin");
+      return;
+    }
+
+    // Check platform role for HR / executive routing
+    const { data: empRow } = await supabase
+      .from("employees")
+      .select("platform_role")
+      .eq("user_id", verifiedUser?.id ?? "")
+      .maybeSingle();
+
+    const role = (empRow as { platform_role?: string } | null)?.platform_role;
+    if (role === "hr_admin") {
+      router.replace("/hr");
+      return;
+    }
+    if (role === "executive_view") {
+      router.replace("/executive");
       return;
     }
 
