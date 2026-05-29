@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -13,7 +14,9 @@ import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
 import { employees } from "@/data/mockData";
 import type { Employee, Notification } from "@/types";
 import { useToast } from "@/components/ui/Toast";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
+import { getMyProfile } from "@/lib/api/profile";
+import { getMyNotifications } from "@/lib/api/notifications";
 
 interface UserContextValue {
   user: Employee;
@@ -60,59 +63,147 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [notifs, setNotifs] = useState<Notification[]>(
     () => [...DEFAULT_USER.notifications],
   );
+  // Track whether we matched a real Supabase employee so we show live data
+  const [liveEmployee, setLiveEmployee] = useState<Employee | null>(null);
+  const realtimeRef = useRef<ReturnType<ReturnType<typeof getSupabase>["channel"]> | null>(null);
 
-  const user = employees.find((e) => e.id === userId) ?? employees[0];
+  const user = liveEmployee ?? employees.find((e) => e.id === userId) ?? employees[0];
 
-  const selectEmployeeForSession = useCallback((authSession: Session | null) => {
+  // ── Resolve employee after auth ──────────────────────────────────────────────
+  const resolveEmployee = useCallback(async (authSession: Session | null) => {
     const email = authSession?.user.email?.toLowerCase();
-    const employee = employees.find((emp) => emp.email.toLowerCase() === email) ?? DEFAULT_USER;
-    setUserId(employee.id);
-    setNotifs([...employee.notifications]);
+
+    // Try Supabase first
+    if (authSession) {
+      try {
+        const profile = await getMyProfile();
+        if (profile) {
+          setLiveEmployee(profile);
+          setUserId(profile.id);
+
+          // Try real notifications
+          const liveNotifs = await getMyNotifications(30);
+          setNotifs(liveNotifs.length ? liveNotifs : [...profile.notifications]);
+          return;
+        }
+      } catch {
+        // fall through to mock
+      }
+    }
+
+    // Fall back to mock email match
+    const mockEmp = employees.find((e) => e.email.toLowerCase() === email) ?? DEFAULT_USER;
+    setLiveEmployee(null);
+    setUserId(mockEmp.id);
+    setNotifs([...mockEmp.notifications]);
+  }, []);
+
+  // ── Real-time notification subscription ─────────────────────────────────────
+  const subscribeToNotifications = useCallback((empId: string) => {
+    // Clean up any existing subscription
+    if (realtimeRef.current) {
+      realtimeRef.current.unsubscribe();
+      realtimeRef.current = null;
+    }
+
+    const supabase = getSupabase();
+    const channel = supabase
+      .channel(`notifications:${empId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `employee_id=eq.${empId}`,
+        },
+        (payload) => {
+          const row = payload.new as Record<string, unknown>;
+          const newNotif: Notification = {
+            id: row.id as string,
+            type: (row.type as Notification["type"]) ?? "info",
+            title: row.title as string,
+            body: (row.body as string) ?? "",
+            date: ((row.created_at as string) ?? "").slice(0, 10),
+            read: false,
+          };
+          setNotifs((prev) => [newNotif, ...prev]);
+        },
+      )
+      .subscribe();
+
+    realtimeRef.current = channel;
   }, []);
 
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    getSupabase().auth.getSession().then(({ data }) => {
       if (!active) return;
       setSession(data.session);
-      selectEmployeeForSession(data.session);
-      setLoading(false);
+      resolveEmployee(data.session).finally(() => {
+        if (active) setLoading(false);
+      });
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      selectEmployeeForSession(nextSession);
-      setLoading(false);
-    });
+    const { data: listener } = getSupabase().auth.onAuthStateChange(
+      (_event, nextSession) => {
+        setSession(nextSession);
+        resolveEmployee(nextSession).finally(() => setLoading(false));
+      },
+    );
 
     return () => {
       active = false;
       listener.subscription.unsubscribe();
+      realtimeRef.current?.unsubscribe();
     };
-  }, [selectEmployeeForSession]);
+  }, [resolveEmployee]);
 
-  const setActiveUser = useCallback((id: string) => {
-    const emp = employees.find((employee) => employee.id === id) ?? employees[0];
-    setUserId(id);
-    setNotifs([...emp.notifications]);
-    showToast(`Viewing as ${emp.name} — ${emp.cadre} / ${emp.peopleResponsibility}`, "info");
-  }, [showToast]);
+  // Subscribe to realtime when we have a live employee with a DB id
+  useEffect(() => {
+    if (liveEmployee?.id) {
+      subscribeToNotifications(liveEmployee.id);
+    }
+    return () => {
+      realtimeRef.current?.unsubscribe();
+      realtimeRef.current = null;
+    };
+  }, [liveEmployee?.id, subscribeToNotifications]);
+
+  const setActiveUser = useCallback(
+    (id: string) => {
+      const emp = employees.find((e) => e.id === id) ?? employees[0];
+      setLiveEmployee(null);
+      setUserId(id);
+      setNotifs([...emp.notifications]);
+      showToast(
+        `Viewing as ${emp.name} — ${emp.cadre} / ${emp.peopleResponsibility}`,
+        "info",
+      );
+    },
+    [showToast],
+  );
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    realtimeRef.current?.unsubscribe();
+    realtimeRef.current = null;
+    await getSupabase().auth.signOut();
     setSession(null);
+    setLiveEmployee(null);
     router.replace("/auth/login");
     router.refresh();
   }, [router]);
 
-  const setProfileImage = useCallback((employeeId: string, imageDataUrl: string) => {
-    setProfileImages((prev) => ({ ...prev, [employeeId]: imageDataUrl }));
-    showToast("Profile image updated", "success");
-  }, [showToast]);
+  const setProfileImage = useCallback(
+    (employeeId: string, imageDataUrl: string) => {
+      setProfileImages((prev) => ({ ...prev, [employeeId]: imageDataUrl }));
+      showToast("Profile image updated", "success");
+    },
+    [showToast],
+  );
 
   const hasUnread = notifs.some((n) => !n.read);
-
   const openNotif = useCallback(() => setNotifOpen(true), []);
 
   const closeNotif = useCallback(() => {
@@ -125,7 +216,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       <div className="grid min-h-screen place-items-center bg-paper px-6 text-center text-ink">
         <div>
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-border border-t-pulse" />
-          <p className="mt-4 text-sm font-bold text-muted">Preparing your Pulse workspace...</p>
+          <p className="mt-4 text-sm font-bold text-muted">
+            Preparing your Pulse workspace...
+          </p>
         </div>
       </div>
     );
@@ -133,7 +226,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   return (
     <UserContext.Provider
-      value={{ user, authUser: session?.user ?? null, session, loading, setActiveUser, signOut, profileImages, setProfileImage, notifications: notifs, hasUnread, notifOpen, openNotif, closeNotif }}
+      value={{
+        user,
+        authUser: session?.user ?? null,
+        session,
+        loading,
+        setActiveUser,
+        signOut,
+        profileImages,
+        setProfileImage,
+        notifications: notifs,
+        hasUnread,
+        notifOpen,
+        openNotif,
+        closeNotif,
+      }}
     >
       {children}
       <DevUserSwitcher />
@@ -187,7 +294,10 @@ function DevUserSwitcher() {
                   return (
                     <button
                       key={emp.id}
-                      onClick={() => { setActiveUser(emp.id); setOpen(false); }}
+                      onClick={() => {
+                        setActiveUser(emp.id);
+                        setOpen(false);
+                      }}
                       className="w-full flex items-center gap-3 px-5 py-3 border-b border-border last:border-none hover:bg-paper active:bg-paper transition-colors"
                     >
                       <div
@@ -197,7 +307,9 @@ function DevUserSwitcher() {
                         {emp.initials}
                       </div>
                       <div className="flex-1 text-left min-w-0">
-                        <p className={`text-sm font-semibold truncate ${active ? "text-pulse" : "text-ink"}`}>
+                        <p
+                          className={`text-sm font-semibold truncate ${active ? "text-pulse" : "text-ink"}`}
+                        >
                           {emp.name}
                         </p>
                         <p className="text-[11px] text-muted truncate">
@@ -212,7 +324,10 @@ function DevUserSwitcher() {
                 })}
               </div>
 
-              <div className="h-safe flex-shrink-0" style={{ height: "env(safe-area-inset-bottom, 0px)" }} />
+              <div
+                className="h-safe flex-shrink-0"
+                style={{ height: "env(safe-area-inset-bottom, 0px)" }}
+              />
             </div>
           </div>
         </>
