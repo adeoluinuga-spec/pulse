@@ -71,14 +71,11 @@ export default function LoginPage() {
     event.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false },
-    });
+    const { error } = await supabase.auth.signInWithOtp({ email });
     setLoading(false);
 
     if (error) {
-      showToast("No account found for this email. Contact your HR admin.", "error");
+      showToast("Could not send code. Try again.", "error");
       return;
     }
 
