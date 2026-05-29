@@ -3,10 +3,12 @@
 import { Bell } from "lucide-react";
 import { useRole } from "@/context/RoleContext";
 import { useNotifications } from "@/context/NotificationContext";
+import { useUser } from "@/context/UserContext";
 
 export default function TopBar() {
   const { config } = useRole();
   const { hasUnread, open } = useNotifications();
+  const { orgName } = useUser();
 
   return (
     <div className="h-14 bg-ink md:bg-card md:border-b md:border-border flex items-center justify-between px-4 md:px-6 shadow-sm md:shadow-none">
@@ -45,7 +47,7 @@ export default function TopBar() {
         </button>
 
         <div className="text-right hidden sm:block">
-          <p className="text-white md:text-ink text-xs font-medium leading-none">Zenith Corp</p>
+          <p className="text-white md:text-ink text-xs font-medium leading-none">{orgName || "Pulse"}</p>
           <p className="text-white/50 md:text-muted text-[10px] mt-0.5">May 2026 cycle</p>
         </div>
 

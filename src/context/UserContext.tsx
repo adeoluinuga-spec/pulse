@@ -23,6 +23,7 @@ interface UserContextValue {
   authUser: SupabaseUser | null;
   session: Session | null;
   loading: boolean;
+  orgName: string;
   setActiveUser: (employeeId: string) => void;
   signOut: () => Promise<void>;
   profileImages: Record<string, string>;
@@ -41,6 +42,7 @@ const UserContext = createContext<UserContextValue>({
   authUser: null,
   session: null,
   loading: true,
+  orgName: "",
   setActiveUser: () => {},
   signOut: async () => {},
   profileImages: {},
@@ -60,6 +62,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileImages, setProfileImages] = useState<Record<string, string>>({});
+  const [orgName, setOrgName] = useState("");
   const [notifs, setNotifs] = useState<Notification[]>(
     () => [...DEFAULT_USER.notifications],
   );
@@ -80,6 +83,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (profile) {
           setLiveEmployee(profile);
           setUserId(profile.id);
+
+          // Fetch org name
+          const supabase = getSupabase();
+          const { data: empRow } = await supabase
+            .from("employees")
+            .select("org_id")
+            .eq("user_id", authSession.user.id)
+            .single();
+          if (empRow?.org_id) {
+            const { data: org } = await supabase
+              .from("organisations")
+              .select("name")
+              .eq("id", (empRow as { org_id: string }).org_id)
+              .single();
+            if (org) setOrgName((org as { name: string }).name);
+          }
 
           // Try real notifications
           const liveNotifs = await getMyNotifications(30);
@@ -231,6 +250,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         authUser: session?.user ?? null,
         session,
         loading,
+        orgName,
         setActiveUser,
         signOut,
         profileImages,

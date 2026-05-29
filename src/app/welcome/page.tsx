@@ -54,6 +54,7 @@ export default function WelcomePage() {
 
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [employeeName, setEmployeeName] = useState("");
+  const [platformRole, setPlatformRole] = useState("standard");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -81,7 +82,7 @@ export default function WelcomePage() {
       // Find the employee record (may have been pre-created by HR with user_id=null)
       const { data: emp } = await supabase
         .from("employees")
-        .select("id, name, phone, home_address, emergency_contact, avatar_url, user_id")
+        .select("id, name, phone, home_address, emergency_contact, avatar_url, user_id, platform_role")
         .or(`user_id.eq.${user.id},email.eq.${user.email}`)
         .single();
 
@@ -106,6 +107,7 @@ export default function WelcomePage() {
 
       setEmployeeId(emp.id);
       setEmployeeName(emp.name ?? "");
+      setPlatformRole((emp as { platform_role?: string }).platform_role ?? "standard");
       setAvatarUrl(emp.avatar_url ?? null);
       setForm({
         phone: emp.phone ?? "",
@@ -389,7 +391,11 @@ export default function WelcomePage() {
             </div>
 
             <button
-              onClick={() => router.replace("/dashboard")}
+              onClick={() => {
+                if (platformRole === "hr_admin") router.replace("/hr");
+                else if (platformRole === "executive_view") router.replace("/executive");
+                else router.replace("/dashboard");
+              }}
               className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-[0_18px_34px_rgba(232,68,10,0.22)] transition"
             >
               Got it — Let&apos;s go

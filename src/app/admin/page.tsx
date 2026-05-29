@@ -10,6 +10,7 @@ interface OrgForm {
   currency: string;
   cadence: string;
   hrAdminEmail: string;
+  firstInviteeRole: string;
 }
 
 function toSlug(name: string) {
@@ -35,6 +36,7 @@ export default function AdminPage() {
     currency: "NGN",
     cadence: "quarterly",
     hrAdminEmail: "",
+    firstInviteeRole: "hr_admin",
   });
 
   useEffect(() => {
@@ -216,7 +218,7 @@ export default function AdminPage() {
               </Field>
             </div>
 
-            <Field label="HR Admin Email" hint="This person gets the first invite" required>
+            <Field label="First Invitee Email" hint="This person gets the first invite" required>
               <input
                 type="email"
                 value={form.hrAdminEmail}
@@ -225,6 +227,17 @@ export default function AdminPage() {
                 placeholder="hr@company.com"
                 className={inputCls}
               />
+            </Field>
+
+            <Field label="Their Role" hint="Determines what they can see and do">
+              <select
+                value={form.firstInviteeRole}
+                onChange={(e) => setForm((f) => ({ ...f, firstInviteeRole: e.target.value }))}
+                className={inputCls}
+              >
+                <option value="hr_admin">HR Admin — manages people, invites, appraisals</option>
+                <option value="executive_view">Executive — sees org-wide performance overview</option>
+              </select>
             </Field>
           </div>
 

@@ -24,7 +24,7 @@ type AuthStep = "login" | "otp" | "welcome" | "profile";
 const insights = [
   "Consistency compounds faster than intensity.",
   "High-performing teams communicate before problems escalate.",
-  "Pulse helps Zenith Corp see what matters.",
+  "Pulse makes work visible.",
   "Execution is strategy revealed.",
 ];
 
@@ -38,8 +38,10 @@ const controlledByOrg = [
   "People responsibility",
 ];
 
-function isZenithEmail(email: string) {
-  return email.toLowerCase().includes("@zenithcorp.com") || email.toLowerCase().includes("@zenithcorp.ng");
+function isWorkEmail(email: string) {
+  const freeProviders = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com"];
+  const domain = email.split("@")[1]?.toLowerCase() ?? "";
+  return domain.length > 0 && !freeProviders.includes(domain);
 }
 
 function firstNameFromEmail(email: string) {
@@ -64,7 +66,7 @@ export default function LoginPage() {
   const [nextOfKin, setNextOfKin] = useState("");
 
   const insight = useMemo(() => insights[new Date().getDate() % insights.length], []);
-  const connected = isZenithEmail(email);
+  const connected = isWorkEmail(email);
   const firstName = useMemo(() => firstNameFromEmail(email), [email]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -186,14 +188,14 @@ export default function LoginPage() {
             </div>
           </div>
           <span className="hidden rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-white/62 md:inline-flex">
-            Pulse for Zenith Corp
+            Pulse for your organisation
           </span>
         </div>
 
         <div className="relative z-10 max-w-2xl py-12 md:py-0">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-pulse">
             <Sparkles size={15} />
-            <span className="text-xs font-bold">Zenith intelligence layer</span>
+            <span className="text-xs font-bold">Pulse intelligence layer</span>
           </div>
           <h1 className="mt-6 max-w-xl font-syne text-[44px] font-bold leading-[0.96] md:text-7xl">
             Work, understood better.
@@ -230,8 +232,8 @@ export default function LoginPage() {
           <div className="mt-5 overflow-hidden rounded-[34px] border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-8">
             {step === "login" && (
               <form onSubmit={handleLogin} className="animate-fade-up">
-                <Eyebrow icon={<Building2 size={14} />} text="Pulse for Zenith Corp" />
-                <h2 className="mt-4 font-syne text-3xl font-bold leading-tight text-ink">Enter Zenith Corp&apos;s intelligent workspace.</h2>
+                <Eyebrow icon={<Building2 size={14} />} text="Sign in to Pulse" />
+                <h2 className="mt-4 font-syne text-3xl font-bold leading-tight text-ink">Sign in to your workspace.</h2>
                 <p className="mt-3 text-sm leading-relaxed text-muted">Sign in with your company credentials. Pulse will connect you to the right workspace automatically.</p>
 
                 <label className="mt-7 block text-xs font-bold uppercase tracking-widest text-muted">
@@ -254,7 +256,7 @@ export default function LoginPage() {
                   <div className="flex items-center gap-3">
                     <span className="grid h-10 w-10 place-items-center rounded-2xl bg-ink font-syne text-sm font-black text-white">Z</span>
                     <div>
-                      <p className="text-sm font-black text-green">Connected to Zenith Corp</p>
+                      <p className="text-sm font-black text-green">Work email recognised</p>
                       <p className="text-xs text-muted">Workspace theme and access layer detected.</p>
                     </div>
                   </div>
@@ -299,7 +301,7 @@ export default function LoginPage() {
                 </div>
                 <h2 className="mt-5 font-syne text-4xl font-bold leading-tight text-ink">Welcome to Pulse, {firstName}.</h2>
                 <p className="mt-4 text-sm leading-relaxed text-muted">
-                  Pulse helps Zenith Corp employees stay aligned, grow intentionally, receive support, track performance transparently, and work with clarity.
+                  Pulse helps you stay aligned, grow intentionally, receive support, track performance transparently, and work with clarity.
                 </p>
                 <div className="mt-6 grid gap-2">
                   {["Stay aligned", "Grow intentionally", "Receive support", "Track performance transparently"].map((item) => (

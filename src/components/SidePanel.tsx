@@ -8,6 +8,7 @@ import {
   Sparkles, Target, Users, Star,
 } from "lucide-react";
 import { useRole, ROLE_LIST } from "@/context/RoleContext";
+import { useUser } from "@/context/UserContext";
 
 const quickLinks = [
   { label: "Goals",      href: "/goals",           icon: Target          },
@@ -26,6 +27,7 @@ const roleIcons: Record<string, React.ElementType> = {
 export default function SidePanel() {
   const pathname = usePathname();
   const { config } = useRole();
+  const { orgName } = useUser();
 
   return (
     <aside className="hidden md:flex fixed inset-y-0 left-0 z-50 w-72 flex-col bg-ink text-white">
@@ -122,7 +124,7 @@ export default function SidePanel() {
               {config.initials}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">Zenith Corp</p>
+              <p className="truncate text-sm font-semibold">{orgName || "Your Organisation"}</p>
               <p className="text-[11px] text-white/40">{config.label} view</p>
             </div>
           </div>

@@ -40,12 +40,13 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Parse body ────────────────────────────────────────────────────────────
-  const { name, slug, currency, cadence, hrAdminEmail } = (await request.json()) as {
+  const { name, slug, currency, cadence, hrAdminEmail, firstInviteeRole } = (await request.json()) as {
     name: string;
     slug: string;
     currency: string;
     cadence: string;
     hrAdminEmail: string;
+    firstInviteeRole?: string;
   };
 
   if (!name || !slug || !hrAdminEmail) {
@@ -84,8 +85,8 @@ export async function POST(request: NextRequest) {
       redirectTo: `${origin}/auth/callback?next=onboarding`,
       data: {
         org_id: (org as { id: string }).id,
-        platform_role: "hr_admin",
-        invited_as: "hr_admin",
+        platform_role: firstInviteeRole ?? "hr_admin",
+        invited_as: firstInviteeRole ?? "hr_admin",
       },
     },
   );
