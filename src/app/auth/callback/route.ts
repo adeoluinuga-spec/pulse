@@ -73,10 +73,12 @@ export async function GET(request: Request) {
   const invitedAs = meta?.invited_as;
   const metaOrgId = meta?.org_id;
 
+  let isFirstTimeInvite = false;
+
   if (user && invitedAs && metaOrgId) {
     const admin = getServiceClient();
 
-    // Check if already linked
+    // Check if this user already has an employee record (returning user)
     const { data: existing } = await admin
       .from("employees")
       .select("id")
@@ -84,6 +86,8 @@ export async function GET(request: Request) {
       .maybeSingle();
 
     if (!existing) {
+      isFirstTimeInvite = true;
+
       // For bulk-imported employees: link user_id to pre-created email record
       const { data: emailMatch } = await admin
         .from("employees")
@@ -99,7 +103,6 @@ export async function GET(request: Request) {
           .update({ user_id: user.id })
           .eq("id", (emailMatch as { id: string }).id);
       } else if (invitedAs === "hr_admin" || invitedAs === "executive_view") {
-        // First person invited to a new org — create their record now
         const emailName = (user.email ?? "").split("@")[0];
         await admin.from("employees").insert({
           user_id: user.id,
@@ -123,13 +126,14 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/welcome", requestUrl.origin));
   }
 
-  // 2. Metadata routing — reliable fallback when query params are stripped
-  const invitedAs = (user?.user_metadata as Record<string, string> | null)?.invited_as;
-  if (invitedAs === "hr_admin" || invitedAs === "executive_view") {
-    return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
-  }
-  if (invitedAs === "employee") {
-    return NextResponse.redirect(new URL("/welcome", requestUrl.origin));
+  // 2. First-time invite routing — only when record was just created this request
+  if (isFirstTimeInvite) {
+    if (invitedAs === "hr_admin" || invitedAs === "executive_view") {
+      return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
+    }
+    if (invitedAs === "employee") {
+      return NextResponse.redirect(new URL("/welcome", requestUrl.origin));
+    }
   }
 
   // 3. Returning user — check employee record and route by platform_role
