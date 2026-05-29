@@ -1,5 +1,4 @@
 import { getSupabase } from "@/lib/supabase";
-import { employees } from "@/data/mockData";
 import type { Employee, Document as EmployeeDocument } from "@/types";
 
 // ── Mappers ───────────────────────────────────────────────────────────────────
@@ -88,30 +87,25 @@ export async function getMyProfile(): Promise<Employee | null> {
 
     const partial = mapEmployee(data as Record<string, unknown>);
 
-    // Merge with mock data for sub-entities not yet in DB
-    const mock =
-      employees.find(
-        (e) => e.email.toLowerCase() === partial.email?.toLowerCase(),
-      ) ?? null;
-
-    if (!mock) return null;
-
     return {
-      ...mock,
       ...partial,
-      // Keep mock sub-entities until individual APIs are wired to their tables
-      goals: mock.goals,
-      kpis: mock.kpis,
-      reports: mock.reports,
-      appraisalComponents: mock.appraisalComponents,
-      trainingSuggestions: mock.trainingSuggestions,
-      wellbeingHistory: mock.wellbeingHistory,
-      documents: mock.documents,
-      leaveBalance: mock.leaveBalance,
-      leaveHistory: mock.leaveHistory,
-      meetings: mock.meetings,
-      tasks: mock.tasks,
-      notifications: mock.notifications,
+      // Sub-entities are loaded by their own API calls; start empty for real users
+      goals: [],
+      kpis: [],
+      reports: [],
+      appraisalComponents: [],
+      trainingSuggestions: [],
+      wellbeingHistory: [],
+      documents: [],
+      leaveBalance: {
+        annual: { total: 20, used: 0, remaining: 20 },
+        sick: { total: 10, used: 0, remaining: 10 },
+        compassionate: { total: 3, used: 0, remaining: 3 },
+      },
+      leaveHistory: [],
+      meetings: [],
+      tasks: [],
+      notifications: [],
     } as Employee;
   } catch {
     return null;
