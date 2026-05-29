@@ -21,10 +21,10 @@ select cron.schedule(
   '0 8 * * 5',  -- Every Friday at 8AM UTC (9AM WAT)
   $$
     select net.http_post(
-      url     := 'https://YOUR_SUPABASE_PROJECT_REF.supabase.co/functions/v1/send-reminders',
+      url     := 'https://edjqhwhfbltripcqhcfc.supabase.co/functions/v1/send-reminders',
       headers := jsonb_build_object(
         'Content-Type',  'application/json',
-        'Authorization', 'Bearer YOUR_SERVICE_ROLE_KEY'
+        'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkanFod2hmYmx0cmlwY3FoY2ZjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTk5Njg1NiwiZXhwIjoyMDk1NTcyODU2fQ.PqJivarn7De67EeztEFjBCfvuRWX9_aI0mdWkus-tow'
       ),
       body    := '{}'::jsonb
     );
