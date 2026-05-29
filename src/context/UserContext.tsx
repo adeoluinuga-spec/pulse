@@ -68,9 +68,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   );
   // Track whether we matched a real Supabase employee so we show live data
   const [liveEmployee, setLiveEmployee] = useState<Employee | null>(null);
+  // True once we've finished the first auth check — prevents flash of mock data
+  const [resolved, setResolved] = useState(false);
   const realtimeRef = useRef<ReturnType<ReturnType<typeof getSupabase>["channel"]> | null>(null);
 
-  const user = liveEmployee ?? employees.find((e) => e.id === userId) ?? employees[0];
+  // In production and resolved: only use real data. In dev / unresolved: allow mock fallback.
+  const user = liveEmployee ??
+    (process.env.NODE_ENV === "development" || !resolved
+      ? employees.find((e) => e.id === userId) ?? employees[0]
+      : employees[0]);
 
   // ── Resolve employee after auth ──────────────────────────────────────────────
   const resolveEmployee = useCallback(async (authSession: Session | null) => {
@@ -110,17 +116,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Fall back to mock only in development
+    // In development only: fall back to mock data so the demo still works
     if (process.env.NODE_ENV === "development") {
       const mockEmp = employees.find((e) => e.email.toLowerCase() === email) ?? DEFAULT_USER;
       setLiveEmployee(null);
       setUserId(mockEmp.id);
       setNotifs([...mockEmp.notifications]);
-    } else {
-      setLiveEmployee(null);
-      setUserId(DEFAULT_USER.id);
-      setNotifs([]);
     }
+    // In production: keep liveEmployee null and leave userId as-is.
+    // The user is authenticated but profile fetch failed — don't show mock data.
+    // Components should handle a null/empty profile gracefully.
   }, []);
 
   // ── Real-time notification subscription ─────────────────────────────────────
@@ -167,7 +172,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       setSession(data.session);
       resolveEmployee(data.session).finally(() => {
-        if (active) setLoading(false);
+        if (active) { setLoading(false); setResolved(true); }
       });
     });
 

@@ -77,13 +77,32 @@ export async function getMyProfile(): Promise<Employee | null> {
     } = await supabase.auth.getUser();
     if (!authUser) return null;
 
-    const { data, error } = await supabase
+    // Try by user_id first, fall back to email match (handles edge cases)
+    let { data } = await supabase
       .from("employees")
       .select("*")
       .eq("user_id", authUser.id)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) return null;
+    if (!data && authUser.email) {
+      const result = await supabase
+        .from("employees")
+        .select("*")
+        .eq("email", authUser.email)
+        .maybeSingle();
+      data = result.data;
+
+      // Link user_id if found by email
+      if (data) {
+        const emp = data as Record<string, unknown>;
+        await supabase
+          .from("employees")
+          .update({ user_id: authUser.id })
+          .eq("id", emp.id as string);
+      }
+    }
+
+    if (!data) return null;
 
     const partial = mapEmployee(data as Record<string, unknown>);
 
