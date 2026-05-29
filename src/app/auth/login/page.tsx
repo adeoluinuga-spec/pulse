@@ -55,7 +55,7 @@ export default function LoginPage() {
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [step, setStep] = useState<AuthStep>("login");
   const [email, setEmail] = useState("");
-  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState("");
   const [phone, setPhone] = useState("");
@@ -253,7 +253,7 @@ export default function LoginPage() {
                 <p className="mt-3 text-sm leading-relaxed text-muted">
                   We sent a secure verification code to your work email.
                 </p>
-                <div className="mt-7 grid grid-cols-6 gap-2 md:gap-3">
+                <div className="mt-7 grid grid-cols-8 gap-2 md:gap-3">
                   {otpDigits.map((digit, index) => (
                     <input
                       key={index}
@@ -270,7 +270,7 @@ export default function LoginPage() {
                 <p className="mt-4 rounded-2xl bg-pulse-soft px-4 py-3 text-xs font-bold text-pulse">
                   Check your email — the code expires in 10 minutes.
                 </p>
-                <PrimaryButton loading={loading} disabled={otpDigits.join("").length < 6}>Verify and continue</PrimaryButton>
+                <PrimaryButton loading={loading} disabled={otpDigits.join("").length < 8}>Verify and continue</PrimaryButton>
               </form>
             )}
 
