@@ -10,21 +10,16 @@ import {
   Camera,
   Check,
   ChevronRight,
-  Eye,
-  EyeOff,
   Loader2,
-  LockKeyhole,
   Mail,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { employees } from "@/data/mockData";
 import { supabase } from "@/lib/supabase";
+import { updateProfile } from "@/lib/api/profile";
 import { useToast } from "@/components/ui/Toast";
 
 type AuthStep = "login" | "otp" | "welcome" | "profile";
-
-const DEMO_OTP = "123456";
 
 const insights = [
   "Consistency compounds faster than intensity.",
@@ -48,11 +43,8 @@ function isZenithEmail(email: string) {
 }
 
 function firstNameFromEmail(email: string) {
-  const employee = employees.find((emp) => emp.email.toLowerCase() === email.toLowerCase());
-  if (employee) return employee.name.split(" ")[0];
-
-  const local = email.split("@")[0] || "Adeolu";
-  const first = local.split(/[._-]/)[0] || "Adeolu";
+  const local = email.split("@")[0] || "";
+  const first = local.split(/[._-]/)[0] || "there";
   return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
 }
 
@@ -63,8 +55,6 @@ export default function LoginPage() {
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [step, setStep] = useState<AuthStep>("login");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState("");
@@ -81,11 +71,14 @@ export default function LoginPage() {
     event.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
     setLoading(false);
 
     if (error) {
-      showToast("Invalid email or password", "error");
+      showToast("No account found for this email. Contact your HR admin.", "error");
       return;
     }
 
@@ -107,15 +100,27 @@ export default function LoginPage() {
   async function verifyOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    await new Promise((resolve) => window.setTimeout(resolve, 800));
+
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otpDigits.join(""),
+      type: "email",
+    });
     setLoading(false);
 
-    if (otpDigits.join("") !== DEMO_OTP) {
-      showToast("Invalid verification code", "error");
+    if (error) {
+      showToast("Invalid or expired code. Try again.", "error");
       return;
     }
 
     showToast("Identity verified", "success");
+
+    const superAdminEmail = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL;
+    if (superAdminEmail && email.toLowerCase() === superAdminEmail.toLowerCase()) {
+      router.replace("/admin");
+      return;
+    }
+
     setStep("welcome");
   }
 
@@ -128,8 +133,16 @@ export default function LoginPage() {
     reader.readAsDataURL(file);
   }
 
-  function completeProfile(event: FormEvent<HTMLFormElement>) {
+  async function completeProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setLoading(true);
+    await updateProfile({
+      phone,
+      homeAddress: address,
+      emergencyContact: { contact: emergencyContact },
+      nextOfKin: { contact: nextOfKin },
+    });
+    setLoading(false);
     showToast("Profile basics saved. Welcome to Pulse.", "success");
     router.replace("/dashboard");
     router.refresh();
@@ -229,28 +242,7 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-muted">
-                  Password
-                  <div className="relative mt-2">
-                    <LockKeyhole size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      required
-                      autoComplete="current-password"
-                      className="h-14 w-full rounded-2xl border border-border bg-paper pl-11 pr-12 text-base font-medium text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)]"
-                    />
-                    <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full text-muted transition hover:bg-pulse-soft hover:text-pulse">
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </label>
-
-                <PrimaryButton loading={loading} disabled={!email.trim() || !password.trim()}>Continue</PrimaryButton>
-                <Link href="/auth/reset" className="mt-5 block text-center text-sm font-bold text-muted transition hover:text-pulse">
-                  Forgot Password
-                </Link>
+                <PrimaryButton loading={loading} disabled={!email.trim()}>Send Code</PrimaryButton>
               </form>
             )}
 
@@ -259,7 +251,7 @@ export default function LoginPage() {
                 <Eyebrow icon={<ShieldCheck size={14} />} text="Identity check" />
                 <h2 className="mt-4 font-syne text-3xl font-bold leading-tight text-ink">Verify Your Identity</h2>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
-                  We sent a secure verification code to your Zenith Corp email.
+                  We sent a secure verification code to your work email.
                 </p>
                 <div className="mt-7 grid grid-cols-6 gap-2 md:gap-3">
                   {otpDigits.map((digit, index) => (
@@ -276,7 +268,7 @@ export default function LoginPage() {
                   ))}
                 </div>
                 <p className="mt-4 rounded-2xl bg-pulse-soft px-4 py-3 text-xs font-bold text-pulse">
-                  For demo purposes, use code: {DEMO_OTP}
+                  Check your email — the code expires in 10 minutes.
                 </p>
                 <PrimaryButton loading={loading} disabled={otpDigits.join("").length < 6}>Verify and continue</PrimaryButton>
               </form>
