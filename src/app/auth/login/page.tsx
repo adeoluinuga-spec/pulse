@@ -87,7 +87,7 @@ export default function LoginPage() {
   function updateOtp(index: number, value: string) {
     const digit = value.replace(/\D/g, "").slice(-1);
     setOtpDigits((current) => current.map((item, itemIndex) => (itemIndex === index ? digit : item)));
-    if (digit && index < 5) otpRefs.current[index + 1]?.focus();
+    if (digit && index < 7) otpRefs.current[index + 1]?.focus();
   }
 
   function handleOtpKey(index: number, event: KeyboardEvent<HTMLInputElement>) {
