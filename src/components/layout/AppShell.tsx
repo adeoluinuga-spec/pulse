@@ -7,9 +7,13 @@ import WorkSidebar from "@/components/layout/WorkSidebar";
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuth = pathname.startsWith("/auth");
+  const isStandalone =
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/welcome") ||
+    pathname === "/admin";
   const isImmersivePortal = pathname === "/hr" || pathname === "/executive";
 
-  if (isAuth) {
+  if (isAuth || isStandalone) {
     return <div className="min-h-screen bg-paper text-ink">{children}</div>;
   }
 

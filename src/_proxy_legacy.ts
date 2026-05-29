@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED_PREFIXES = [
+const protectedPrefixes = [
   "/dashboard",
   "/goals",
   "/reports",
@@ -9,10 +9,6 @@ const PROTECTED_PREFIXES = [
   "/team",
   "/hr",
   "/executive",
-  "/onboarding",
-  "/welcome",
-  "/admin",
-  "/settings",
 ];
 
 export async function proxy(request: NextRequest) {
@@ -27,13 +23,9 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
-          );
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
       },
     },
@@ -44,12 +36,8 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getSession();
 
   const { pathname } = request.nextUrl;
+  const isProtected = protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
-  const isProtected = PROTECTED_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
-
-  // No session on a protected route → redirect to login
   if (!session && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
@@ -57,7 +45,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Already signed in → don't show login page
   if (session && pathname === "/auth/login") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
@@ -70,23 +57,10 @@ export const config = {
     "/auth/login",
     "/dashboard/:path*",
     "/goals/:path*",
-    "/goals",
     "/reports/:path*",
-    "/reports",
     "/appraisal/:path*",
-    "/appraisal",
     "/team/:path*",
-    "/team",
     "/hr/:path*",
-    "/hr",
     "/executive/:path*",
-    "/executive",
-    "/onboarding/:path*",
-    "/onboarding",
-    "/welcome/:path*",
-    "/welcome",
-    "/admin",
-    "/settings/:path*",
-    "/settings",
   ],
 };
