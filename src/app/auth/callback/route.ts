@@ -55,35 +55,44 @@ export async function GET(request: Request) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Smart routing based on the `next` query param embedded in the invite link
-  if (next === "onboarding") {
-    return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
-  }
-
-  if (next === "welcome") {
-    return NextResponse.redirect(new URL("/welcome", requestUrl.origin));
-  }
-
-  // Generic sign-in: check whether the user has an employee record
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // 1. Query-param routing (works when Supabase preserves it)
+  if (next === "onboarding") {
+    return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
+  }
+  if (next === "welcome") {
+    return NextResponse.redirect(new URL("/welcome", requestUrl.origin));
+  }
+
+  // 2. Metadata routing — reliable fallback when query params are stripped
+  const invitedAs = (user?.user_metadata as Record<string, string> | null)?.invited_as;
+  if (invitedAs === "hr_admin" || invitedAs === "executive_view") {
+    return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
+  }
+  if (invitedAs === "employee") {
+    return NextResponse.redirect(new URL("/welcome", requestUrl.origin));
+  }
+
+  // 3. Returning user — check employee record and route by platform_role
   if (user) {
     const { data: emp } = await supabase
       .from("employees")
-      .select("id")
+      .select("id, platform_role")
       .or(`user_id.eq.${user.id},email.eq.${user.email}`)
       .maybeSingle();
 
     if (!emp) {
       const loginUrl = new URL("/auth/login", requestUrl.origin);
-      loginUrl.searchParams.set(
-        "error",
-        "Your account isn't set up yet. Contact your HR admin.",
-      );
+      loginUrl.searchParams.set("error", "Your account isn't set up yet. Contact your HR admin.");
       return NextResponse.redirect(loginUrl);
     }
+
+    const role = (emp as { platform_role?: string }).platform_role;
+    if (role === "hr_admin") return NextResponse.redirect(new URL("/hr", requestUrl.origin));
+    if (role === "executive_view") return NextResponse.redirect(new URL("/executive", requestUrl.origin));
   }
 
   return NextResponse.redirect(new URL("/dashboard", requestUrl.origin));
