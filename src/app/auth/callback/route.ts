@@ -1,6 +1,15 @@
+import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+
+function getServiceClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+}
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -58,6 +67,53 @@ export async function GET(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // ── Bootstrap employee record for new invites (bypasses RLS) ──────────────
+  const meta = user?.user_metadata as Record<string, string> | null;
+  const invitedAs = meta?.invited_as;
+  const metaOrgId = meta?.org_id;
+
+  if (user && invitedAs && metaOrgId) {
+    const admin = getServiceClient();
+
+    // Check if already linked
+    const { data: existing } = await admin
+      .from("employees")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!existing) {
+      // For bulk-imported employees: link user_id to pre-created email record
+      const { data: emailMatch } = await admin
+        .from("employees")
+        .select("id")
+        .eq("email", user.email ?? "")
+        .eq("org_id", metaOrgId)
+        .is("user_id", null)
+        .maybeSingle();
+
+      if (emailMatch) {
+        await admin
+          .from("employees")
+          .update({ user_id: user.id })
+          .eq("id", (emailMatch as { id: string }).id);
+      } else if (invitedAs === "hr_admin" || invitedAs === "executive_view") {
+        // First person invited to a new org — create their record now
+        const emailName = (user.email ?? "").split("@")[0];
+        await admin.from("employees").insert({
+          user_id: user.id,
+          org_id: metaOrgId,
+          email: user.email,
+          name: emailName,
+          initials: emailName.slice(0, 2).toUpperCase(),
+          platform_role: invitedAs,
+          cadre: "senior",
+          people_responsibility: "manager",
+        });
+      }
+    }
+  }
 
   // 1. Query-param routing (works when Supabase preserves it)
   if (next === "onboarding") {

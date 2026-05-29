@@ -110,11 +110,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Fall back to mock email match
-    const mockEmp = employees.find((e) => e.email.toLowerCase() === email) ?? DEFAULT_USER;
-    setLiveEmployee(null);
-    setUserId(mockEmp.id);
-    setNotifs([...mockEmp.notifications]);
+    // Fall back to mock only in development
+    if (process.env.NODE_ENV === "development") {
+      const mockEmp = employees.find((e) => e.email.toLowerCase() === email) ?? DEFAULT_USER;
+      setLiveEmployee(null);
+      setUserId(mockEmp.id);
+      setNotifs([...mockEmp.notifications]);
+    } else {
+      setLiveEmployee(null);
+      setUserId(DEFAULT_USER.id);
+      setNotifs([]);
+    }
   }, []);
 
   // ── Real-time notification subscription ─────────────────────────────────────
