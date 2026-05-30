@@ -1,433 +1,630 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import clsx from "clsx";
-import { RefreshCw, X } from "lucide-react";
-import { employees, departments, org } from "@/data/mockData";
-import type { Employee, Department } from "@/data/mockData";
-import type { AIRecommendation } from "@/data/mockData";
-import Avatar from "@/components/ui/Avatar";
+import {
+  BarChart3,
+  Building2,
+  CheckCircle2,
+  ClipboardList,
+  FileText,
+  Flag,
+  Loader2,
+  MailPlus,
+  Network,
+  Settings2,
+  ShieldCheck,
+  Target,
+  Upload,
+  Users,
+} from "lucide-react";
+import { useUser } from "@/context/UserContext";
+import { getSupabase } from "@/lib/supabase";
 
-// ── Derived data ───────────────────────────────────────────────────────────────
+type SetupTab = "overview" | "people" | "teams" | "goals" | "appraisal" | "launch";
 
-const orgHealthScore = Math.round(
-  employees.reduce((s, e) => s + e.performanceScore, 0) / employees.length
-);
-const promotionReady  = employees.filter((e) => e.aiRec.recommendation === "promote");
-const pipCandidates   = employees.filter((e) => e.aiRec.recommendation === "pip");
-const exitRisk        = employees.filter((e) => e.aiRec.recommendation === "exit_risk");
-const compliantCount  = employees.filter((e) => e.weekStreak >= 1).length;
-const reportCompliance = Math.round((compliantCount / employees.length) * 100);
-
-type FilterKey = "all" | AIRecommendation;
-
-const recMeta: Record<AIRecommendation, { label: string; bg: string; text: string; border: string }> = {
-  promote:       { label: "Promote",       bg: "bg-green-soft",  text: "text-green",  border: "border-green/20"  },
-  good_standing: { label: "Good Standing", bg: "bg-border",      text: "text-muted",  border: "border-border"    },
-  pip:           { label: "PIP",           bg: "bg-amber-soft",  text: "text-amber",  border: "border-amber/20"  },
-  exit_risk:     { label: "Exit Risk",     bg: "bg-red-soft",    text: "text-red",    border: "border-red/20"    },
-};
-
-const deptEmpMap = new Map<string, Employee[]>();
-for (const emp of employees) {
-  deptEmpMap.set(emp.department, [...(deptEmpMap.get(emp.department) ?? []), emp]);
+interface EmployeeRow {
+  id: string;
+  name: string;
+  email: string;
+  department: string | null;
+  team: string | null;
+  role: string | null;
+  line_manager_id: string | null;
 }
 
-const cycleMilestones = [
-  { label: "Self-assessments submitted",  value: "72%",  pct: 72,  done: false },
-  { label: "Manager reviews complete",    value: "60%",  pct: 60,  done: false },
-  { label: "Peer feedback collected",     value: "88%",  pct: 88,  done: false },
-  { label: "AI recommendations ready",   value: "100%", pct: 100, done: true  },
-  { label: "HR sign-offs pending",        value: "3",    pct: 0,   done: false, isCount: true },
+interface GoalRow {
+  id: string;
+  title: string;
+  goal_type: string;
+  department: string | null;
+  team: string | null;
+  owner_id: string | null;
+  status: string | null;
+}
+
+interface OrgRow {
+  id: string;
+  name: string;
+  appraisal_cadence: string | null;
+  current_cycle: string | null;
+  cycle_start_date: string | null;
+  cycle_end_date: string | null;
+}
+
+interface SetupState {
+  org: OrgRow | null;
+  employees: EmployeeRow[];
+  goals: GoalRow[];
+}
+
+const tabs: Array<{ key: SetupTab; label: string; icon: typeof Building2 }> = [
+  { key: "overview", label: "Setup", icon: ClipboardList },
+  { key: "people", label: "People", icon: Users },
+  { key: "teams", label: "Teams", icon: Network },
+  { key: "goals", label: "Goals", icon: Target },
+  { key: "appraisal", label: "Appraisal", icon: BarChart3 },
+  { key: "launch", label: "Launch", icon: ShieldCheck },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+const setupCopy: Record<SetupTab, { title: string; body: string; actions: string[] }> = {
+  overview: {
+    title: "Build the workspace foundation",
+    body: "Start with the core structure. Pulse will stay quiet until people, teams, goals, and appraisal rules exist.",
+    actions: ["Confirm organisation profile", "Import the first employee list", "Decide the first appraisal cycle"],
+  },
+  people: {
+    title: "Add employees and reporting lines",
+    body: "Upload or enter employees, then assign roles, departments, managers, and access levels before invitations go out.",
+    actions: ["Import staff list", "Assign line managers", "Send invite emails"],
+  },
+  teams: {
+    title: "Create departments and teams",
+    body: "Use departments for broad ownership and teams for day-to-day execution groups like Sales, Finance, Ops, or Product.",
+    actions: ["Group employees by department", "Create team names", "Assign team leads"],
+  },
+  goals: {
+    title: "Set organisation and team goals",
+    body: "Create company goals first, then cascade them into department, team, and individual goals with owners and due dates.",
+    actions: ["Create company OKRs", "Add team goals", "Attach supporting documents"],
+  },
+  appraisal: {
+    title: "Configure performance rules",
+    body: "Choose the appraisal cadence, scoring weights, report expectations, review windows, and approval flow.",
+    actions: ["Set appraisal cycle", "Confirm score weights", "Define report rhythm"],
+  },
+  launch: {
+    title: "Review and open the workspace",
+    body: "Check that employees, teams, goals, and review settings are ready before asking everyone to start using Pulse.",
+    actions: ["Preview employee experience", "Send pending invites", "Open Pulse for the organisation"],
+  },
+};
 
-function heatBg(score: number) {
-  if (score >= 80) return "bg-green-soft";
-  if (score >= 70) return "bg-green/10";
-  if (score >= 60) return "bg-amber-soft";
-  return "bg-red-soft";
+function uniqueCount(values: Array<string | null>) {
+  return new Set(values.map((value) => value?.trim()).filter(Boolean)).size;
 }
 
-function heatText(score: number) {
-  if (score >= 70) return "text-green";
-  if (score >= 60) return "text-amber";
-  return "text-red";
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "HR";
 }
 
-function confColor(c: number) {
-  if (c >= 0.8) return "text-green";
-  if (c >= 0.7) return "text-amber";
-  return "text-pulse";
-}
+export default function HRSetupDashboard() {
+  const { user } = useUser();
+  const [active, setActive] = useState<SetupTab>("overview");
+  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<SetupState>({ org: null, employees: [], goals: [] });
+  const [error, setError] = useState("");
 
-// ── Dept Detail Sheet ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    let alive = true;
 
-function DeptSheet({
-  dept,
-  onClose,
-}: {
-  dept: Department;
-  onClose: () => void;
-}) {
-  const emps = deptEmpMap.get(dept.name) ?? [];
-  const top  = emps.reduce<Employee | null>((b, e) => (!b || e.performanceScore > b.performanceScore ? e : b), null);
+    async function loadSetup() {
+      setLoading(true);
+      setError("");
 
-  return (
-    <>
-      <div className="fixed inset-0 z-[60] bg-black/40" onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 z-[70] bg-card rounded-t-3xl max-h-[80vh] flex flex-col animate-slide-up">
-        <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
-          <div className="w-10 h-1 bg-border rounded-full" />
-        </div>
-        <div className="flex items-center justify-between px-5 py-2 border-b border-border flex-shrink-0">
-          <div>
-            <h2 className="text-base font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>
-              {dept.name}
-            </h2>
-            <p className="text-xs text-muted">{dept.headCount} employees</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className={clsx(
-              "text-2xl font-bold",
-              dept.avgScore >= 75 ? "text-green" : dept.avgScore >= 65 ? "text-amber" : "text-red"
-            )} style={{ fontFamily: "var(--font-syne)" }}>
-              {dept.avgScore}
-            </span>
-            <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-border text-muted">
-              <X size={14} />
-            </button>
-          </div>
-        </div>
+      try {
+        const supabase = getSupabase();
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
 
-        <div className="overflow-y-auto flex-1 px-5 pb-10 pt-4 space-y-4">
-          {top && (
-            <div className="bg-green-soft rounded-xl p-3.5 border border-green/15 flex items-center gap-3">
-              <Avatar initials={top.initials} color={top.avatarColor} size="sm" />
-              <div>
-                <p className="text-xs font-semibold text-green">Top performer</p>
-                <p className="text-sm font-bold text-ink">{top.name}</p>
-                <p className="text-xs text-muted">{top.performanceScore}/100</p>
-              </div>
-            </div>
-          )}
-          {emps.map((emp) => (
-            <div key={emp.id} className="flex items-center gap-3">
-              <Avatar initials={emp.initials} color={emp.avatarColor} size="sm" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-ink">{emp.name}</p>
-                <p className="text-xs text-muted truncate">{emp.role}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-ink">{emp.performanceScore}</span>
-                <span className={clsx(
-                  "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
-                  recMeta[emp.aiRec.recommendation].bg,
-                  recMeta[emp.aiRec.recommendation].text,
-                  recMeta[emp.aiRec.recommendation].border,
-                )}>
-                  {recMeta[emp.aiRec.recommendation].label}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
+        if (!authUser) {
+          setError("Session not found. Sign in again.");
+          return;
+        }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+        const { data: me, error: meError } = await supabase
+          .from("employees")
+          .select("org_id")
+          .eq("user_id", authUser.id)
+          .single();
 
-export default function HRDashboard() {
-  const [filter, setFilter]                 = useState<FilterKey>("all");
-  const [selectedDept, setSelectedDept]     = useState<Department | null>(null);
-  const [sentSet, setSentSet]               = useState<Set<string>>(new Set());
+        const orgId = (me as { org_id?: string } | null)?.org_id;
+        if (meError || !orgId) {
+          setError("Your HR profile is not linked to an organisation yet.");
+          return;
+        }
 
-  type RecalcResult = { recommendation: AIRecommendation; confidence: number; evidence: string[]; note: string };
-  const [recalcLoading, setRecalcLoading]   = useState<Set<string>>(new Set());
-  const [recalcResults, setRecalcResults]   = useState<Record<string, RecalcResult>>({});
-  const [recalcErrors, setRecalcErrors]     = useState<Set<string>>(new Set());
+        const [orgResult, employeeResult, goalResult] = await Promise.all([
+          supabase
+            .from("organisations")
+            .select("id, name, appraisal_cadence, current_cycle, cycle_start_date, cycle_end_date")
+            .eq("id", orgId)
+            .single(),
+          supabase
+            .from("employees")
+            .select("id, name, email, department, team, role, line_manager_id")
+            .eq("org_id", orgId)
+            .order("created_at", { ascending: true }),
+          supabase
+            .from("goals")
+            .select("id, title, goal_type, department, team, owner_id, status")
+            .eq("org_id", orgId)
+            .order("created_at", { ascending: true }),
+        ]);
 
-  function sendReminder(label: string) {
-    setSentSet((prev) => new Set(prev).add(label));
-    setTimeout(() => {
-      setSentSet((prev) => { const n = new Set(prev); n.delete(label); return n; });
-    }, 2500);
-  }
+        if (!alive) return;
 
-  async function handleRecalculate(emp: Employee) {
-    setRecalcLoading((prev) => new Set(prev).add(emp.id));
-    setRecalcErrors((prev) => { const n = new Set(prev); n.delete(emp.id); return n; });
-    try {
-      const res = await fetch("/api/ai/appraisal-recommendation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: emp.name,
-          performanceScore: emp.performanceScore,
-          goalCompletion: Math.round(emp.goals.reduce((s, g) => s + g.percentComplete, 0) / emp.goals.length),
-          weekStreak: emp.weekStreak,
-          badge: emp.badge,
-          reportConsistency: emp.consistencyIndex,
-          peerRating: emp.peerRating,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setRecalcResults((prev) => ({ ...prev, [emp.id]: { ...data, confidence: data.confidence / 100 } }));
-      } else {
-        setRecalcErrors((prev) => new Set(prev).add(emp.id));
+        setState({
+          org: (orgResult.data as OrgRow | null) ?? null,
+          employees: (employeeResult.data as EmployeeRow[] | null) ?? [],
+          goals: (goalResult.data as GoalRow[] | null) ?? [],
+        });
+      } catch {
+        if (alive) setError("Could not load setup data. Refresh and try again.");
+      } finally {
+        if (alive) setLoading(false);
       }
-    } catch {
-      setRecalcErrors((prev) => new Set(prev).add(emp.id));
-    } finally {
-      setRecalcLoading((prev) => { const n = new Set(prev); n.delete(emp.id); return n; });
     }
+
+    loadSetup();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const metrics = useMemo(() => {
+    const employees = state.employees;
+    const nonHrEmployees = employees.filter((employee) => employee.email !== user.email);
+    const deptCount = uniqueCount(employees.map((employee) => employee.department));
+    const teamCount = uniqueCount(employees.map((employee) => employee.team));
+    const managerLinks = employees.filter((employee) => employee.line_manager_id).length;
+    const orgGoals = state.goals.filter((goal) => goal.goal_type === "org").length;
+    const teamGoals = state.goals.filter((goal) => goal.goal_type === "team").length;
+    const readyItems = [
+      Boolean(state.org?.name),
+      nonHrEmployees.length > 0,
+      deptCount > 0,
+      teamCount > 0,
+      managerLinks > 0,
+      orgGoals > 0,
+      teamGoals > 0,
+      Boolean(state.org?.current_cycle || state.org?.cycle_start_date),
+    ];
+
+    return {
+      peopleCount: nonHrEmployees.length,
+      deptCount,
+      teamCount,
+      managerLinks,
+      orgGoals,
+      teamGoals,
+      progress: Math.round((readyItems.filter(Boolean).length / readyItems.length) * 100),
+    };
+  }, [state, user.email]);
+
+  const checklist = [
+    {
+      tab: "people" as SetupTab,
+      title: "Add employees",
+      detail: "Import staff records, confirm roles, and send invite links.",
+      done: metrics.peopleCount > 0,
+      cta: "Open people setup",
+    },
+    {
+      tab: "teams" as SetupTab,
+      title: "Create departments and teams",
+      detail: "Group employees into departments, teams, and reporting lines.",
+      done: metrics.deptCount > 0 && metrics.teamCount > 0,
+      cta: "Open team setup",
+    },
+    {
+      tab: "goals" as SetupTab,
+      title: "Set goals",
+      detail: "Add organisation goals, team goals, owners, due dates, and supporting documents.",
+      done: metrics.orgGoals > 0 || metrics.teamGoals > 0,
+      cta: "Open goal setup",
+    },
+    {
+      tab: "appraisal" as SetupTab,
+      title: "Configure appraisal cycle",
+      detail: "Set cadence, review period, scoring weights, and report expectations.",
+      done: Boolean(state.org?.current_cycle || state.org?.cycle_start_date),
+      cta: "Open appraisal setup",
+    },
+    {
+      tab: "launch" as SetupTab,
+      title: "Launch workspace",
+      detail: "Review setup quality, resolve missing items, and open Pulse to employees.",
+      done: metrics.progress >= 80,
+      cta: "Review launch",
+    },
+  ];
+
+  if (user.platformRole !== "hr_admin" && user.platformRole !== "super_admin") {
+    return (
+      <main className="dashboard-page grid min-h-[60vh] place-items-center px-4">
+        <div className="max-w-sm rounded-lg border border-border bg-card p-5 text-center shadow-[var(--shadow-lg)]">
+          <ShieldCheck className="mx-auto text-muted" size={24} />
+          <p className="mt-3 text-sm font-bold text-ink">HR access is restricted.</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">Your profile is not configured as an HR admin.</p>
+        </div>
+      </main>
+    );
   }
 
-  const visibleEmployees = filter === "all"
-    ? employees
-    : employees.filter((e) => e.aiRec.recommendation === filter);
+  if (loading) {
+    return (
+      <main className="dashboard-page grid min-h-[60vh] place-items-center px-4">
+        <div className="text-center">
+          <Loader2 className="mx-auto animate-spin text-muted" size={24} />
+          <p className="mt-3 text-sm font-bold text-muted">Loading HR setup...</p>
+        </div>
+      </main>
+    );
+  }
+
+  const copy = setupCopy[active];
 
   return (
-    <>
-      <div className="space-y-7 pb-8" style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }}>
-
-        {/* ── Header ─────────────────────────────────────────────── */}
-        <div className="px-5 pt-5 animate-fade-up">
-          <p className="type-label">HR Intelligence · {org.name}</p>
-          <h1 className="text-[26px] font-bold text-ink mt-1 leading-tight" style={{ fontFamily: "var(--font-syne)" }}>
-            Workforce View
-          </h1>
-          <p className="text-[11px] text-muted/70 mt-0.5">
-            {employees.length} employees · Q2 2026 cycle
-          </p>
-        </div>
-
-        {/* ── Org Health Strip ──────────────────────────────────── */}
-        <div className="animate-fade-up delay-75">
-          <div className="mx-5 bg-ink rounded-2xl px-5 py-5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 rounded-full"
-              style={{ background: "radial-gradient(circle, rgba(232,68,10,0.10) 0%, transparent 70%)" }} />
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/40 mb-2">
-              Organisation Health Score
-            </p>
-            <div className="flex items-end gap-3 mb-4">
-              <span className="text-[52px] font-bold leading-none text-white" style={{ fontFamily: "var(--font-syne)" }}>
-                {orgHealthScore}
-              </span>
-              <div className="pb-1.5">
-                <span className="text-white/40 text-xl">/100</span>
-                <p className="text-green text-sm font-semibold">↑ +2.8 pts this cycle</p>
-              </div>
+    <main className="dashboard-page space-y-5 px-4 pb-8 md:px-7">
+      <section className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <div className="rounded-lg bg-ink p-5 text-white md:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-white/40">HR setup workspace</p>
+              <h1 className="mt-2 font-syne text-3xl font-bold leading-tight">
+                {state.org?.name ?? "Organisation"} is ready to build.
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/58">
+                Start from a clean workspace, add the organisation structure, then open the dashboard once the real data exists.
+              </p>
             </div>
-            <div className="h-[3px] bg-white/10 rounded-full overflow-hidden mb-4">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${orgHealthScore}%`,
-                  background: "linear-gradient(90deg, #e8440a, #ff8c57)",
-                  animation: "score-bar-fill 1.2s cubic-bezier(0.22, 1, 0.36, 1) both",
-                  animationDelay: "0.35s",
-                }}
-              />
+            <div className="rounded-lg border border-white/10 bg-white/[0.06] px-4 py-3 text-right">
+              <p className="text-3xl font-bold">{metrics.progress}%</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-white/42">setup ready</p>
             </div>
-            <div className="grid grid-cols-4 gap-2 pt-3 border-t border-white/10">
-              {[
-                { label: "For Promotion", value: promotionReady.length, color: "text-green" },
-                { label: "PIP Candidates", value: pipCandidates.length, color: "text-amber" },
-                { label: "Exit Risk", value: exitRisk.length, color: exitRisk.length > 0 ? "text-red" : "text-white/40" },
-                { label: "Compliance", value: `${reportCompliance}%`, color: "text-white" },
-              ].map((s) => (
-                <div key={s.label} className="text-center">
-                  <p className={clsx("text-xl font-bold leading-none", s.color)} style={{ fontFamily: "var(--font-syne)" }}>
-                    {s.value}
-                  </p>
-                  <p className="text-[9px] text-white/40 font-medium mt-1">{s.label}</p>
-                </div>
-              ))}
-            </div>
+          </div>
+          <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-pulse transition-all" style={{ width: `${metrics.progress}%` }} />
           </div>
         </div>
 
-        {/* ── Appraisal Cycle Status ─────────────────────────────── */}
-        <div className="px-5 animate-fade-up delay-150">
-          <p className="type-label mb-3">Appraisal Cycle · Q2 2026</p>
-          <div className="space-y-3.5">
-            {cycleMilestones.map((m) => {
-              const isSent = sentSet.has(m.label);
-              return (
-                <div key={m.label}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-ink">{m.label}</span>
-                    <div className="flex items-center gap-2">
-                      <span className={clsx(
-                        "text-xs font-semibold",
-                        m.done ? "text-green" : m.isCount ? "text-pulse font-bold" : "text-ink"
-                      )}>
-                        {m.done ? "✓ " : ""}{m.value}
-                      </span>
-                      {!m.done && !m.isCount && m.pct < 100 && (
-                        <button
-                          onClick={() => sendReminder(m.label)}
-                          disabled={isSent}
-                          className={clsx(
-                            "text-[10px] font-semibold transition-colors",
-                            isSent ? "text-green" : "text-pulse hover:underline"
-                          )}
-                        >
-                          {isSent ? "Sent ✓" : "Remind"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {!m.isCount && (
-                    <div className="h-[3px] bg-border rounded-full overflow-hidden">
-                      <div
-                        className={clsx("h-full rounded-full", m.done ? "bg-green" : "bg-pulse")}
-                        style={{ width: `${m.pct}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted">Current state</p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <MiniStat label="Employees" value={metrics.peopleCount} />
+            <MiniStat label="Departments" value={metrics.deptCount} />
+            <MiniStat label="Teams" value={metrics.teamCount} />
+            <MiniStat label="Goals" value={state.goals.length} />
           </div>
         </div>
+      </section>
 
-        {/* ── Department Heatmap ─────────────────────────────────── */}
-        <div className="px-5 animate-fade-up delay-225">
-          <p className="type-label mb-3">Department Heatmap · tap for detail</p>
-          <div className="grid grid-cols-4 gap-2">
-            {departments.map((dept) => (
+      {error ? (
+        <section className="rounded-lg border border-red/20 bg-red-soft px-4 py-3 text-sm font-bold text-red">
+          {error}
+        </section>
+      ) : null}
+
+      <section className="flex gap-2 overflow-x-auto scrollbar-none">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const selected = active === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActive(tab.key)}
+              className={clsx(
+                "inline-flex h-10 flex-shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-bold transition",
+                selected ? "border-pulse bg-pulse-soft text-pulse" : "border-border bg-card text-muted hover:text-ink",
+              )}
+            >
+              <Icon size={14} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </section>
+
+      {active === "overview" ? (
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-3">
+            {checklist.map((item) => (
               <button
-                key={dept.id}
-                onClick={() => setSelectedDept(dept)}
-                className={clsx(
-                  "rounded-xl p-3 text-left transition-all active:scale-95",
-                  heatBg(dept.avgScore)
-                )}
+                key={item.title}
+                onClick={() => setActive(item.tab)}
+                className="flex w-full items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition hover:border-pulse/40"
               >
-                <p className={clsx("text-[9px] font-bold leading-tight", heatText(dept.avgScore))}>
-                  {dept.name}
-                </p>
-                <p className={clsx("text-base font-bold mt-1 leading-none", heatText(dept.avgScore))}
-                  style={{ fontFamily: "var(--font-syne)" }}>
-                  {dept.avgScore}
-                </p>
+                <span
+                  className={clsx(
+                    "mt-0.5 grid h-8 w-8 flex-shrink-0 place-items-center rounded-full",
+                    item.done ? "bg-green-soft text-green" : "bg-pulse-soft text-pulse",
+                  )}
+                >
+                  {item.done ? <CheckCircle2 size={17} /> : <Flag size={16} />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-black text-ink">{item.title}</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-muted">{item.detail}</span>
+                  <span className="mt-3 inline-flex text-xs font-bold text-pulse">{item.cta}</span>
+                </span>
               </button>
             ))}
           </div>
-        </div>
 
-        {/* ── AI Appraisal Recommendations ──────────────────────── */}
-        <div className="px-5 animate-fade-up delay-300">
-          <div className="flex items-center justify-between mb-3">
-            <p className="type-label">AI Recommendations</p>
-            <span className="text-xs text-muted">{visibleEmployees.length} shown</span>
-          </div>
-
-          {/* Filter chips */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-none mb-3">
-            {(["all", "promote", "pip", "exit_risk", "good_standing"] as FilterKey[]).map((key) => {
-              const labels: Record<FilterKey, string> = {
-                all: "All", promote: "Promote", pip: "PIP", exit_risk: "Exit Risk", good_standing: "Good Standing",
-              };
-              return (
-                <button
-                  key={key}
-                  onClick={() => setFilter(key)}
-                  className={clsx(
-                    "flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all",
-                    filter === key
-                      ? "bg-ink text-white border-ink"
-                      : "bg-card text-muted border-border hover:text-ink hover:border-ink"
-                  )}
-                >
-                  {labels[key]}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Employee list */}
-          <div className="space-y-2">
-            {visibleEmployees.map((emp) => {
-              const override    = recalcResults[emp.id];
-              const activeRec   = override?.recommendation ?? emp.aiRec.recommendation;
-              const activeConf  = override?.confidence     ?? emp.aiRec.confidence;
-              const activeEvid  = override?.evidence       ?? emp.aiRec.evidence;
-              const meta        = recMeta[activeRec];
-              const isLoading   = recalcLoading.has(emp.id);
-              const hasError    = recalcErrors.has(emp.id);
-
-              return (
-                <div key={emp.id} className="bg-card rounded-2xl border border-border p-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar initials={emp.initials} color={emp.avatarColor} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold text-ink">{emp.name}</p>
-                          <p className="text-[11px] text-muted mt-0.5">{emp.role} · {emp.performanceScore}/100</p>
-                        </div>
-                        <span className={clsx(
-                          "text-[10px] font-bold px-2.5 py-1 rounded-full border flex-shrink-0",
-                          meta.bg, meta.text, meta.border,
-                        )}>
-                          {meta.label}
-                        </span>
-                      </div>
-
-                      <p className="text-xs text-muted mt-2 leading-snug line-clamp-2">
-                        {activeEvid[0]}
-                      </p>
-
-                      {override?.note && (
-                        <p className="text-xs text-green mt-1 italic leading-snug">{override.note}</p>
-                      )}
-
-                      <div className="flex items-center justify-between mt-2.5">
-                        <span className="text-[10px] text-muted">
-                          Confidence:{" "}
-                          <span className={clsx("font-semibold", confColor(activeConf))}>
-                            {Math.round(activeConf * 100)}%
-                          </span>
-                          {override && <span className="text-green ml-1 font-semibold">· updated</span>}
-                        </span>
-                        <button
-                          onClick={() => handleRecalculate(emp)}
-                          disabled={isLoading}
-                          className="text-[11px] text-muted font-semibold flex items-center gap-1 hover:text-ink transition-colors disabled:opacity-50"
-                        >
-                          <RefreshCw size={10} className={isLoading ? "animate-spin" : ""} />
-                          {isLoading ? "Recalculating…" : "Recalculate"}
-                        </button>
-                      </div>
-
-                      {hasError && (
-                        <p className="text-[10px] text-amber mt-1.5">AI unavailable — showing original data.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <p className="text-[11px] text-muted text-center mt-4 px-2 leading-relaxed">
-            All recommendations are advisory. Final decisions require HR and manager confirmation.
-          </p>
-        </div>
-
-      </div>
-
-      {/* Dept detail sheet */}
-      {selectedDept && (
-        <DeptSheet dept={selectedDept} onClose={() => setSelectedDept(null)} />
+          <SetupPanel copy={copy} />
+        </section>
+      ) : (
+        <section className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+          <SetupPanel copy={copy} />
+          {active === "people" && <PeopleSetup employees={state.employees} hrEmail={user.email} />}
+          {active === "teams" && <TeamsSetup employees={state.employees} />}
+          {active === "goals" && <GoalsSetup goals={state.goals} />}
+          {active === "appraisal" && <AppraisalSetup org={state.org} />}
+          {active === "launch" && <LaunchSetup progress={metrics.progress} checklist={checklist} />}
+        </section>
       )}
-    </>
+    </main>
+  );
+}
+
+function SetupPanel({ copy }: { copy: { title: string; body: string; actions: string[] } }) {
+  return (
+    <aside className="rounded-lg border border-border bg-card p-4">
+      <p className="text-xs font-bold uppercase tracking-widest text-muted">What to do here</p>
+      <h2 className="mt-3 font-syne text-xl font-bold text-ink">{copy.title}</h2>
+      <p className="mt-2 text-sm leading-relaxed text-muted">{copy.body}</p>
+      <div className="mt-5 space-y-2">
+        {copy.actions.map((action) => (
+          <div key={action} className="flex items-center gap-2 rounded-lg bg-paper px-3 py-2">
+            <CheckCircle2 size={15} className="text-pulse" />
+            <span className="text-xs font-bold text-ink">{action}</span>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function PeopleSetup({ employees, hrEmail }: { employees: EmployeeRow[]; hrEmail: string }) {
+  const staff = employees.filter((employee) => employee.email !== hrEmail);
+
+  return (
+    <div className="space-y-4">
+      <ActionBand
+        icon={Upload}
+        title="Import employees"
+        body="Use the existing import template to add staff records and send invite links."
+        href="/onboarding"
+        action="Import staff"
+      />
+      <div className="rounded-lg border border-border bg-card">
+        <div className="border-b border-border px-4 py-3">
+          <p className="text-sm font-black text-ink">Employee list</p>
+          <p className="mt-1 text-xs text-muted">{staff.length ? `${staff.length} employees added` : "No employees added yet"}</p>
+        </div>
+        <div className="divide-y divide-border">
+          {staff.length ? staff.slice(0, 8).map((employee) => (
+            <div key={employee.id} className="flex items-center gap-3 px-4 py-3">
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-ink text-xs font-bold text-white">
+                {initials(employee.name)}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-bold text-ink">{employee.name}</span>
+                <span className="block truncate text-xs text-muted">{employee.role || "Role pending"} · {employee.department || "Department pending"}</span>
+              </span>
+            </div>
+          )) : (
+            <EmptySetup icon={Users} title="No people yet" body="Add employees first. The rest of the HR dashboard becomes meaningful after people exist." />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TeamsSetup({ employees }: { employees: EmployeeRow[] }) {
+  const teams = Array.from(
+    employees.reduce((map, employee) => {
+      const key = employee.team?.trim();
+      if (!key) return map;
+      map.set(key, {
+        name: key,
+        department: employee.department ?? "No department",
+        count: (map.get(key)?.count ?? 0) + 1,
+      });
+      return map;
+    }, new Map<string, { name: string; department: string; count: number }>()),
+  ).map(([, value]) => value);
+
+  return (
+    <div className="rounded-lg border border-border bg-card">
+      <div className="border-b border-border px-4 py-3">
+        <p className="text-sm font-black text-ink">Team structure</p>
+        <p className="mt-1 text-xs text-muted">Teams come from the employee import fields.</p>
+      </div>
+      {teams.length ? (
+        <div className="grid gap-3 p-4 md:grid-cols-2">
+          {teams.map((team) => (
+            <div key={team.name} className="rounded-lg border border-border bg-paper p-3">
+              <p className="text-sm font-black text-ink">{team.name}</p>
+              <p className="mt-1 text-xs text-muted">{team.department}</p>
+              <p className="mt-4 text-2xl font-bold text-pulse">{team.count}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptySetup icon={Network} title="No teams yet" body="Import employees with department and team columns, then assign team leads." />
+      )}
+    </div>
+  );
+}
+
+function GoalsSetup({ goals }: { goals: GoalRow[] }) {
+  return (
+    <div className="space-y-4">
+      <ActionBand
+        icon={FileText}
+        title="Goal template"
+        body="Create company goals, cascade team goals, then attach policy or planning documents."
+        href="/goals"
+        action="Open goals"
+      />
+      <div className="rounded-lg border border-border bg-card">
+        <div className="border-b border-border px-4 py-3">
+          <p className="text-sm font-black text-ink">Goal library</p>
+          <p className="mt-1 text-xs text-muted">{goals.length ? `${goals.length} goals created` : "No goals created yet"}</p>
+        </div>
+        {goals.length ? (
+          <div className="divide-y divide-border">
+            {goals.slice(0, 8).map((goal) => (
+              <div key={goal.id} className="px-4 py-3">
+                <p className="text-sm font-bold text-ink">{goal.title}</p>
+                <p className="mt-1 text-xs text-muted">{goal.goal_type} · {goal.department || goal.team || "Organisation wide"}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptySetup icon={Target} title="No goals yet" body="Start with organisation goals before team and individual goals." />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AppraisalSetup({ org }: { org: OrgRow | null }) {
+  const rows = [
+    ["Cadence", org?.appraisal_cadence ?? "Not set"],
+    ["Current cycle", org?.current_cycle ?? "Not set"],
+    ["Start date", org?.cycle_start_date ?? "Not set"],
+    ["End date", org?.cycle_end_date ?? "Not set"],
+  ];
+
+  return (
+    <div className="rounded-lg border border-border bg-card">
+      <div className="border-b border-border px-4 py-3">
+        <p className="text-sm font-black text-ink">Appraisal configuration</p>
+        <p className="mt-1 text-xs text-muted">These settings define how performance reviews will run.</p>
+      </div>
+      <div className="grid gap-3 p-4 md:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="rounded-lg bg-paper p-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted">{label}</p>
+            <p className="mt-2 text-sm font-black text-ink">{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-border p-4">
+        <ActionButton icon={Settings2} href="/settings">Configure review rules</ActionButton>
+      </div>
+    </div>
+  );
+}
+
+function LaunchSetup({ progress, checklist }: { progress: number; checklist: Array<{ title: string; done: boolean }> }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <p className="text-sm font-black text-ink">Launch readiness</p>
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-border">
+        <div className="h-full rounded-full bg-pulse" style={{ width: `${progress}%` }} />
+      </div>
+      <div className="mt-4 space-y-2">
+        {checklist.map((item) => (
+          <div key={item.title} className="flex items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2">
+            <span className="text-xs font-bold text-ink">{item.title}</span>
+            {item.done ? <CheckCircle2 size={16} className="text-green" /> : <span className="h-2 w-2 rounded-full bg-muted/40" />}
+          </div>
+        ))}
+      </div>
+      <button
+        disabled={progress < 80}
+        className="mt-5 flex h-11 w-full items-center justify-center rounded-lg bg-ink px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Open workspace
+      </button>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg bg-paper p-3">
+      <p className="text-2xl font-bold text-ink">{value}</p>
+      <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-muted">{label}</p>
+    </div>
+  );
+}
+
+function ActionBand({
+  icon: Icon,
+  title,
+  body,
+  href,
+  action,
+}: {
+  icon: typeof Building2;
+  title: string;
+  body: string;
+  href: string;
+  action: string;
+}) {
+  return (
+    <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex gap-3">
+        <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-pulse-soft text-pulse">
+          <Icon size={19} />
+        </span>
+        <div>
+          <p className="text-sm font-black text-ink">{title}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">{body}</p>
+        </div>
+      </div>
+      <ActionButton icon={MailPlus} href={href}>{action}</ActionButton>
+    </div>
+  );
+}
+
+function ActionButton({ icon: Icon, href, children }: { icon: typeof Building2; href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex h-10 flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-xs font-black text-white"
+    >
+      <Icon size={15} />
+      {children}
+    </Link>
+  );
+}
+
+function EmptySetup({ icon: Icon, title, body }: { icon: typeof Building2; title: string; body: string }) {
+  return (
+    <div className="grid min-h-44 place-items-center px-4 py-8 text-center">
+      <div>
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-paper text-muted">
+          <Icon size={22} />
+        </span>
+        <p className="mt-3 text-sm font-black text-ink">{title}</p>
+        <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted">{body}</p>
+      </div>
+    </div>
   );
 }
