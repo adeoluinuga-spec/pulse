@@ -74,6 +74,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: orgError.message }, { status: 500 });
   }
 
+  const orgId = (org as { id: string }).id;
+
+  // ── Pre-create employee record for first invitee ──────────────────────────
+  // user_id is null until they sign in — linked by email on first login
+  const emailName = hrAdminEmail.split("@")[0];
+  const { error: empError } = await admin.from("employees").insert({
+    org_id: orgId,
+    email: hrAdminEmail,
+    name: emailName,
+    initials: emailName.slice(0, 2).toUpperCase(),
+    platform_role: firstInviteeRole ?? "hr_admin",
+    cadre: "senior",
+    people_responsibility: "manager",
+  });
+
+  if (empError) {
+    // Roll back org if employee pre-creation fails
+    await admin.from("organisations").delete().eq("id", orgId);
+    return NextResponse.json({ error: empError.message }, { status: 500 });
+  }
+
   // ── Invite HR admin via Supabase auth ────────────────────────────────────
   const origin =
     request.headers.get("origin") ??
@@ -82,9 +103,9 @@ export async function POST(request: NextRequest) {
   const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
     hrAdminEmail,
     {
-      redirectTo: `${origin}/auth/callback?next=onboarding`,
+      redirectTo: `${origin}/auth/callback?next=welcome`,
       data: {
-        org_id: (org as { id: string }).id,
+        org_id: orgId,
         platform_role: firstInviteeRole ?? "hr_admin",
         invited_as: firstInviteeRole ?? "hr_admin",
       },
@@ -92,8 +113,8 @@ export async function POST(request: NextRequest) {
   );
 
   if (inviteError) {
-    // Roll back org creation on invite failure
-    await admin.from("organisations").delete().eq("id", (org as { id: string }).id);
+    // Roll back both org and employee record on invite failure
+    await admin.from("organisations").delete().eq("id", orgId);
     return NextResponse.json({ error: inviteError.message }, { status: 500 });
   }
 

@@ -3,7 +3,6 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { FormEvent, KeyboardEvent, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Building2,
@@ -20,6 +19,12 @@ import { updateProfile } from "@/lib/api/profile";
 import { useToast } from "@/components/ui/Toast";
 
 type AuthStep = "login" | "otp" | "welcome" | "profile";
+
+interface BootstrapResult {
+  status: string;
+  role?: string;
+  onboardingCompleted?: boolean;
+}
 
 const insights = [
   "Consistency compounds faster than intensity.",
@@ -48,6 +53,12 @@ function firstNameFromEmail(email: string) {
   const local = email.split("@")[0] || "";
   const first = local.split(/[._-]/)[0] || "there";
   return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+}
+
+function dashboardPath(role?: string) {
+  if (role === "hr_admin") return "/dashboard/hr";
+  if (role === "executive_view") return "/dashboard/executive";
+  return "/dashboard";
 }
 
 export default function LoginPage() {
@@ -124,16 +135,30 @@ export default function LoginPage() {
       return;
     }
 
-    // Bootstrap employee record server-side (creates it if missing, bypasses RLS)
-    const bootstrapRes = await fetch("/api/auth/bootstrap", { method: "POST" });
+    // Get access token to pass explicitly (avoids cookie timing issues)
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token ?? "";
+
+    // Bootstrap: link or find employee record server-side (service role, bypasses RLS)
+    const bootstrapRes = await fetch("/api/auth/bootstrap", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
     const bootstrap = bootstrapRes.ok
-      ? (await bootstrapRes.json() as { status: string; role?: string })
+      ? (await bootstrapRes.json() as BootstrapResult)
       : { status: "error" };
 
     const role = bootstrap.role;
 
-    if (role === "hr_admin") { router.replace("/hr"); return; }
-    if (role === "executive_view") { router.replace("/executive"); return; }
+    if (role === "hr_admin" || role === "executive_view") {
+      router.replace(dashboardPath(role));
+      return;
+    }
+
+    if (bootstrap.onboardingCompleted) {
+      router.replace("/dashboard");
+      return;
+    }
 
     // No employee record at all — first time through welcome/profile flow
     setStep("welcome");
@@ -156,6 +181,12 @@ export default function LoginPage() {
       homeAddress: address,
       emergencyContact: { contact: emergencyContact },
       nextOfKin: { contact: nextOfKin },
+    });
+    await supabase.auth.updateUser({
+      data: {
+        onboarding_completed: true,
+        onboarding_completed_at: new Date().toISOString(),
+      },
     });
     setLoading(false);
     showToast("Profile basics saved. Welcome to Pulse.", "success");

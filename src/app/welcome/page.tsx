@@ -173,6 +173,12 @@ export default function WelcomePage() {
         return;
       }
 
+      await supabase.auth.updateUser({
+        data: {
+          onboarding_completed: true,
+          onboarding_completed_at: new Date().toISOString(),
+        },
+      });
       setStep(2);
     } finally {
       setSaving(false);
@@ -392,8 +398,8 @@ export default function WelcomePage() {
 
             <button
               onClick={() => {
-                if (platformRole === "hr_admin") router.replace("/hr");
-                else if (platformRole === "executive_view") router.replace("/executive");
+                if (platformRole === "hr_admin") router.replace("/dashboard/hr");
+                else if (platformRole === "executive_view") router.replace("/dashboard/executive");
                 else router.replace("/dashboard");
               }}
               className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-[0_18px_34px_rgba(232,68,10,0.22)] transition"

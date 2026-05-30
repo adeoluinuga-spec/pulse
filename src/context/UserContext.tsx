@@ -37,6 +37,42 @@ interface UserContextValue {
 
 const DEFAULT_USER = employees.find((e) => e.id === "e01") ?? employees[0];
 
+function authFallbackEmployee(authSession: Session): Employee {
+  const email = authSession.user.email ?? "user@pulse.local";
+  const name = email.split("@")[0]?.replace(/[._-]/g, " ") || "Pulse User";
+  const initials = name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "PU";
+
+  return {
+    ...DEFAULT_USER,
+    id: authSession.user.id,
+    name,
+    initials,
+    email,
+    phone: "",
+    homeAddress: "",
+    department: "",
+    team: "",
+    role: "",
+    platformRole: "standard",
+    goals: [],
+    kpis: [],
+    reports: [],
+    appraisalComponents: [],
+    trainingSuggestions: [],
+    wellbeingHistory: [],
+    documents: [],
+    meetings: [],
+    tasks: [],
+    notifications: [],
+  };
+}
+
 const UserContext = createContext<UserContextValue>({
   user: DEFAULT_USER,
   authUser: null,
@@ -116,7 +152,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // In development only: fall back to mock data so the demo still works
+    if (authSession) {
+      const mockEmp = process.env.NODE_ENV === "development" && email
+        ? employees.find((e) => e.email.toLowerCase() === email)
+        : undefined;
+      const fallback = mockEmp ?? authFallbackEmployee(authSession);
+      setLiveEmployee(fallback);
+      setUserId(fallback.id);
+      setNotifs([...fallback.notifications]);
+      return;
+    }
+
+    // In development only: keep the unauthenticated demo usable.
     if (process.env.NODE_ENV === "development") {
       const mockEmp = employees.find((e) => e.email.toLowerCase() === email) ?? DEFAULT_USER;
       setLiveEmployee(null);

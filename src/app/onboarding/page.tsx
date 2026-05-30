@@ -853,7 +853,7 @@ export default function OnboardingPage() {
                     </span>
                   </div>
                   <button
-                    onClick={() => router.push("/hr")}
+                    onClick={() => router.push("/dashboard/hr")}
                     className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white"
                   >
                     Done — Go to HR Dashboard

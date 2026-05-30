@@ -11,6 +11,18 @@ function getServiceClient() {
   );
 }
 
+function hasCompletedOnboarding(row?: Record<string, unknown> | null, meta?: Record<string, unknown> | null) {
+  if (meta?.onboarding_completed === true) return true;
+  if (row?.onboarding_completed === true) return true;
+  return Boolean(row?.phone && row?.home_address && row?.emergency_contact);
+}
+
+function dashboardPath(role?: string) {
+  if (role === "hr_admin") return "/dashboard/hr";
+  if (role === "executive_view") return "/dashboard/executive";
+  return "/dashboard";
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -81,7 +93,7 @@ export async function GET(request: Request) {
     // Check if this user already has an employee record (returning user)
     const { data: existing } = await admin
       .from("employees")
-      .select("id")
+      .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -123,13 +135,25 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
   }
   if (next === "welcome") {
+    if (user) {
+      const { data: emp } = await supabase
+        .from("employees")
+        .select("*")
+        .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+        .maybeSingle();
+      const row = emp as Record<string, unknown> | null;
+      const role = row?.platform_role as string | undefined;
+      if (hasCompletedOnboarding(row, meta as Record<string, unknown> | null)) {
+        return NextResponse.redirect(new URL(dashboardPath(role), requestUrl.origin));
+      }
+    }
     return NextResponse.redirect(new URL("/welcome", requestUrl.origin));
   }
 
   // 2. First-time invite routing — only when record was just created this request
   if (isFirstTimeInvite) {
     if (invitedAs === "hr_admin" || invitedAs === "executive_view") {
-      return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
+      return NextResponse.redirect(new URL(dashboardPath(invitedAs), requestUrl.origin));
     }
     if (invitedAs === "employee") {
       return NextResponse.redirect(new URL("/welcome", requestUrl.origin));
@@ -140,7 +164,7 @@ export async function GET(request: Request) {
   if (user) {
     const { data: emp } = await supabase
       .from("employees")
-      .select("id, platform_role")
+      .select("*")
       .or(`user_id.eq.${user.id},email.eq.${user.email}`)
       .maybeSingle();
 
@@ -150,9 +174,14 @@ export async function GET(request: Request) {
       return NextResponse.redirect(loginUrl);
     }
 
-    const role = (emp as { platform_role?: string }).platform_role;
-    if (role === "hr_admin") return NextResponse.redirect(new URL("/hr", requestUrl.origin));
-    if (role === "executive_view") return NextResponse.redirect(new URL("/executive", requestUrl.origin));
+    const row = emp as Record<string, unknown>;
+    const role = row.platform_role as string | undefined;
+    if (hasCompletedOnboarding(row, meta as Record<string, unknown> | null)) {
+      return NextResponse.redirect(new URL(dashboardPath(role), requestUrl.origin));
+    }
+    if (role === "hr_admin" || role === "executive_view") {
+      return NextResponse.redirect(new URL(dashboardPath(role), requestUrl.origin));
+    }
   }
 
   return NextResponse.redirect(new URL("/dashboard", requestUrl.origin));
