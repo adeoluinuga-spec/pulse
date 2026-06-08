@@ -21,10 +21,10 @@ select cron.schedule(
   '0 8 * * 5',  -- Every Friday at 8AM UTC (9AM WAT)
   $$
     select net.http_post(
-      url     := 'https://edjqhwhfbltripcqhcfc.supabase.co/functions/v1/send-reminders',
+      url     := 'https://yluskblohjdioqmeczsd.supabase.co/functions/v1/send-reminders',
       headers := jsonb_build_object(
         'Content-Type',  'application/json',
-        'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkanFod2hmYmx0cmlwY3FoY2ZjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTk5Njg1NiwiZXhwIjoyMDk1NTcyODU2fQ.PqJivarn7De67EeztEFjBCfvuRWX9_aI0mdWkus-tow'
+        'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsdXNrYmxvaGpkaW9xbWVjenNkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDkzNzc2MSwiZXhwIjoyMDk2NTEzNzYxfQ.j4V1TOoZFi5UjcScxdZysXl-qsIN9yRxEOvu4xvxdo8'
       ),
       body    := '{}'::jsonb
     );
