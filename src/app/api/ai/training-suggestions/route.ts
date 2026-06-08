@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDeepSeekClient } from "@/lib/deepseek";
+import { getAnthropicClient, extractText } from "@/lib/anthropic";
 
 const fallback = [
   {
@@ -37,20 +37,15 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const response = await getDeepSeekClient().chat.completions.create({
-      model: "deepseek-chat",
+    const response = await getAnthropicClient().messages.create({
+      model: "claude-sonnet-4-6",
       max_tokens: 1000,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are Pulse's learning advisor. Based on the employee's performance gaps and next cadre requirements, suggest 3 specific courses or certifications. Return ONLY a JSON array with objects: { title, provider, reason, duration, level, url }. No preamble, no markdown.",
-        },
-        { role: "user", content: JSON.stringify(body) },
-      ],
+      system:
+        "You are Pulse's learning advisor. Based on the employee's performance gaps and next cadre requirements, suggest 3 specific courses or certifications. Return ONLY a JSON array with objects: { title, provider, reason, duration, level, url }. No preamble, no markdown.",
+      messages: [{ role: "user", content: JSON.stringify(body) }],
     });
 
-    const text = response.choices[0].message.content ?? "[]";
+    const text = extractText(response);
     const parsed = JSON.parse(extractJSON(text));
     return NextResponse.json(Array.isArray(parsed) ? parsed : fallback);
   } catch (error) {

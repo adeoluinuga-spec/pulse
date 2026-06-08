@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDeepSeekClient } from "@/lib/deepseek";
+import { getAnthropicClient, extractText } from "@/lib/anthropic";
 
 function fallback(managerName?: string) {
   return {
@@ -12,20 +12,15 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
 
-    const response = await getDeepSeekClient().chat.completions.create({
-      model: "deepseek-chat",
+    const response = await getAnthropicClient().messages.create({
+      model: "claude-sonnet-4-6",
       max_tokens: 1000,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are Pulse's AI analyst. Generate a concise, actionable team performance summary for a line manager. Be direct. Max 4 sentences. Cover: overall team health, who needs attention and why, who is excelling, and one recommended action. No preamble.",
-        },
-        { role: "user", content: JSON.stringify(body) },
-      ],
+      system:
+        "You are Pulse's AI analyst. Generate a concise, actionable team performance summary for a line manager. Be direct. Max 4 sentences. Cover: overall team health, who needs attention and why, who is excelling, and one recommended action. No preamble.",
+      messages: [{ role: "user", content: JSON.stringify(body) }],
     });
 
-    const text = response.choices[0].message.content ?? "";
+    const text = extractText(response);
     return NextResponse.json({ summary: text || fallback(body.managerName).summary });
   } catch (error) {
     console.error("team-summary fallback:", error);

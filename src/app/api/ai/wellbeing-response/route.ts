@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDeepSeekClient } from "@/lib/deepseek";
+import { getAnthropicClient, extractText } from "@/lib/anthropic";
 
 function fallback(level = "mixed") {
   if (level === "positive") {
@@ -32,20 +32,15 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
 
-    const response = await getDeepSeekClient().chat.completions.create({
-      model: "deepseek-chat",
+    const response = await getAnthropicClient().messages.create({
+      model: "claude-sonnet-4-6",
       max_tokens: 1000,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are Pulse's wellbeing support layer. An employee has just completed a wellbeing check-in. Respond with warmth and care. If responses are positive, affirm and encourage. If mixed or negative, acknowledge without alarming, and gently point toward support. NEVER use words like flagged, reported, escalated, or monitored. Maximum 3 sentences. Then suggest 2 relevant support actions.",
-        },
-        { role: "user", content: JSON.stringify(body) },
-      ],
+      system:
+        "You are Pulse's wellbeing support layer. An employee has just completed a wellbeing check-in. Respond with warmth and care. If responses are positive, affirm and encourage. If mixed or negative, acknowledge without alarming, and gently point toward support. NEVER use words like flagged, reported, escalated, or monitored. Maximum 3 sentences. Then suggest 2 relevant support actions.",
+      messages: [{ role: "user", content: JSON.stringify(body) }],
     });
 
-    const text = response.choices[0].message.content ?? "";
+    const text = extractText(response);
     const fb = fallback(body.escalationLevel);
     return NextResponse.json({ message: text || fb.message, actions: fb.actions });
   } catch (error) {

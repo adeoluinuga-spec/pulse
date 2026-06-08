@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDeepSeekClient } from "@/lib/deepseek";
+import { getAnthropicClient, extractText } from "@/lib/anthropic";
 
 function fallbackBriefing(body: Record<string, unknown>) {
   const orgName = typeof body.orgName === "string" ? body.orgName : "Zenith Corp";
@@ -17,20 +17,15 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
 
-    const response = await getDeepSeekClient().chat.completions.create({
-      model: "deepseek-chat",
+    const response = await getAnthropicClient().messages.create({
+      model: "claude-sonnet-4-6",
       max_tokens: 1000,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are Pulse's executive intelligence layer. Write a strategic performance briefing for the CEO and executive team. Structure: (1) Overall Health — 2 sentences on org-wide performance, (2) Top Risk — the single biggest performance concern right now, (3) Top Strength — what's working well, (4) Recommended Action — one specific, actionable recommendation. Professional tone. Concise. No bullet points — flowing sentences. Max 5 sentences total.",
-        },
-        { role: "user", content: JSON.stringify(body) },
-      ],
+      system:
+        "You are Pulse's executive intelligence layer. Write a strategic performance briefing for the CEO and executive team. Structure: (1) Overall Health — 2 sentences on org-wide performance, (2) Top Risk — the single biggest performance concern right now, (3) Top Strength — what's working well, (4) Recommended Action — one specific, actionable recommendation. Professional tone. Concise. No bullet points — flowing sentences. Max 5 sentences total.",
+      messages: [{ role: "user", content: JSON.stringify(body) }],
     });
 
-    const briefing = response.choices[0].message.content ?? fallbackBriefing(body);
+    const briefing = extractText(response) || fallbackBriefing(body);
     return NextResponse.json({ briefing });
   } catch (error) {
     console.error("executive-briefing error:", error);
