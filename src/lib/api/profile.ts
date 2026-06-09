@@ -137,6 +137,7 @@ export async function updateProfile(
     homeAddress: string;
     emergencyContact: Record<string, unknown>;
     nextOfKin: Record<string, unknown>;
+    onboardingCompleted: boolean;
   }>,
 ): Promise<boolean> {
   try {
@@ -152,6 +153,10 @@ export async function updateProfile(
     if (data.emergencyContact !== undefined)
       updates.emergency_contact = data.emergencyContact;
     if (data.nextOfKin !== undefined) updates.next_of_kin = data.nextOfKin;
+    if (data.onboardingCompleted !== undefined) {
+      updates.onboarding_completed = data.onboardingCompleted;
+      if (data.onboardingCompleted) updates.onboarding_completed_at = new Date().toISOString();
+    }
 
     const { error } = await supabase
       .from("employees")
