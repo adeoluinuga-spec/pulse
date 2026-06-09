@@ -10,7 +10,7 @@ interface OrgForm {
   currency: string;
   cadence: string;
   hrAdminEmail: string;
-  firstInviteeRole: string;
+  executiveEmail: string;
 }
 
 function toSlug(name: string) {
@@ -36,7 +36,7 @@ export default function AdminPage() {
     currency: "NGN",
     cadence: "quarterly",
     hrAdminEmail: "",
-    firstInviteeRole: "hr_admin",
+    executiveEmail: "",
   });
 
   useEffect(() => {
@@ -48,7 +48,9 @@ export default function AdminPage() {
       });
   }, []);
 
-  const isAuthorised = authEmail === superAdminEmail;
+  const isAuthorised =
+    Boolean(authEmail && superAdminEmail) &&
+    authEmail.toLowerCase() === superAdminEmail.toLowerCase();
 
   function handleNameChange(name: string) {
     setForm((f) => ({ ...f, name, slug: toSlug(name) }));
@@ -73,7 +75,14 @@ export default function AdminPage() {
         setError(json.error ?? "Something went wrong");
       } else {
         setDone(json.message ?? "Organisation created.");
-        setForm({ name: "", slug: "", currency: "NGN", cadence: "quarterly", hrAdminEmail: "", firstInviteeRole: "hr_admin" });
+        setForm({
+          name: "",
+          slug: "",
+          currency: "NGN",
+          cadence: "quarterly",
+          hrAdminEmail: "",
+          executiveEmail: "",
+        });
       }
     } catch {
       setError("Network error. Try again.");
@@ -218,32 +227,35 @@ export default function AdminPage() {
               </Field>
             </div>
 
-            <Field label="First Invitee Email" hint="This person gets the first invite" required>
+            <Field label="HR Admin Email" hint="Optional, but add at least one representative">
               <input
                 type="email"
                 value={form.hrAdminEmail}
                 onChange={(e) => setForm((f) => ({ ...f, hrAdminEmail: e.target.value }))}
-                required
                 placeholder="hr@company.com"
                 className={inputCls}
               />
             </Field>
 
-            <Field label="Their Role" hint="Determines what they can see and do">
-              <select
-                value={form.firstInviteeRole}
-                onChange={(e) => setForm((f) => ({ ...f, firstInviteeRole: e.target.value }))}
+            <Field label="Executive Email" hint="Optional, invited into executive view">
+              <input
+                type="email"
+                value={form.executiveEmail}
+                onChange={(e) => setForm((f) => ({ ...f, executiveEmail: e.target.value }))}
+                placeholder="ceo@company.com"
                 className={inputCls}
-              >
-                <option value="hr_admin">HR Admin — manages people, invites, appraisals</option>
-                <option value="executive_view">Executive — sees org-wide performance overview</option>
-              </select>
+              />
             </Field>
           </div>
 
           <button
             type="submit"
-            disabled={submitting || !form.name || !form.slug || !form.hrAdminEmail}
+            disabled={
+              submitting ||
+              !form.name ||
+              !form.slug ||
+              (!form.hrAdminEmail && !form.executiveEmail)
+            }
             className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-[0_18px_34px_rgba(232,68,10,0.22)] transition disabled:cursor-not-allowed disabled:opacity-45"
           >
             {submitting ? (

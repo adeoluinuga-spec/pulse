@@ -37,6 +37,50 @@ interface UserContextValue {
 
 const DEFAULT_USER = employees.find((e) => e.id === "e01") ?? employees[0];
 
+const EMPTY_USER: Employee = {
+  ...DEFAULT_USER,
+  id: "unlinked",
+  name: "Pulse User",
+  initials: "PU",
+  email: "",
+  phone: "",
+  homeAddress: "",
+  department: "",
+  team: "",
+  role: "",
+  lineManagerId: null,
+  cadre: "entry",
+  peopleResponsibility: "none",
+  platformRole: "standard",
+  band: { current: "", next: "", requirements: [] },
+  compensation: {
+    basic: 0,
+    housing: 0,
+    transport: 0,
+    medical: 0,
+    otherAllowances: [],
+    totalGross: 0,
+    bonusStructure: [],
+  },
+  performanceScore: 0,
+  consistencyIndex: 0,
+  peerRating: 0,
+  weekStreak: 0,
+  badge: "Good Standing",
+  aiRec: { recommendation: "good_standing", confidence: 0, evidence: [] },
+  goals: [],
+  kpis: [],
+  reports: [],
+  appraisalComponents: [],
+  trainingSuggestions: [],
+  wellbeingHistory: [],
+  documents: [],
+  leaveHistory: [],
+  meetings: [],
+  tasks: [],
+  notifications: [],
+};
+
 function authFallbackEmployee(authSession: Session): Employee {
   const email = authSession.user.email ?? "user@pulse.local";
   const name = email.split("@")[0]?.replace(/[._-]/g, " ") || "Pulse User";
@@ -112,7 +156,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const user = liveEmployee ??
     (process.env.NODE_ENV === "development" || !resolved
       ? employees.find((e) => e.id === userId) ?? employees[0]
-      : employees[0]);
+      : EMPTY_USER);
 
   // ── Resolve employee after auth ──────────────────────────────────────────────
   const resolveEmployee = useCallback(async (authSession: Session | null) => {
@@ -152,7 +196,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    if (authSession) {
+    if (authSession && process.env.NODE_ENV === "development") {
       const mockEmp = process.env.NODE_ENV === "development" && email
         ? employees.find((e) => e.email.toLowerCase() === email)
         : undefined;
@@ -160,6 +204,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setLiveEmployee(fallback);
       setUserId(fallback.id);
       setNotifs([...fallback.notifications]);
+      return;
+    }
+
+    if (authSession) {
+      setLiveEmployee(null);
+      setUserId(EMPTY_USER.id);
+      setNotifs([]);
       return;
     }
 

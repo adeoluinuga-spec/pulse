@@ -59,6 +59,11 @@ export async function proxy(request: NextRequest) {
 
   // Already signed in → don't show login page
   if (session && pathname === "/auth/login") {
+    const superAdminEmail = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL?.toLowerCase();
+    const sessionEmail = session.user.email?.toLowerCase();
+    if (superAdminEmail && sessionEmail === superAdminEmail) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

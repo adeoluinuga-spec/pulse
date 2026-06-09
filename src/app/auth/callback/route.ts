@@ -23,6 +23,14 @@ function dashboardPath(role?: string) {
   return "/dashboard";
 }
 
+function isSuperAdminEmail(email?: string | null) {
+  return Boolean(
+    email &&
+      process.env.SUPER_ADMIN_EMAIL &&
+      email.toLowerCase() === process.env.SUPER_ADMIN_EMAIL.toLowerCase(),
+  );
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -79,6 +87,10 @@ export async function GET(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (isSuperAdminEmail(user?.email)) {
+    return NextResponse.redirect(new URL("/admin", requestUrl.origin));
+  }
 
   // ── Bootstrap employee record for new invites (bypasses RLS) ──────────────
   const meta = user?.user_metadata as Record<string, string> | null;

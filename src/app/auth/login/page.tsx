@@ -84,7 +84,12 @@ export default function LoginPage() {
     event.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithOtp({ email });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
     setLoading(false);
 
     if (error) {

@@ -40,18 +40,27 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Parse body ────────────────────────────────────────────────────────────
-  const { name, slug, currency, cadence, hrAdminEmail, firstInviteeRole } = (await request.json()) as {
+  const {
+    name,
+    slug,
+    currency,
+    cadence,
+    hrAdminEmail,
+    executiveEmail,
+    firstInviteeRole,
+  } = (await request.json()) as {
     name: string;
     slug: string;
     currency: string;
     cadence: string;
-    hrAdminEmail: string;
+    hrAdminEmail?: string;
+    executiveEmail?: string;
     firstInviteeRole?: string;
   };
 
-  if (!name || !slug || !hrAdminEmail) {
+  if (!name || !slug || (!hrAdminEmail && !executiveEmail)) {
     return NextResponse.json(
-      { error: "name, slug and hrAdminEmail are required" },
+      { error: "name, slug, and at least one representative email are required" },
       { status: 400 },
     );
   }
@@ -76,50 +85,61 @@ export async function POST(request: NextRequest) {
 
   const orgId = (org as { id: string }).id;
 
-  // ── Pre-create employee record for first invitee ──────────────────────────
-  // user_id is null until they sign in — linked by email on first login
-  const emailName = hrAdminEmail.split("@")[0];
-  const { error: empError } = await admin.from("employees").insert({
-    org_id: orgId,
-    email: hrAdminEmail,
-    name: emailName,
-    initials: emailName.slice(0, 2).toUpperCase(),
-    platform_role: firstInviteeRole ?? "hr_admin",
-    cadre: "senior",
-    people_responsibility: "manager",
-  });
-
-  if (empError) {
-    // Roll back org if employee pre-creation fails
-    await admin.from("organisations").delete().eq("id", orgId);
-    return NextResponse.json({ error: empError.message }, { status: 500 });
-  }
-
-  // ── Invite HR admin via Supabase auth ────────────────────────────────────
   const origin =
     request.headers.get("origin") ??
     `${request.nextUrl.protocol}//${request.nextUrl.host}`;
 
-  const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
-    hrAdminEmail,
-    {
-      redirectTo: `${origin}/auth/callback?next=welcome`,
-      data: {
-        org_id: orgId,
-        platform_role: firstInviteeRole ?? "hr_admin",
-        invited_as: firstInviteeRole ?? "hr_admin",
-      },
-    },
-  );
+  const invitees = [
+    hrAdminEmail
+      ? { email: hrAdminEmail, role: firstInviteeRole ?? "hr_admin" }
+      : null,
+    executiveEmail
+      ? { email: executiveEmail, role: "executive_view" }
+      : null,
+  ].filter(Boolean) as Array<{ email: string; role: string }>;
 
-  if (inviteError) {
-    // Roll back both org and employee record on invite failure
+  for (const invitee of invitees) {
+    const emailName = invitee.email.split("@")[0];
+    const { error: empError } = await admin.from("employees").insert({
+      org_id: orgId,
+      email: invitee.email,
+      name: emailName,
+      initials: emailName.slice(0, 2).toUpperCase(),
+      platform_role: invitee.role,
+      cadre: invitee.role === "executive_view" ? "executive" : "senior",
+      people_responsibility: invitee.role === "executive_view" ? "director" : "manager",
+    });
+
+    if (empError) {
+      await admin.from("organisations").delete().eq("id", orgId);
+      return NextResponse.json({ error: empError.message }, { status: 500 });
+    }
+
+    const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+      invitee.email,
+      {
+        redirectTo: `${origin}/auth/callback?next=welcome`,
+        data: {
+          org_id: orgId,
+          platform_role: invitee.role,
+          invited_as: invitee.role,
+        },
+      },
+    );
+
+    if (inviteError) {
+      await admin.from("organisations").delete().eq("id", orgId);
+      return NextResponse.json({ error: inviteError.message }, { status: 500 });
+    }
+  }
+
+  if (!invitees.length) {
     await admin.from("organisations").delete().eq("id", orgId);
-    return NextResponse.json({ error: inviteError.message }, { status: 500 });
+    return NextResponse.json({ error: "No invitees provided" }, { status: 400 });
   }
 
   return NextResponse.json({
     org,
-    message: `Organisation created. Invite sent to ${hrAdminEmail}.`,
+    message: `Organisation created. ${invitees.length} invite${invitees.length === 1 ? "" : "s"} sent.`,
   });
 }
