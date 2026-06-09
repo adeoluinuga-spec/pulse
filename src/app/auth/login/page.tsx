@@ -61,6 +61,10 @@ function dashboardPath(role?: string) {
   return "/dashboard";
 }
 
+function isOrgRepresentative(role?: string) {
+  return role === "hr_admin" || role === "executive_view";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { showToast } = useToast();
@@ -155,7 +159,12 @@ export default function LoginPage() {
 
     const role = bootstrap.role;
 
-    if (role === "hr_admin" || role === "executive_view") {
+    if (isOrgRepresentative(role) && !bootstrap.onboardingCompleted) {
+      router.replace("/onboarding");
+      return;
+    }
+
+    if (isOrgRepresentative(role)) {
       router.replace(dashboardPath(role));
       return;
     }

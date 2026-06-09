@@ -23,6 +23,15 @@ function dashboardPath(role?: string) {
   return "/dashboard";
 }
 
+function isOrgRepresentative(role?: string) {
+  return role === "hr_admin" || role === "executive_view";
+}
+
+function routeAfterAuth(role?: string, onboardingCompleted?: boolean) {
+  if (isOrgRepresentative(role) && !onboardingCompleted) return "/onboarding";
+  return dashboardPath(role);
+}
+
 function isSuperAdminEmail(email?: string | null) {
   return Boolean(
     email &&
@@ -155,8 +164,9 @@ export async function GET(request: Request) {
         .maybeSingle();
       const row = emp as Record<string, unknown> | null;
       const role = row?.platform_role as string | undefined;
-      if (hasCompletedOnboarding(row, meta as Record<string, unknown> | null)) {
-        return NextResponse.redirect(new URL(dashboardPath(role), requestUrl.origin));
+      if (role) {
+        const completed = hasCompletedOnboarding(row, meta as Record<string, unknown> | null);
+        return NextResponse.redirect(new URL(routeAfterAuth(role, completed), requestUrl.origin));
       }
     }
     return NextResponse.redirect(new URL("/welcome", requestUrl.origin));
@@ -164,8 +174,8 @@ export async function GET(request: Request) {
 
   // 2. First-time invite routing — only when record was just created this request
   if (isFirstTimeInvite) {
-    if (invitedAs === "hr_admin" || invitedAs === "executive_view") {
-      return NextResponse.redirect(new URL(dashboardPath(invitedAs), requestUrl.origin));
+    if (isOrgRepresentative(invitedAs)) {
+      return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
     }
     if (invitedAs === "employee") {
       return NextResponse.redirect(new URL("/welcome", requestUrl.origin));
@@ -188,11 +198,9 @@ export async function GET(request: Request) {
 
     const row = emp as Record<string, unknown>;
     const role = row.platform_role as string | undefined;
-    if (hasCompletedOnboarding(row, meta as Record<string, unknown> | null)) {
-      return NextResponse.redirect(new URL(dashboardPath(role), requestUrl.origin));
-    }
-    if (role === "hr_admin" || role === "executive_view") {
-      return NextResponse.redirect(new URL(dashboardPath(role), requestUrl.origin));
+    if (role) {
+      const completed = hasCompletedOnboarding(row, meta as Record<string, unknown> | null);
+      return NextResponse.redirect(new URL(routeAfterAuth(role, completed), requestUrl.origin));
     }
   }
 

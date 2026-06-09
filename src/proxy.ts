@@ -64,7 +64,6 @@ export async function proxy(request: NextRequest) {
     if (superAdminEmail && sessionEmail === superAdminEmail) {
       return NextResponse.redirect(new URL("/admin", request.url));
     }
-    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;

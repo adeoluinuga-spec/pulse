@@ -335,6 +335,47 @@ export default function OnboardingPage() {
     setInviteDone(true);
   }
 
+  async function finishSetup() {
+    setSaving(true);
+    const supabase = getSupabase();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    let dashboardPath = "/dashboard/hr";
+
+    if (user) {
+      const completedAt = new Date().toISOString();
+
+      await supabase
+        .from("employees")
+        .update({
+          onboarding_completed: true,
+          onboarding_completed_at: completedAt,
+        })
+        .eq("user_id", user.id);
+
+      await supabase.auth.updateUser({
+        data: {
+          onboarding_completed: true,
+          onboarding_completed_at: completedAt,
+        },
+      });
+
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("platform_role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if ((employee as { platform_role?: string } | null)?.platform_role === "executive_view") {
+        dashboardPath = "/dashboard/executive";
+      }
+    }
+
+    setSaving(false);
+    router.push(dashboardPath);
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(232,68,10,0.08),transparent_28rem),linear-gradient(135deg,var(--cream),var(--paper))] px-4 py-8 md:py-12">
@@ -853,7 +894,8 @@ export default function OnboardingPage() {
                     </span>
                   </div>
                   <button
-                    onClick={() => router.push("/dashboard/hr")}
+                    onClick={finishSetup}
+                    disabled={saving}
                     className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white"
                   >
                     Done — Go to HR Dashboard

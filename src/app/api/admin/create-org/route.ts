@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
       invitee.email,
       {
-        redirectTo: `${origin}/auth/callback?next=welcome`,
+        redirectTo: `${origin}/auth/callback?next=onboarding`,
         data: {
           org_id: orgId,
           platform_role: invitee.role,
