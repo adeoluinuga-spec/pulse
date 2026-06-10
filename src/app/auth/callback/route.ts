@@ -97,14 +97,16 @@ export async function GET(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (isSuperAdminEmail(user?.email)) {
-    return NextResponse.redirect(new URL("/admin", requestUrl.origin));
-  }
-
   // ── Bootstrap employee record for new invites (bypasses RLS) ──────────────
   const meta = user?.user_metadata as Record<string, string> | null;
   const invitedAs = meta?.invited_as;
   const metaOrgId = meta?.org_id;
+  const isInviteFlow =
+    next === "onboarding" || next === "welcome" || Boolean(invitedAs);
+
+  if (!isInviteFlow && isSuperAdminEmail(user?.email)) {
+    return NextResponse.redirect(new URL("/admin", requestUrl.origin));
+  }
 
   let isFirstTimeInvite = false;
 
