@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAnthropicClient, extractText } from "@/lib/anthropic";
 
 function fallbackBriefing(body: Record<string, unknown>) {
-  const orgName = typeof body.orgName === "string" ? body.orgName : "Zenith Corp";
+  const orgName = typeof body.orgName === "string" ? body.orgName : "the organisation";
   const overallScore = typeof body.overallScore === "number" ? body.overallScore : 76;
   const promotionCount = typeof body.promotionCount === "number" ? body.promotionCount : 0;
   const pipCount = typeof body.pipCount === "number" ? body.pipCount : 0;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
@@ -11,7 +11,10 @@ import {
   CheckCircle,
   ArrowRight,
 } from "lucide-react";
-import { employees } from "@/data/mockData";
+import { useUser } from "@/context/UserContext";
+import { getMyGoals, updateGoalProgress } from "@/lib/api/goals";
+import { submitReport } from "@/lib/api/reports";
+import { getSupabase } from "@/lib/supabase";
 
 type Mood = "energised" | "good" | "okay" | "drained";
 type SubmitState = "idle" | "processing" | "done";
@@ -47,9 +50,6 @@ const moodMeta: Record<Mood, { emoji: string; label: string }> = {
 
 const steps = ["This Week", "Goal Progress", "Review"];
 
-const me = employees[0];
-const activeGoals = me.goals.filter((g) => g.status !== "completed");
-
 function barColor(pct: number) {
   if (pct >= 75) return "bg-green";
   if (pct >= 50) return "bg-amber";
@@ -58,23 +58,60 @@ function barColor(pct: number) {
 
 export default function ReportForm() {
   const router = useRouter();
+  const { user, loading } = useUser();
 
   const [step, setStep] = useState(1);
   const [accomplishments, setAccomplishments] = useState("");
   const [blockers, setBlockers] = useState("");
   const [mood, setMood] = useState<Mood | null>(null);
-  const [goalEntries, setGoalEntries] = useState<GoalEntry[]>(
-    activeGoals.map((g) => ({
-      id: g.id,
-      name: g.name,
-      originalPct: g.percentComplete,
-      currentPct: g.percentComplete,
-    }))
-  );
+  const [goalEntries, setGoalEntries] = useState<GoalEntry[]>([]);
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [showToast, setShowToast] = useState(false);
   const [aiDigest, setAiDigest] = useState<AIDigest | null>(null);
   const [aiError, setAiError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      if (loading) return;
+      if (user.id === "unlinked") {
+        setDataLoading(false);
+        return;
+      }
+      setDataLoading(true);
+
+      const [goalRows, employeeResult] = await Promise.all([
+        getMyGoals(),
+        getSupabase()
+          .from("employees")
+          .select("org_id")
+          .eq("id", user.id)
+          .maybeSingle(),
+      ]);
+
+      if (!active) return;
+      setGoalEntries(
+        goalRows
+          .filter((g) => g.status !== "completed")
+          .map((g) => ({
+            id: g.id,
+            name: g.name,
+            originalPct: g.percentComplete,
+            currentPct: g.percentComplete,
+          })),
+      );
+      setOrgId((employeeResult.data as { org_id?: string } | null)?.org_id ?? null);
+      setDataLoading(false);
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, [loading, user.id]);
 
   const updateGoal = (id: string, raw: number) => {
     const val = Math.min(100, Math.max(0, raw));
@@ -84,8 +121,41 @@ export default function ReportForm() {
   };
 
   const handleSubmit = async () => {
+    if (!orgId || !mood) return;
     setSubmitState("processing");
     setShowToast(true);
+    setAiError(false);
+
+    const reportId = await submitReport({
+      orgId,
+      type: "weekly",
+      accomplishments,
+      blockers,
+      mood,
+      goalTracking: JSON.stringify(
+        goalEntries.map((g) => ({
+          id: g.id,
+          name: g.name,
+          from: g.originalPct,
+          to: g.currentPct,
+        })),
+      ),
+    });
+
+    if (!reportId) {
+      setAiError(true);
+      setSubmitState("done");
+      return;
+    }
+
+    await Promise.all(
+      goalEntries
+        .filter((g) => g.currentPct !== g.originalPct)
+        .map((g) =>
+          updateGoalProgress(g.id, g.currentPct, "Updated from weekly report"),
+        ),
+    );
+
     try {
       const res = await fetch("/api/ai/analyze-report", {
         method: "POST",
@@ -111,6 +181,17 @@ export default function ReportForm() {
     }
     setSubmitState("done");
   };
+
+  if (loading || dataLoading) {
+    return (
+      <div className="dashboard-page flex min-h-[60vh] items-center justify-center">
+        <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted">
+          <Sparkles size={14} className="animate-pulse text-pulse" />
+          Loading report workspace...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-page">
@@ -281,6 +362,16 @@ export default function ReportForm() {
               </p>
 
               <div className="space-y-3">
+                {goalEntries.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-border bg-card p-4 text-center">
+                    <p className="text-sm font-semibold text-ink">No active goals yet</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted">
+                      You can still submit your weekly report. Goal tracking will
+                      appear here once goals are assigned.
+                    </p>
+                  </div>
+                )}
+
                 {goalEntries.map((goal) => {
                   const changed = goal.currentPct !== goal.originalPct;
                   const improved = goal.currentPct > goal.originalPct;
@@ -455,7 +546,7 @@ export default function ReportForm() {
 
                 <button
                   onClick={handleSubmit}
-                  disabled={submitState !== "idle"}
+                  disabled={submitState !== "idle" || !mood || !orgId}
                   className={clsx(
                     "flex-1 text-white font-semibold text-sm py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 disabled:cursor-not-allowed",
                     submitState === "idle" && "bg-pulse hover:bg-pulse/90",
