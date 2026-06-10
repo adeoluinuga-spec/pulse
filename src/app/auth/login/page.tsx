@@ -159,7 +159,7 @@ export default function LoginPage() {
 
     const role = bootstrap.role;
 
-    if (isOrgRepresentative(role) && !bootstrap.onboardingCompleted) {
+    if (role === "hr_admin" && !bootstrap.onboardingCompleted) {
       router.replace("/onboarding");
       return;
     }

@@ -171,7 +171,34 @@ export default function OnboardingPage() {
         return;
       }
 
+      // Guard: only HR admins may access this page
+      const { data: empRow } = await supabase
+        .from("employees")
+        .select("platform_role, onboarding_completed")
+        .or(`user_id.eq.${user.id},email.eq.${user.email ?? ""}`)
+        .maybeSingle();
+
       const meta = user.user_metadata as Record<string, string>;
+      const role = (empRow as Record<string, unknown> | null)?.platform_role
+        ?? meta?.platform_role
+        ?? meta?.invited_as;
+
+      if (role === "executive_view") {
+        router.replace("/dashboard/executive");
+        return;
+      }
+      if (role && role !== "hr_admin") {
+        router.replace("/dashboard");
+        return;
+      }
+
+      // Already completed onboarding — skip to HR dashboard
+      if ((empRow as Record<string, unknown> | null)?.onboarding_completed === true
+        || meta?.onboarding_completed === "true") {
+        router.replace("/dashboard/hr");
+        return;
+      }
+
       const metaOrgId = meta?.org_id;
 
       // Try to find org in DB

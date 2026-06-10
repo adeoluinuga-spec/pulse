@@ -28,7 +28,8 @@ function isOrgRepresentative(role?: string) {
 }
 
 function routeAfterAuth(role?: string, onboardingCompleted?: boolean) {
-  if (isOrgRepresentative(role) && !onboardingCompleted) return "/onboarding";
+  // Only HR admins go through org onboarding — executives always go to their dashboard
+  if (role === "hr_admin" && !onboardingCompleted) return "/onboarding";
   return dashboardPath(role);
 }
 
@@ -155,6 +156,10 @@ export async function GET(request: Request) {
 
   // 1. Query-param routing (works when Supabase preserves it)
   if (next === "onboarding") {
+    // Executives skip org onboarding — go straight to their dashboard
+    if (meta?.invited_as === "executive_view") {
+      return NextResponse.redirect(new URL("/dashboard/executive", requestUrl.origin));
+    }
     return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
   }
   if (next === "welcome") {
@@ -176,8 +181,11 @@ export async function GET(request: Request) {
 
   // 2. First-time invite routing — only when record was just created this request
   if (isFirstTimeInvite) {
-    if (isOrgRepresentative(invitedAs)) {
+    if (invitedAs === "hr_admin") {
       return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
+    }
+    if (invitedAs === "executive_view") {
+      return NextResponse.redirect(new URL("/dashboard/executive", requestUrl.origin));
     }
     if (invitedAs === "employee") {
       return NextResponse.redirect(new URL("/welcome", requestUrl.origin));
