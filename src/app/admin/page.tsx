@@ -49,7 +49,8 @@ export default function AdminPage() {
   }, []);
 
   const isAuthorised =
-    Boolean(authEmail && superAdminEmail) &&
+    authEmail !== null &&
+    superAdminEmail !== "" &&
     authEmail.toLowerCase() === superAdminEmail.toLowerCase();
 
   function handleNameChange(name: string) {
