@@ -327,19 +327,32 @@ function OperationalDashboard({
   const [leavingId, setLeavingId] = useState<string | null>(null);
   const [selectedEmp, setSelectedEmp] = useState<EmployeeRow | null>(null);
   const [setupOpen, setSetupOpen] = useState(false);
-  const setupRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+  const setupBtnRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Sync leave state from parent
   useEffect(() => { setLeave(state.pendingLeave); }, [state.pendingLeave]);
 
-  // Close setup dropdown when clicking outside
+  // Close dropdown when clicking outside
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (setupRef.current && !setupRef.current.contains(e.target as Node)) setSetupOpen(false);
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+        setupBtnRef.current && !setupBtnRef.current.contains(e.target as Node)
+      ) setSetupOpen(false);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  function toggleSetup() {
+    if (!setupOpen && setupBtnRef.current) {
+      const rect = setupBtnRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+    }
+    setSetupOpen((o) => !o);
+  }
 
   const avgScore = Math.round(staff.reduce((s, e) => s + (e.performance_score ?? 0), 0) / (staff.length || 1));
   const reportsSubmitted = staff.filter((e) => state.reportedIds.has(e.id)).length;
@@ -397,53 +410,16 @@ function OperationalDashboard({
               <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Org avg score</p>
             </div>
 
-            {/* Continue Setup dropdown */}
-            <div className="relative" ref={setupRef}>
-              <button
-                onClick={() => setSetupOpen((o) => !o)}
-                className="flex h-full items-center gap-2 rounded-lg border border-white/20 bg-white/[0.08] px-3 py-2.5 text-xs font-bold text-white transition hover:bg-white/15"
-              >
-                <Settings2 size={14} />
-                Continue Setup
-                <ChevronDown size={13} className={clsx("transition-transform", setupOpen && "rotate-180")} />
-              </button>
-
-              {setupOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-card shadow-[0_12px_40px_rgba(0,0,0,0.18)]">
-                  <div className="border-b border-border px-4 py-3">
-                    <p className="text-xs font-bold text-ink">Setup items</p>
-                    <p className="text-[11px] text-muted">
-                      {setupItems.length === 0 ? "All setup steps complete" : `${setupItems.length} item${setupItems.length !== 1 ? "s" : ""} remaining`}
-                    </p>
-                  </div>
-                  <div className="divide-y divide-border">
-                    {setupItems.length === 0 ? (
-                      <div className="flex items-center gap-2 px-4 py-3">
-                        <CheckCircle2 size={15} className="text-green" />
-                        <span className="text-xs font-bold text-green">Setup complete</span>
-                      </div>
-                    ) : (
-                      setupItems.map((item) => (
-                        <button
-                          key={item.tab}
-                          onClick={() => { setSetupOpen(false); onGoToSetup(item.tab); }}
-                          className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs font-bold text-ink transition hover:bg-paper"
-                        >
-                          <Flag size={13} className="flex-shrink-0 text-pulse" />
-                          {item.label}
-                        </button>
-                      ))
-                    )}
-                    <button
-                      onClick={() => { setSetupOpen(false); onGoToSetup("overview"); }}
-                      className="flex w-full items-center gap-2 px-4 py-3 text-left text-[11px] font-bold text-pulse transition hover:bg-pulse-soft"
-                    >
-                      View full setup checklist →
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Continue Setup button */}
+            <button
+              ref={setupBtnRef}
+              onClick={toggleSetup}
+              className="flex h-full items-center gap-2 rounded-lg border border-white/20 bg-white/[0.08] px-3 py-2.5 text-xs font-bold text-white transition hover:bg-white/15"
+            >
+              <Settings2 size={14} />
+              Continue Setup
+              <ChevronDown size={13} className={clsx("transition-transform", setupOpen && "rotate-180")} />
+            </button>
           </div>
         </div>
       </section>
@@ -545,6 +521,47 @@ function OperationalDashboard({
           onClose={() => setSelectedEmp(null)}
           onSaved={(updated) => { onUpdateEmployee(updated); setSelectedEmp(updated); }}
         />
+      )}
+
+      {/* Continue Setup dropdown — fixed to escape any stacking context */}
+      {setupOpen && (
+        <div
+          ref={dropdownRef}
+          className="fixed z-[9999] w-64 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_12px_40px_rgba(0,0,0,0.18)]"
+          style={{ top: dropdownPos.top, right: dropdownPos.right }}
+        >
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-xs font-bold text-ink">Setup items</p>
+            <p className="text-[11px] text-muted">
+              {setupItems.length === 0 ? "All setup steps complete" : `${setupItems.length} item${setupItems.length !== 1 ? "s" : ""} remaining`}
+            </p>
+          </div>
+          <div className="divide-y divide-border">
+            {setupItems.length === 0 ? (
+              <div className="flex items-center gap-2 px-4 py-3">
+                <CheckCircle2 size={15} className="text-green" />
+                <span className="text-xs font-bold text-green">Setup complete</span>
+              </div>
+            ) : (
+              setupItems.map((item) => (
+                <button
+                  key={item.tab}
+                  onClick={() => { setSetupOpen(false); onGoToSetup(item.tab); }}
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs font-bold text-ink transition hover:bg-paper"
+                >
+                  <Flag size={13} className="flex-shrink-0 text-pulse" />
+                  {item.label}
+                </button>
+              ))
+            )}
+            <button
+              onClick={() => { setSetupOpen(false); onGoToSetup("overview"); }}
+              className="flex w-full items-center gap-2 px-4 py-3 text-left text-[11px] font-bold text-pulse transition hover:bg-pulse-soft"
+            >
+              View full setup checklist →
+            </button>
+          </div>
+        </div>
       )}
     </main>
   );
