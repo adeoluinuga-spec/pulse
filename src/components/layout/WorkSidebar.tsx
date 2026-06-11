@@ -10,6 +10,7 @@ import {
   FileText,
   HeartPulse,
   Home,
+  Settings2,
   ShieldCheck,
   Sparkles,
   Target,
@@ -40,7 +41,10 @@ export default function WorkSidebar() {
   const teamEnabled = user.peopleResponsibility !== "none";
   const portalItems = [
     ...(teamEnabled ? [{ label: "Team", href: "/dashboard/team", icon: Users }] : []),
-    ...(user.platformRole === "hr_admin" || user.platformRole === "super_admin" ? [{ label: "HR View", href: "/hr", icon: ShieldCheck }] : []),
+    ...(user.platformRole === "hr_admin" || user.platformRole === "super_admin" ? [
+      { label: "HR Dashboard", href: "/dashboard/hr", icon: ShieldCheck },
+      { label: "Org Setup", href: "/dashboard/hr?mode=setup", icon: Settings2 },
+    ] : []),
     ...(user.platformRole === "executive_view" || user.platformRole === "super_admin" ? [{ label: "Executive", href: "/executive", icon: Building2 }] : []),
   ];
 

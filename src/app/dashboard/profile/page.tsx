@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   AlertCircle,
@@ -20,14 +20,14 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { employees } from "@/data/mockData";
 import { useUser } from "@/context/UserContext";
+import { getSupabase } from "@/lib/supabase";
+import { updateProfile } from "@/lib/api/profile";
 import type { Document as EmployeeDocument } from "@/types";
 
 type SectionKey = "personal" | "documents" | "compensation";
 type EditableKey =
   | "phone"
-  | "personalEmail"
   | "homeAddress"
   | "emergencyContact"
   | "nextOfKin";
@@ -153,14 +153,25 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<Record<EditableKey, string>>({
     phone: user.phone,
-    personalEmail: user.email.replace("@zenithcorp.ng", "@gmail.com"),
     homeAddress: user.homeAddress,
-    emergencyContact: "Nana Osei · Sister · +234 803 555 0192",
-    nextOfKin: "Kwame Osei · +234 802 555 0144",
+    emergencyContact: "",
+    nextOfKin: "",
   });
   const [draft, setDraft] = useState("");
+  const [managerName, setManagerName] = useState<string | null>(null);
 
-  const manager = employees.find((emp) => emp.id === user.lineManagerId);
+  // Fetch line manager from Supabase (not mock array)
+  useEffect(() => {
+    if (!user.lineManagerId) return;
+    getSupabase()
+      .from("employees")
+      .select("name")
+      .eq("id", user.lineManagerId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setManagerName((data as { name: string }).name);
+      });
+  }, [user.lineManagerId]);
   const verifiedRequired = requiredDocuments.filter((doc) => doc.status === "verified" || doc.status === "pending").length;
   const requiredPercent = Math.round((verifiedRequired / requiredDocuments.length) * 100);
   const profilePercent = 82;
@@ -198,9 +209,19 @@ export default function ProfilePage() {
     setDraft(profile[key]);
   }
 
-  function saveEdit(key: EditableKey) {
-    setProfile((prev) => ({ ...prev, [key]: draft.trim() || prev[key] }));
+  async function saveEdit(key: EditableKey) {
+    const value = draft.trim() || profile[key];
+    setProfile((prev) => ({ ...prev, [key]: value }));
     setEditing(null);
+
+    // Persist to Supabase
+    const updates: Parameters<typeof updateProfile>[0] = {};
+    if (key === "phone") updates.phone = value;
+    if (key === "homeAddress") updates.homeAddress = value;
+    if (key === "emergencyContact") updates.emergencyContact = { contact: value };
+    if (key === "nextOfKin") updates.nextOfKin = { contact: value };
+    await updateProfile(updates);
+
     setToast("Saved ✓");
     setTimeout(() => setToast(""), 1800);
   }
@@ -306,17 +327,16 @@ export default function ProfilePage() {
                 <LockedCard label="Cadre" value={user.cadre} />
                 <LockedCard label="Compensation band" value={user.band.current} />
                 <LockedCard label="Department" value={user.department} />
-                <LockedCard label="Line manager" value={manager?.name ?? "Not assigned"} onClick={() => setManagerOpen(true)} />
+                <LockedCard label="Line manager" value={managerName ?? (user.lineManagerId ? "Loading…" : "Not assigned")} onClick={managerName ? () => setManagerOpen(true) : undefined} />
               </div>
             </div>
             <div>
               <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">Editable by You</p>
               <div className="grid gap-3 md:grid-cols-2">
-            <EditableCard label="Phone number" field="phone" value={profile.phone} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
-            <EditableCard label="Personal email" field="personalEmail" value={profile.personalEmail} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
-            <EditableCard label="Home address" field="homeAddress" value={profile.homeAddress} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
-            <EditableCard label="Emergency contact" field="emergencyContact" value={profile.emergencyContact} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
-            <EditableCard label="Next of kin" field="nextOfKin" value={profile.nextOfKin} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
+                <EditableCard label="Phone number" field="phone" value={profile.phone} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
+                <EditableCard label="Home address" field="homeAddress" value={profile.homeAddress} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
+                <EditableCard label="Emergency contact" field="emergencyContact" value={profile.emergencyContact || "Not set"} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
+                <EditableCard label="Next of kin" field="nextOfKin" value={profile.nextOfKin || "Not set"} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
               </div>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
@@ -552,15 +572,15 @@ export default function ProfilePage() {
         </>
       )}
 
-      {managerOpen && manager && (
+      {managerOpen && managerName && (
         <BottomSheet onClose={() => setManagerOpen(false)}>
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold text-white" style={{ backgroundColor: manager.avatarColor }}>
-              {manager.initials}
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-sm font-bold text-white">
+              {managerName.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
             </div>
             <div className="min-w-0">
-              <p className="text-base font-bold text-ink">{manager.name}</p>
-              <p className="truncate text-sm text-muted">{manager.email}</p>
+              <p className="text-base font-bold text-ink">{managerName}</p>
+              <p className="truncate text-sm text-muted">Line Manager</p>
             </div>
           </div>
           <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-pulse px-4 py-3 text-sm font-bold text-white">
