@@ -18,10 +18,12 @@ import {
   Loader2,
   MailPlus,
   Network,
+  Plus,
   Save,
   Settings2,
   ShieldCheck,
   Target,
+  Trash2,
   Upload,
   Users,
   X,
@@ -980,7 +982,14 @@ function SetupWizard({ state, orgId, userEmail, activeTab, onTabChange, isOverla
       ) : (
         <section className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
           <SetupGuidePanel copy={copy} />
-          {activeTab === "people" && <PeopleSetup employees={state.employees} orgId={orgId} hrEmail={userEmail} />}
+          {activeTab === "people" && (
+        <PeopleSetup
+          employees={state.employees}
+          orgId={orgId}
+          hrEmail={userEmail}
+          onEmployeesChange={(updated) => onUpdateEmployees([...state.employees.filter((e) => e.email === userEmail), ...updated])}
+        />
+      )}
           {activeTab === "teams" && <TeamsSetup employees={state.employees} />}
           {activeTab === "goals" && <GoalsSetup goals={state.goals} />}
           {activeTab === "appraisal" && <AppraisalSetup org={state.org} />}
@@ -1017,11 +1026,24 @@ function SetupGuidePanel({ copy }: { copy: { title: string; body: string; action
   );
 }
 
-function PeopleSetup({ employees, orgId, hrEmail }: { employees: EmployeeRow[]; orgId: string; hrEmail: string }) {
-  const staff = employees.filter((e) => e.email !== hrEmail);
+function PeopleSetup({ employees, orgId, hrEmail, onEmployeesChange }: {
+  employees: EmployeeRow[];
+  orgId: string;
+  hrEmail: string;
+  onEmployeesChange: (employees: EmployeeRow[]) => void;
+}) {
+  const [localStaff, setLocalStaff] = useState(() => employees.filter((e) => e.email !== hrEmail));
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvResults, setCsvResults] = useState<Array<{ email: string; status: string }>>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const csvRef = useRef<HTMLInputElement>(null);
+
+  // Keep in sync if parent re-fetches
+  useEffect(() => {
+    setLocalStaff(employees.filter((e) => e.email !== hrEmail));
+  }, [employees, hrEmail]);
 
   async function handleCSV(file: File) {
     setCsvUploading(true);
@@ -1043,14 +1065,36 @@ function PeopleSetup({ employees, orgId, hrEmail }: { employees: EmployeeRow[]; 
     setCsvUploading(false);
   }
 
+  async function handleDelete(id: string) {
+    if (confirmDeleteId !== id) { setConfirmDeleteId(id); return; }
+    setDeletingId(id);
+    setConfirmDeleteId(null);
+    const supabase = getSupabase();
+    const { error } = await supabase.from("employees").delete().eq("id", id);
+    if (!error) {
+      const next = localStaff.filter((e) => e.id !== id);
+      setLocalStaff(next);
+      onEmployeesChange(next);
+    }
+    setDeletingId(null);
+  }
+
+  function handleAdded(emp: EmployeeRow) {
+    const next = [...localStaff, emp];
+    setLocalStaff(next);
+    onEmployeesChange(next);
+    setShowAdd(false);
+  }
+
   return (
     <div className="space-y-4">
+      {/* Bulk CSV */}
       <div className="rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex gap-3">
             <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-pulse-soft text-pulse"><Upload size={19} /></span>
             <div>
-              <p className="text-sm font-black text-ink">Bulk update employees</p>
+              <p className="text-sm font-black text-ink">Bulk import via CSV</p>
               <p className="mt-1 text-xs leading-relaxed text-muted">Download the template, fill in employee data, then upload to update all records at once.</p>
             </div>
           </div>
@@ -1059,7 +1103,7 @@ function PeopleSetup({ employees, orgId, hrEmail }: { employees: EmployeeRow[]; 
               <Download size={13} />
               Template
             </button>
-            <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-pulse px-3 text-xs font-black text-white">
+            <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-ink px-3 text-xs font-black text-white">
               {csvUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
               {csvUploading ? "Uploading…" : "Upload CSV"}
               <input ref={csvRef} type="file" accept=".csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCSV(f); }} />
@@ -1079,32 +1123,303 @@ function PeopleSetup({ employees, orgId, hrEmail }: { employees: EmployeeRow[]; 
         )}
       </div>
 
+      {/* Employee list */}
       <div className="rounded-lg border border-border bg-card">
-        <div className="border-b border-border px-4 py-3">
-          <p className="text-sm font-black text-ink">Employee list</p>
-          <p className="mt-1 text-xs text-muted">{staff.length ? `${staff.length} employees` : "No employees added yet"}</p>
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div>
+            <p className="text-sm font-black text-ink">Employee list</p>
+            <p className="mt-0.5 text-xs text-muted">{localStaff.length ? `${localStaff.length} employees` : "No employees yet"}</p>
+          </div>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-pulse px-3 text-xs font-black text-white"
+          >
+            <Plus size={13} />
+            Add Employee
+          </button>
         </div>
         <div className="divide-y divide-border">
-          {staff.length ? staff.slice(0, 8).map((e) => (
-            <div key={e.id} className="flex items-center gap-3 px-4 py-3">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-ink text-xs font-bold text-white">{initials(e.name)}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-bold text-ink">{e.name}</span>
-                <span className="block truncate text-xs text-muted">{e.role || "Role pending"} · {e.department || "Department pending"}</span>
-              </span>
-            </div>
-          )) : (
+          {localStaff.length === 0 ? (
             <div className="grid min-h-44 place-items-center px-4 py-8 text-center">
               <div>
                 <Users size={22} className="mx-auto text-muted" />
-                <p className="mt-3 text-sm font-black text-ink">No people yet</p>
-                <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted">Upload a CSV above or invite employees from the onboarding flow.</p>
+                <p className="mt-3 text-sm font-black text-ink">No employees yet</p>
+                <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted">
+                  Add employees one by one using the button above, or bulk import with the CSV template.
+                </p>
               </div>
             </div>
+          ) : (
+            localStaff.map((e) => {
+              const isConfirm = confirmDeleteId === e.id;
+              const isDeleting = deletingId === e.id;
+              return (
+                <div key={e.id} className="flex items-center gap-3 px-4 py-3">
+                  <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-ink text-xs font-bold text-white">
+                    {initials(e.name)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-bold text-ink">{e.name}</span>
+                    <span className="block truncate text-xs text-muted">
+                      {e.email} · {e.role || "Role pending"}{e.department ? ` · ${e.department}` : ""}
+                    </span>
+                  </span>
+                  {isConfirm ? (
+                    <div className="flex flex-shrink-0 items-center gap-1.5">
+                      <button onClick={() => handleDelete(e.id)} disabled={isDeleting} className="rounded-lg bg-red px-2.5 py-1.5 text-[10px] font-bold text-white disabled:opacity-40">
+                        {isDeleting ? <Loader2 size={11} className="animate-spin" /> : "Confirm"}
+                      </button>
+                      <button onClick={() => setConfirmDeleteId(null)} className="rounded-lg border border-border px-2.5 py-1.5 text-[10px] font-bold text-muted hover:text-ink">
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleDelete(e.id)}
+                      className="flex-shrink-0 rounded-lg p-1.5 text-muted transition hover:bg-red-soft hover:text-red"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       </div>
+
+      {/* Add employee slide-over */}
+      {showAdd && (
+        <AddEmployeePanel
+          orgId={orgId}
+          employees={localStaff}
+          onClose={() => setShowAdd(false)}
+          onAdded={handleAdded}
+        />
+      )}
     </div>
+  );
+}
+
+// ── Add Employee Panel ─────────────────────────────────────────────────────────
+
+interface NewEmpForm {
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  team: string;
+  cadre: string;
+  people_responsibility: string;
+  band: string;
+  employment_type: string;
+  join_date: string;
+  line_manager_email: string;
+}
+
+const EMPTY_FORM: NewEmpForm = {
+  name: "", email: "", role: "", department: "", team: "",
+  cadre: "entry", people_responsibility: "none",
+  band: "", employment_type: "full_time", join_date: "", line_manager_email: "",
+};
+
+function AddEmployeePanel({ orgId, employees, onClose, onAdded }: {
+  orgId: string;
+  employees: EmployeeRow[];
+  onClose: () => void;
+  onAdded: (emp: EmployeeRow) => void;
+}) {
+  const [form, setForm] = useState<NewEmpForm>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const f = <K extends keyof NewEmpForm>(key: K) => ({
+    value: form[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setForm((prev) => ({ ...prev, [key]: e.target.value })),
+  });
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim()) { setError("Name and email are required."); return; }
+    setSaving(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/admin/send-invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgId,
+          employees: [{
+            name: form.name.trim(),
+            email: form.email.trim().toLowerCase(),
+            department: form.department,
+            team: form.team,
+            cadre: form.cadre,
+            peopleResponsibility: form.people_responsibility,
+            lineManagerEmail: form.line_manager_email,
+            band: form.band,
+            joinDate: form.join_date,
+          }],
+        }),
+      });
+
+      const json = (await res.json()) as { results?: Array<{ email: string; status: string; error?: string }> };
+      const result = json.results?.[0];
+
+      if (!res.ok || result?.status === "error") {
+        setError(result?.error ?? "Failed to add employee. Try again.");
+        setSaving(false);
+        return;
+      }
+
+      // Fetch the newly created employee record
+      const supabase = getSupabase();
+      const { data: newEmp } = await supabase
+        .from("employees")
+        .select("id, name, email, department, team, role, cadre, platform_role, avatar_color, performance_score, badge, consistency_index, week_streak, line_manager_id, employment_type, join_date, band_current")
+        .eq("email", form.email.trim().toLowerCase())
+        .eq("org_id", orgId)
+        .maybeSingle();
+
+      if (newEmp) {
+        onAdded(newEmp as EmployeeRow);
+      } else {
+        // Fallback: create a local placeholder
+        onAdded({
+          id: crypto.randomUUID(),
+          name: form.name.trim(),
+          email: form.email.trim().toLowerCase(),
+          role: form.role || null,
+          department: form.department || null,
+          team: form.team || null,
+          cadre: form.cadre,
+          platform_role: "standard",
+          avatar_color: "#e8440a",
+          performance_score: 0,
+          badge: "Good Standing",
+          consistency_index: 0,
+          week_streak: 0,
+          line_manager_id: null,
+          employment_type: form.employment_type,
+          join_date: form.join_date || null,
+          band_current: form.band || null,
+        });
+      }
+    } catch {
+      setError("Network error. Try again.");
+      setSaving(false);
+    }
+  }
+
+  const managers = employees.filter((e) => e.cadre === "senior" || e.cadre === "executive" || e.platform_role === "hr_admin");
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[60] bg-black/40" onClick={onClose} />
+      <div className="fixed inset-y-0 right-0 z-[70] flex w-full max-w-md flex-col bg-card shadow-[-8px_0_40px_rgba(0,0,0,0.18)]">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div>
+            <p className="font-bold text-ink">Add Employee</p>
+            <p className="text-xs text-muted">An invite will be sent to their email automatically</p>
+          </div>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg border border-border text-muted hover:text-ink">
+            <X size={15} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+            {error && (
+              <div className="rounded-xl bg-red-soft px-3 py-2 text-xs font-bold text-red">{error}</div>
+            )}
+
+            <div className="grid grid-cols-1 gap-3">
+              <PanelField label="Full Name *">
+                <input className={panelInput} placeholder="Jane Doe" required {...f("name")} />
+              </PanelField>
+              <PanelField label="Work Email *">
+                <input type="email" className={panelInput} placeholder="jane@company.com" required {...f("email")} />
+              </PanelField>
+            </div>
+
+            <PanelField label="Job Title / Role">
+              <input className={panelInput} placeholder="e.g. Senior Engineer" {...f("role")} />
+            </PanelField>
+
+            <div className="grid grid-cols-2 gap-3">
+              <PanelField label="Department">
+                <input className={panelInput} placeholder="e.g. Engineering" {...f("department")} />
+              </PanelField>
+              <PanelField label="Team">
+                <input className={panelInput} placeholder="e.g. Platform" {...f("team")} />
+              </PanelField>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <PanelField label="Cadre">
+                <select className={panelInput} {...f("cadre")}>
+                  {["entry", "mid", "senior", "executive"].map((c) => (
+                    <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                  ))}
+                </select>
+              </PanelField>
+              <PanelField label="People Responsibility">
+                <select className={panelInput} {...f("people_responsibility")}>
+                  {["none", "team_lead", "manager", "senior_manager", "director"].map((r) => (
+                    <option key={r} value={r}>{r.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</option>
+                  ))}
+                </select>
+              </PanelField>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <PanelField label="Band / Level">
+                <input className={panelInput} placeholder="e.g. L2 – Mid-level" {...f("band")} />
+              </PanelField>
+              <PanelField label="Join Date">
+                <input type="date" className={panelInput} {...f("join_date")} />
+              </PanelField>
+            </div>
+
+            <PanelField label="Employment Type">
+              <select className={panelInput} {...f("employment_type")}>
+                <option value="full_time">Full Time</option>
+                <option value="part_time">Part Time</option>
+                <option value="contract">Contract</option>
+              </select>
+            </PanelField>
+
+            {managers.length > 0 && (
+              <PanelField label="Line Manager">
+                <select className={panelInput} {...f("line_manager_email")}>
+                  <option value="">Not assigned</option>
+                  {managers.map((m) => (
+                    <option key={m.id} value={m.email}>{m.name}</option>
+                  ))}
+                </select>
+              </PanelField>
+            )}
+
+            <div className="rounded-xl border border-border bg-paper p-3 text-xs text-muted leading-relaxed">
+              An invite email will be sent to <strong className="text-ink">{form.email || "their address"}</strong> as soon as you submit. They'll click the link, verify with OTP, and complete their profile.
+            </div>
+          </div>
+
+          <div className="border-t border-border px-5 py-4">
+            <button
+              type="submit"
+              disabled={saving || !form.name.trim() || !form.email.trim()}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-pulse text-sm font-black text-white disabled:opacity-40"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <MailPlus size={15} />}
+              {saving ? "Adding & sending invite…" : "Add Employee & Send Invite"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </>
   );
 }
 
