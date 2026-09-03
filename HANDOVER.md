@@ -2,198 +2,347 @@
 
 ## Status summary
 
-This handover covers the current state of the 360 assessment workflow for Pulse. The project is progressing as a SaaS product and not as a demo-only prototype. The work completed so far covers the core assessment lifecycle, reviewer workflow, customer review routing, and the first review-submission logic.
+Pulse is now at the point where the product is no longer just a workflow mock-up. The core 360 assessment lifecycle is in place, and the remaining work is now mostly a matter of layered implementation: system rules, configuration, reporting, and enterprise-grade guardrails.
 
-At this point, the platform is in a good position to continue into the real backend persistence and reporting layer. The strongest remaining work is not design or visual polish; it is operational correctness, data integrity, and server-side enforcement.
+This handover is structured to support parallel work. The work is split between:
+- the senior engineer / architecture owner: system rules, data integrity, server-side enforcement, schema and scoring logic
+- Codex: product workflow UI, operational UX, dashboard flows, and user-facing assessment experience
+
+This is advisable because the product is large enough that both engineers can move in parallel without waiting on each other, provided we keep a strict boundary between product flow and trusted business logic.
 
 ---
 
 ## What is already built
 
-### 1) Assessment lifecycle foundation
-- assessment cycle creation and basic cycle metadata
-- subject/participant import flow
+### 1) Core assessment lifecycle
+- assessment cycle creation and metadata
+- assessment subject import and organisation-level person tracking
 - reviewer assignment and coverage tracking
-- review group categories:
+- reviewer group logic:
   - direct report
   - subordinate
   - colleague
   - customer
-- release gate readiness logic
-- dashboard visibility for review completion and assessment health
+- basic release readiness logic
+- dashboard visibility into workflow status and review completion
 
-### 2) Scope selection and channel routing
-The system supports configurable assessment scope and review channels:
+### 2) Scope and routing logic
+The platform already supports different assessment modes and review channels:
 - individual
 - team
 - functional
 - customer experience
 
-Supported channels include:
+Supported channels:
 - email
 - SMS
 - WhatsApp
 - portal
 
-This is important because customer-facing reviews should not be treated like internal-only peer feedback. They are a distinct operational mode and should be weighted and segmented clearly.
+This is important because customer-facing assessments are not operationally equivalent to internal-only peer review.
 
 ### 3) Reviewer workflow
 - reviewer validation model
+- secure invite token pattern
 - assignment creation flow
-- coverage summary and readiness indicators
-- secure invite link generation pattern
-- response tracking display in the workflow UI
+- submission tracking and status display
+- readiness summary and coverage views
 
 ### 4) Submission and scoring model
-- review submission payload validation
-- aggregated review scoring
-- customer-experience weighted uplift logic
-- basic review summary generation
+- submission payload validation
+- weighted score aggregation logic
+- customer-experience uplift logic
+- report summary scaffolding
 
 ---
 
-## Where the implementation stands today
+## Product direction
 
-The current implementation is strong from a product and workflow perspective, but it still contains a few important product realities that must be handled before launch:
+Pulse should be positioned as:
+- a managed 360-assessment platform
+- with capability diagnosis and development planning
+- supported by Stuart Davidson as the assessment architect and implementation partner
+- backed by Pulse as the technology enabler and operational system
 
-### Strengths
-- the product flow reads like a real operating model
-- assessment stages are understandable and coherent
-- the flow is structured around actual SaaS operating logic rather than mock experiences
-- measurement and scoring logic is explicit and testable
-- scope and reviewer channel decisions are built into the model
+Not as: “just survey software.”
 
-### Important gaps
-
-#### 1) Data is still mostly local / demo-driven
-The UI is using in-memory state and local mock values for much of the workflow logic. That means the app is ready for product flow validation, but not yet for true production use.
-
-What needs to happen next:
-- persist cycles to the database
-- persist subjects to the database
-- persist reviewer assignments
-- persist invite metadata
-- persist review submissions
-- persist final report status and release approvals
-
-#### 2) Review token flow is not yet hardened
-We have token-shaped reviewer links, but they are not yet hardened for production.
-
-Required before launch:
-- token expiry
-- one-time use restrictions
-- reviewer identity binding
-- status transitions (sent -> opened -> submitted)
-- audit logging
-- invalid/expired token handling
-- anti-abuse guardrails
-
-#### 3) Client-side logic is not enough for scoring
-Any scoring or weighting must be enforced in the backend. The current scoring logic is useful for product flow and tests, but it must not be the source of truth in production.
-
-This includes:
-- weighted aggregate score calculation
-- customer-experience uplift rules
-- reviewer channel impact rules
-- approval and release gating logic
-
-#### 4) Scope is not yet fully enforced by the backend
-The UI allows choosing scope, but server-enforced validation is still missing.
-
-Needed rules:
-- which groups are valid for each scope
-- which scoring weights apply by scope
-- which channels are legal for the selected scope
-- which templates or question sets are active for each assessment type
-
-#### 5) No final report generation layer yet
-We have the workflow leading toward release, but the actual report generation and summary generation are not yet built as a durable layer.
-
-Next required outputs:
-- executive summary report
-- leader scorecard
-- HR calibration notes
-- customer-experience narrative
-- final approval / release record
+This distinction matters because the product is being developed as a real organisational capability tool rather than a generic form builder.
 
 ---
 
-## Recommended next implementation sequence
+## The product is already ready for both modes conceptually
 
-### Priority 1: real review submission API
-Build the server endpoint that does the following:
-- validates the reviewer token
-- validates the assessor assignment
-- validates the payload structure
-- stores responses with timestamps
-- marks reviewer as submitted
-- records audit metadata
+Pulse is already structurally suited to both:
+- 360 assessment
+- performance appraisal as a separate evaluation mode
 
-### Priority 2: real invite persistence and lifecycle tracking
-- store invite metadata in the database
-- track sent/opened/submitted/expired states
-- allow status to be hydrated into the UI from the backend
+However, the platform is not yet fully productized for both in a fully enterprise-ready way.
 
-### Priority 3: enforce scoring and weighting in the backend
-- calculate weighted aggregate server-side
-- enforce customer-experience uplift conditions
-- persist final weighted scores
-- prevent client-side tampering
+The actual distinction is:
+- 360 assessment = behaviour, capabilities, development insight
+- performance appraisal = results, goals, manager evaluation, outcomes
 
-### Priority 4: final release gate enforcement
-- ensure all required groups exist
-- ensure all required submissions are in
-- validate completion thresholds
-- prevent final report release if blocked
+These should remain distinct unless a client explicitly chooses an integrated model.
 
-### Priority 5: report generation and export
-- leader score summary
-- executive briefing
-- team/functional summary
-- customer/partner commentary
+---
+
+## What still needs to be added
+
+### 1) Organisation-level competency framework configuration
+This is the most important product gap.
+
+The competency model should not be fixed to one old framework or one founder’s view. It should be configurable per organisation and per cycle.
+
+Required capability:
+- org-level competency library
+- cycle-specific competency selection
+- level-based competency mapping
+- function-based competency grouping
+- optional custom questionnaires per organisation
+- support for different frameworks across business units
+
+This is a SaaS capability, not a one-off consultancy task.
+
+### 2) Self-assessment support
+This should be added as a first-class participation mode.
+
+Required capability:
+- self-assessment as a distinct rater type
+- self vs others comparison
+- self-assessment inclusion rules by cycle or business unit
+- reporting of self-perception versus peer perception
+
+### 3) Rater nomination and approval workflow
+This is a must-have for real enterprise rollout.
+
+Required capability:
+- employee nominates raters
+- manager or HR approves the list
+- minimum/maximum raters enforced
+- exclusions and duplication checks
+- visibility into assessor coverage and quality
+
+### 4) Anonymity and data quality rules
+This is essential to preserve trust and reduce organisational risk.
+
+Required capability:
+- aggregate peer and direct-report data only where safe
+- suppress small-group displays
+- minimum response thresholds
+- “unable to observe” response handling
+- rater confidence and observability checks
+
+### 5) Report generation layer
+The reporting layer must become a first-class product feature.
+
+Required outputs:
+- individual report
+- manager summary
+- aggregate leadership capability view
+- heat map by function, level or region
+- blind-spot and hidden-strength analysis
+- executive summary
 - export pack for HR and leadership
 
----
+### 6) Development plan layer
+This turns assessment into actual organisational action.
 
-## Senior dev supervision notes
+Required capability:
+- development priority extraction
+- personal development plan template
+- follow-up actions and accountability
+- 90-day / 180-day review tracking
 
-I would not sign off the following without a hard review:
+### 7) Performance appraisal integration
+This is a second-stage capability, not the first sprint.
 
-- any score calculated only on the client without a backend trust boundary
-- any assessment route that uses hardcoded demo data as live data
-- any customer review being treated as equivalent to internal review without explicit weighting configuration
-- any review link without expiry and status handling
-- any assessment scope that can be selected without a backend validation rule set
-
-The core rule is simple:
-
-A reviewer should only be able to submit for the correct assignee, using a valid token, with complete data, and with that response reflected in the real final scoring and reporting model.
-
----
-
-## Short product guidance
-
-This product is now clearly moving in the right direction. The main conversion from “good workflow prototype” to “ready SaaS platform” is not more UI work — it is backend integrity, auditability, and rule enforcement.
-
-The next engineer should treat the current state as a strong operational foundation, not a final product. The next layer is where real product quality is decided.
+Required capability:
+- KPI/results section
+- manager evaluation mode
+- combined results + behaviour model when requested
+- separate workflows for 360-only and integrated review
 
 ---
 
-## Recommended handoff checklist for the next engineer
+## Parallel work model
 
-- [x] build real review submission endpoint
-- [ ] persist reviewer invites and status
-- [ ] enforce score weighting on the backend
-- [ ] persist final assessment outcomes
-- [ ] enforce release gate logic server-side
-- [ ] generate report summaries and exports
-- [ ] add audit trail for every reviewer action
-- [ ] verify customer-experience scoring rules are applied consistently
+## Workstream A: senior engineer / architecture owner
+This person owns the trusted rules and integrated system layer.
+
+### Responsibilities
+- organisation competency library model
+- cycle and framework schema design
+- custom competency library support per org
+- self-assessment logic and data rules
+- rater nomination and approval logic
+- reviewer coverage and minimum-response enforcement
+- scoring and weighting logic
+- server-side release gate enforcement
+- report generation service and persistence
+- audit logs, security rules, and RBAC boundaries
+- API contracts and schemas that Codex can build against
+
+### Primary deliverables
+- org competency model and cycle config API
+- self-assessment backend rules
+- nomination and approval backend workflow
+- report generation service and scoring logic
+- release gate enforcement and data integrity layer
+
+---
+
+## Workstream B: Codex / operational UX owner
+This person owns the user experience and operational flow that sits on top of the architecture.
+
+### Responsibilities
+- assessment cycle setup screens
+- competency configuration UI
+- org framework management screens
+- self-assessment flow UI
+- rater nomination and approval screens
+- participant and rater dashboard flows
+- report view and summary screens
+- status UX, readiness cards, and admin views
+- workflow QA and end-to-end demo validation
+
+### Primary deliverables
+- assessment configuration interface
+- self-assessment user journey
+- nomination and approval management UX
+- admin dashboards for cycle progress and quality checks
+- report presentation layer
+
+---
+
+## Shared responsibilities
+
+These are shared boundaries and should be reviewed together:
+- final assessment lifecycle definition
+- assessment config naming conventions
+- payload and API contracts
+- role-based access design
+- scoring rules and release policy
+- data validation strategy and edge-case handling
+
+Rule: if the decision affects trust, scoring, security, or data integrity, the senior engineer decides. If it affects workflow UX only, Codex can move independently.
+
+---
+
+## Recommended milestone plan
+
+### Milestone 1: organisation framework and assessment config
+Goal: make the assessment model configurable per organisation.
+
+Focus:
+- org competency library
+- cycle setup for assessment types
+- level/function segmentation
+- assessment template creation
+
+Owners:
+- A: schema, rules, APIs
+- B: UI for framework set-up and management
+
+---
+
+### Milestone 2: self-assessment and rater workflow
+Goal: complete the assessment participation model.
+
+Focus:
+- self-assessment mode
+- nomination workflow
+- approval workflow
+- coverage checks
+- minimum response and quality controls
+
+Owners:
+- A: validation, rules, APIs, backend enforcement
+- B: user journey, review screens, dashboard statuses
+
+---
+
+### Milestone 3: scoring, release readiness and reports
+Goal: convert submissions into trusted organisational intelligence.
+
+Focus:
+- weighted score logic
+- server-side release gate enforcement
+- report generation
+- leadership summary views
+- heat map and aggregated views
+
+Owners:
+- A: backend scoring and report generation
+- B: UI presentation and report exploration screens
+
+---
+
+### Milestone 4: development planning and future performance-review layer
+Goal: move from assessment to action and future enterprise expansion.
+
+Focus:
+- development priorities
+- individual development plan templates
+- one-to-one follow-up
+- KPI-results review mode
+- integrated performance appraisal architecture
+
+Owners:
+- A: architecture and scoring integration
+- B: user-facing development planning and review workflow
+
+---
+
+## What not to do yet
+
+We should not chase the following until the core assessment model is stable:
+- generic HRIS features
+- broad survey platform features
+- a full employee performance suite
+- any score that is calculated only on the client
+- any report that is not backed by server-side logic
+- general-purpose organisation-wide “everything platform” work
+
+---
+
+## Engineering guardrails
+
+The core rule remains:
+
+A reviewer should only be able to submit for the correct assignee, using a valid token, with complete data, and with that response reflected in the real scoring and reporting model.
+
+This must stay enforced server-side.
+
+---
+
+## Recommended handoff checklist
+
+### Senior engineer / architecture owner
+- [ ] org competency library model
+- [ ] cycle-level framework configuration
+- [ ] self-assessment backend rules
+- [ ] rater nomination and approval backend logic
+- [ ] server-side scoring and release gate enforcement
+- [ ] report generation service and persistence
+- [ ] audit trail and role security enforcement
+
+### Codex / UX owner
+- [x] assessment lifecycle screens
+- [x] competency configuration workflow UI
+- [ ] self-assessment completion UX
+- [ ] nomination and approval UX
+- [ ] admin dashboard and progress views
+- [ ] reporting presentation layer
+- [ ] end-to-end testing and edge-case validation
 
 ---
 
 ## Final note
 
-The codebase is in a much healthier state than when the work started. The architecture now includes operational flow thinking, and the remaining work is not random; it is a straightforward continuation from workflow design into real SaaS data and enforcement layers.
+Yes, parallel work is advisable here, but only when it is structured around clear system responsibility.
 
-This is a strong handoff point for a capable engineer, but it should not be treated as “done.” It is a solid transition into the critical backend and reporting layer.
+This handoff is designed to let both engineers make meaningful progress at the same time:
+- one layer owns logic and trust
+- the other owns user flow and delivery experience
+
+That is the correct next move for speed without breaking the product architecture.

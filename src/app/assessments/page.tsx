@@ -37,6 +37,13 @@ import {
   type ReviewerStatus,
 } from "@/lib/assessments360";
 import {
+  buildAssessmentFramework,
+  buildRaterCoverage,
+  validateSelfAssessmentConfig,
+  type AssessmentFunction,
+  type CompetencyDefinition,
+} from "@/lib/assessmentFramework";
+import {
   aggregateReviewScores,
   buildReviewerWorkflowSummary,
   createSecureReviewerInvite,
@@ -54,7 +61,7 @@ type LevelFilter = AssessmentLevel | "all";
 const tabs: Array<{ key: TabKey; label: string; icon: typeof BarChart3 }> = [
   { key: "command", label: "Command", icon: BarChart3 },
   { key: "participants", label: "Participants", icon: Users },
-  { key: "questions", label: "Question bank", icon: ClipboardList },
+  { key: "questions", label: "Framework", icon: ClipboardList },
   { key: "review", label: "Review form", icon: MessageSquareText },
   { key: "reports", label: "Reports", icon: FileText },
 ];
@@ -94,6 +101,9 @@ function average(values: number[]) {
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 }
 
+const assessmentFunctions: AssessmentFunction[] = ["all", "network", "customer_experience", "commercial", "technology", "operations", "hr", "finance"];
+const competencyGroups: CompetencyDefinition["group"][] = ["leadership", "enterprise", "functional"];
+
 export default function AssessmentsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("command");
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
@@ -109,6 +119,7 @@ export default function AssessmentsPage() {
   const [cycleStartsOn, setCycleStartsOn] = useState(active360Cycle.startDate);
   const [cycleClosesOn, setCycleClosesOn] = useState(active360Cycle.closeDate);
   const [cycleNotice, setCycleNotice] = useState("");
+  const [reviewerWeights, setReviewerWeights] = useState(active360Cycle.reviewerWeights);
   const [participantCsv, setParticipantCsv] = useState(
     "name,email,level,function_name,region,portfolio\nAmina Lawal,amina.lawal@example.com,director,Network Operations,North Central,Radio access network and field operations",
   );
@@ -138,6 +149,31 @@ export default function AssessmentsPage() {
   );
   const [submissionComments, setSubmissionComments] = useState<Record<string, string>>({});
   const [submissionNotice, setSubmissionNotice] = useState("");
+  const [frameworkName, setFrameworkName] = useState("Telco Leadership Capability Framework");
+  const [frameworkFunction, setFrameworkFunction] = useState<AssessmentFunction>("all");
+  const [selfAssessmentEnabled, setSelfAssessmentEnabled] = useState(true);
+  const [selfAssessmentRequired, setSelfAssessmentRequired] = useState(true);
+  const [selfMinimumResponses, setSelfMinimumResponses] = useState(1);
+  const [frameworkNotice, setFrameworkNotice] = useState("");
+  const [competencyDraftName, setCompetencyDraftName] = useState("");
+  const [competencyDraftDescription, setCompetencyDraftDescription] = useState("");
+  const [competencyDraftGroup, setCompetencyDraftGroup] = useState<CompetencyDefinition["group"]>("leadership");
+  const [competencyDraftLevel, setCompetencyDraftLevel] = useState<AssessmentLevel | "all">("all");
+  const [competencyDraftFunction, setCompetencyDraftFunction] = useState<AssessmentFunction>("all");
+  const [configuredCompetencies, setConfiguredCompetencies] = useState<CompetencyDefinition[]>(
+    telcoCompetencies.map((competency) => ({
+      id: competency.id,
+      name: competency.name,
+      group: "enterprise",
+      level: "all",
+      function: "all",
+      description: competency.description,
+      active: true,
+    })),
+  );
+  const [competencyWeights, setCompetencyWeights] = useState<Record<string, number>>(
+    () => Object.fromEntries(telcoCompetencies.map((competency) => [competency.id, competency.weight])) as Record<string, number>,
+  );
 
   const visibleAssessees = useMemo(
     () => assessmentSubjects.filter((assessee) => levelFilter === "all" || assessee.level === levelFilter),
@@ -146,10 +182,10 @@ export default function AssessmentsPage() {
   const selectedAssessee = assessmentSubjects.find((assessee) => assessee.id === selectedAssesseeId) ?? assessmentSubjects[0] ?? assessees[0];
   const selectedResult = results.find((result) => result.assesseeId === selectedAssessee.id) ?? results[0];
   const selectedAssesseeReviewers = reviewerAssignments.filter((reviewer) => reviewer.assesseeId === selectedAssessee.id);
-  const selectedScore = weightedScore(selectedResult);
-  const readiness = assessmentReadiness();
-  const completion = average(assessmentSubjects.map((assessee) => completionForAssessee(assessee.id)));
-  const portfolioScore = average(results.map((result) => weightedScore(result)));
+  const selectedScore = weightedScore(selectedResult, reviewerWeights);
+  const readiness = assessmentReadiness(assessmentSubjects, reviewerAssignments);
+  const completion = average(assessmentSubjects.map((assessee) => completionForAssessee(assessee.id, reviewerAssignments)));
+  const portfolioScore = average(results.map((result) => weightedScore(result, reviewerWeights)));
   const riskCount = results.reduce((sum, result) => sum + result.riskNotes.length, 0);
   const submittedCount = reviewerAssignments.filter((reviewer) => reviewer.status === "submitted").length;
   const reviewerSummary = buildReviewerWorkflowSummary(selectedAssesseeReviewers);
@@ -169,6 +205,23 @@ export default function AssessmentsPage() {
       comment: submissionComments[question.competencyId] ?? "Quality evidence provided",
     })),
   );
+  const assessmentFramework = buildAssessmentFramework({
+    orgId: "local-workspace",
+    name: frameworkName,
+    levels: active360Cycle.levels,
+    businessFunctions: [frameworkFunction],
+    defaultGroups: reviewerGroups.map((group) => group.key),
+    competencies: configuredCompetencies,
+    selfAssessmentEnabled,
+  });
+  const selfAssessmentValidation = validateSelfAssessmentConfig({
+    enabled: selfAssessmentEnabled,
+    required: selfAssessmentRequired,
+    minimumResponses: selfMinimumResponses,
+  });
+  const raterCoverage = buildRaterCoverage(reviewerAssignments.map((reviewer) => ({ reviewerGroup: reviewer.group, status: reviewer.status })));
+  const reviewerWeightTotal = Object.values(reviewerWeights).reduce((sum, weight) => sum + weight, 0);
+  const competencyWeightTotal = Object.values(competencyWeights).reduce((sum, weight) => sum + weight, 0);
 
   async function handleDemoSubmit() {
     const payload = {
@@ -224,7 +277,7 @@ export default function AssessmentsPage() {
           startsOn: cycleStartsOn,
           closesOn: cycleClosesOn,
           levels: ["director", "assistant_director"],
-          reviewerWeights: active360Cycle.reviewerWeights,
+          reviewerWeights,
         }),
       });
 
@@ -240,6 +293,35 @@ export default function AssessmentsPage() {
       setCycleNotice(message);
       setTimeout(() => setCycleNotice(""), 4000);
     }
+  }
+
+  function handleAddCompetency() {
+    if (!competencyDraftName.trim()) {
+      setFrameworkNotice("Competency name is required.");
+      setTimeout(() => setFrameworkNotice(""), 3500);
+      return;
+    }
+
+    const id = competencyDraftName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || `competency_${Date.now()}`;
+    const nextCompetency: CompetencyDefinition = {
+      id: `${id}_${Date.now()}`,
+      name: competencyDraftName.trim(),
+      group: competencyDraftGroup,
+      level: competencyDraftLevel,
+      function: competencyDraftFunction,
+      description: competencyDraftDescription.trim(),
+      active: true,
+    };
+
+    setConfiguredCompetencies((current) => [nextCompetency, ...current]);
+    setCompetencyWeights((current) => ({ ...current, [nextCompetency.id]: 10 }));
+    setCompetencyDraftName("");
+    setCompetencyDraftDescription("");
+    setCompetencyDraftGroup("leadership");
+    setCompetencyDraftLevel("all");
+    setCompetencyDraftFunction("all");
+    setFrameworkNotice("Competency added to the draft framework.");
+    setTimeout(() => setFrameworkNotice(""), 3500);
   }
 
   function handleImportParticipants() {
@@ -358,8 +440,8 @@ export default function AssessmentsPage() {
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {[
-              ["Assessees", assessees.length.toString(), "Directors and Assistant Directors"],
-              ["Completion", `${completion}%`, `${submittedCount}/${reviewers.length} reviewers submitted`],
+              ["Assessees", assessmentSubjects.length.toString(), "Directors and Assistant Directors"],
+              ["Completion", `${completion}%`, `${submittedCount}/${reviewerAssignments.length} reviewers submitted`],
               ["Portfolio score", `${portfolioScore}`, "Weighted by reviewer group"],
               ["Readiness", `${readiness}%`, "Coverage, response rate, report quality"],
               ["Close date", formatDate(active360Cycle.closeDate), "Collection window"],
@@ -449,7 +531,7 @@ export default function AssessmentsPage() {
                     <div key={group.key} className={clsx("border-l-4 bg-paper p-3", groupTone[group.key])}>
                       <p className="text-xs font-bold text-muted">{group.shortLabel}</p>
                       <p className="mt-1 text-xl font-black">{selectedResult.groupScores[group.key]}</p>
-                      <p className="text-[11px] text-muted">Weight {active360Cycle.reviewerWeights[group.key]}%</p>
+                      <p className="text-[11px] text-muted">Weight {reviewerWeights[group.key]}%</p>
                     </div>
                   ))}
                 </div>
@@ -500,7 +582,7 @@ export default function AssessmentsPage() {
                 </div>
                 <div className="mt-5 space-y-4">
                   {reviewerGroups.map((group) => {
-                    const value = completionByGroup(group.key);
+                    const value = completionByGroup(group.key, reviewerAssignments);
                     return (
                       <div key={group.key}>
                         <div className="flex items-center justify-between text-sm">
@@ -804,9 +886,9 @@ export default function AssessmentsPage() {
                     </div>
                     <div className="mt-4 flex items-center gap-3">
                       <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink/8">
-                        <div className="h-full rounded-full bg-green" style={{ width: `${completionForAssessee(assessee.id)}%` }} />
+                        <div className="h-full rounded-full bg-green" style={{ width: `${completionForAssessee(assessee.id, reviewerAssignments)}%` }} />
                       </div>
-                      <span className="text-sm font-black">{completionForAssessee(assessee.id)}%</span>
+                      <span className="text-sm font-black">{completionForAssessee(assessee.id, reviewerAssignments)}%</span>
                     </div>
                     <div className="mt-4 grid gap-2 sm:grid-cols-2">
                       {assesseeReviewers.map((reviewer) => (
@@ -829,29 +911,210 @@ export default function AssessmentsPage() {
         )}
 
         {activeTab === "questions" && (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {telcoCompetencies.map((competency) => (
-              <div key={competency.id} className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-4">
+          <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+            <div className="space-y-5">
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Weight {competency.weight}%</p>
-                    <h3 className="mt-2 text-lg font-black">{competency.name}</h3>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Organisation framework</p>
+                    <h3 className="mt-2 text-xl font-black">{assessmentFramework.name}</h3>
                   </div>
-                  <Building2 className="shrink-0 text-pulse" size={20} />
+                  <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", assessmentFramework.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                    {assessmentFramework.ready ? "Ready" : "Draft"}
+                  </span>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-muted">{competency.description}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {competency.telcoSignals.map((signal) => (
-                    <span key={signal} className="rounded-full bg-paper px-3 py-1 text-xs font-bold text-muted">
-                      {signal}
-                    </span>
+                <div className="mt-5 grid gap-3">
+                  <label className="block text-sm font-black text-muted">
+                    Framework name
+                    <input
+                      value={frameworkName}
+                      onChange={(event) => setFrameworkName(event.target.value)}
+                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    />
+                  </label>
+                  <label className="block text-sm font-black text-muted">
+                    Business function
+                    <select
+                      value={frameworkFunction}
+                      onChange={(event) => setFrameworkFunction(event.target.value as AssessmentFunction)}
+                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    >
+                      {assessmentFunctions.map((item) => (
+                        <option key={item} value={item}>
+                          {item.replace("_", " ")}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  {[
+                    ["Levels", assessmentFramework.levels.join(", ").replaceAll("_", " ")],
+                    ["Functions", assessmentFramework.businessFunctions.join(", ").replaceAll("_", " ")],
+                    ["Competencies", assessmentFramework.competencies.length.toString()],
+                    ["Raters", `${raterCoverage.submitted}/${raterCoverage.total} submitted`],
+                    ["Coverage gaps", raterCoverage.missingGroups.length ? raterCoverage.missingGroups.join(", ").replaceAll("_", " ") : "none"],
+                    ["Readiness", raterCoverage.ready ? "complete" : "in progress"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-2xl bg-paper p-3">
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">{label}</p>
+                      <p className="mt-2 text-sm font-black capitalize">{value}</p>
+                    </div>
                   ))}
                 </div>
-                <div className="mt-4 rounded-2xl bg-pulse-soft p-3 text-sm font-semibold text-pulse">
-                  {assessmentQuestions.find((question) => question.competencyId === competency.id && question.kind === "comment")?.prompt}
+              </div>
+
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Self-assessment</p>
+                <h3 className="mt-2 text-xl font-black">Participation mode</h3>
+                <div className="mt-5 grid gap-3">
+                  <label className="flex items-center justify-between gap-3 rounded-2xl bg-paper p-3 text-sm font-black">
+                    Enabled
+                    <input type="checkbox" checked={selfAssessmentEnabled} onChange={(event) => setSelfAssessmentEnabled(event.target.checked)} className="h-5 w-5 accent-pulse" />
+                  </label>
+                  <label className="flex items-center justify-between gap-3 rounded-2xl bg-paper p-3 text-sm font-black">
+                    Required
+                    <input type="checkbox" checked={selfAssessmentRequired} onChange={(event) => setSelfAssessmentRequired(event.target.checked)} className="h-5 w-5 accent-pulse" />
+                  </label>
+                  <label className="block text-sm font-black text-muted">
+                    Minimum self responses
+                    <input
+                      type="number"
+                      min="1"
+                      value={selfMinimumResponses}
+                      onChange={(event) => setSelfMinimumResponses(Number(event.target.value))}
+                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    />
+                  </label>
+                  <div className={clsx("rounded-2xl p-3 text-sm font-black", selfAssessmentValidation.valid ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                    {selfAssessmentValidation.valid ? "Self-assessment setup is valid." : selfAssessmentValidation.errors.join(" ")}
+                  </div>
                 </div>
               </div>
-            ))}
+
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer weights</p>
+                <h3 className="mt-2 text-xl font-black">Group weighting</h3>
+                <div className="mt-5 space-y-4">
+                  {reviewerGroups.map((group) => (
+                    <label key={group.key} className="block text-sm font-black text-muted">
+                      <span className="flex items-center justify-between gap-3">
+                        {group.label}
+                        <span className="text-ink">{reviewerWeights[group.key]}%</span>
+                      </span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="60"
+                        value={reviewerWeights[group.key]}
+                        onChange={(event) => setReviewerWeights((current) => ({ ...current, [group.key]: Number(event.target.value) }))}
+                        className="mt-2 w-full accent-pulse"
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className={clsx("mt-4 rounded-2xl p-3 text-sm font-black", reviewerWeightTotal === 100 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                  Total reviewer weight: {reviewerWeightTotal}%
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Competency builder</p>
+                <h3 className="mt-2 text-xl font-black">Create framework competency</h3>
+                {frameworkNotice && <div className="mt-3 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{frameworkNotice}</div>}
+                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  <label className="block text-sm font-black text-muted md:col-span-2">
+                    Name
+                    <input
+                      value={competencyDraftName}
+                      onChange={(event) => setCompetencyDraftName(event.target.value)}
+                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      placeholder="Stakeholder trust"
+                    />
+                  </label>
+                  <label className="block text-sm font-black text-muted">
+                    Group
+                    <select value={competencyDraftGroup} onChange={(event) => setCompetencyDraftGroup(event.target.value as CompetencyDefinition["group"])} className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50">
+                      {competencyGroups.map((item) => (
+                        <option key={item} value={item}>{item}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-sm font-black text-muted">
+                    Level
+                    <select value={competencyDraftLevel} onChange={(event) => setCompetencyDraftLevel(event.target.value as AssessmentLevel | "all")} className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50">
+                      <option value="all">All</option>
+                      <option value="director">Director</option>
+                      <option value="assistant_director">Assistant Director</option>
+                    </select>
+                  </label>
+                  <label className="block text-sm font-black text-muted md:col-span-2">
+                    Function
+                    <select value={competencyDraftFunction} onChange={(event) => setCompetencyDraftFunction(event.target.value as AssessmentFunction)} className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50">
+                      {assessmentFunctions.map((item) => (
+                        <option key={item} value={item}>{item.replace("_", " ")}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-sm font-black text-muted md:col-span-2">
+                    Description
+                    <textarea
+                      value={competencyDraftDescription}
+                      onChange={(event) => setCompetencyDraftDescription(event.target.value)}
+                      className="mt-1 min-h-20 w-full resize-none rounded-2xl border border-ink/8 bg-paper p-3 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    />
+                  </label>
+                </div>
+                <button type="button" onClick={handleAddCompetency} className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white">
+                  <ClipboardList size={16} />
+                  Add competency
+                </button>
+              </div>
+
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Framework library</p>
+                    <h3 className="mt-2 text-xl font-black">Mapped competencies</h3>
+                  </div>
+                  <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", competencyWeightTotal === 100 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                    {competencyWeightTotal}%
+                  </span>
+                </div>
+                <div className="mt-5 space-y-4">
+                  {configuredCompetencies.map((competency) => (
+                    <div key={competency.id} className="rounded-[18px] border border-ink/8 bg-paper p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-black">{competency.name}</p>
+                          <p className="mt-1 text-xs leading-5 text-muted">{competency.description}</p>
+                          <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
+                            {competency.group} / {competency.level?.replace("_", " ")} / {competency.function?.replace("_", " ")}
+                          </p>
+                        </div>
+                        <Building2 className="shrink-0 text-pulse" size={18} />
+                      </div>
+                      <label className="mt-4 block text-sm font-black text-muted">
+                        <span className="flex items-center justify-between gap-3">
+                          Competency weight
+                          <span className="text-ink">{competencyWeights[competency.id] ?? 0}%</span>
+                        </span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="30"
+                          value={competencyWeights[competency.id] ?? 0}
+                          onChange={(event) => setCompetencyWeights((current) => ({ ...current, [competency.id]: Number(event.target.value) }))}
+                          className="mt-2 w-full accent-pulse"
+                        />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -973,7 +1236,7 @@ export default function AssessmentsPage() {
                 </div>
                 <div className="rounded-2xl bg-green-soft p-4 text-green">
                   <p className="text-xs font-bold">Completion</p>
-                  <p className="mt-2 text-3xl font-black">{completionForAssessee(selectedAssessee.id)}%</p>
+                  <p className="mt-2 text-3xl font-black">{completionForAssessee(selectedAssessee.id, reviewerAssignments)}%</p>
                 </div>
               </div>
               <div className="mt-5 space-y-3">

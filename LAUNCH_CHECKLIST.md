@@ -43,8 +43,8 @@ This is the working checklist for taking Pulse from the current prototype into a
 - [ ] Add reviewer invitation workflow.
 - [ ] Add secure external customer review links.
 - [ ] Add reviewer anonymity thresholds before reports can be released.
-- [ ] Add competency/question-bank builder.
-- [ ] Add weighting controls by reviewer group and competency.
+- [x] Add competency/question-bank builder.
+- [x] Add weighting controls by reviewer group and competency.
 - [ ] Add live completion dashboard by leader, reviewer group, department, and region.
 - [ ] Add reviewer reminder scheduling.
 - [ ] Add calibration workflow for HR before report release.
