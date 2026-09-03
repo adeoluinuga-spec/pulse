@@ -31,7 +31,7 @@ export default function BottomNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}
       aria-label="Main navigation"
     >
-      <div className="bg-card/96 backdrop-blur-md border-t border-border/60">
+      <div className="border-t border-paper-200 bg-surface/96 backdrop-blur-md">
         <div className="flex h-[54px]">
           {tabs.map(({ id, label, href, Icon }) => {
             const active = isActive(id, href, pathname);
@@ -52,17 +52,17 @@ export default function BottomNav() {
                     strokeWidth={active ? 2.25 : 1.75}
                     className={clsx(
                       "transition-all duration-150",
-                      active ? "text-pulse scale-110" : "text-muted",
+                    active ? "text-cobalt scale-110" : "text-muted",
                     )}
                   />
                   {active && (
-                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-pulse" />
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cobalt" />
                   )}
                 </div>
                 <span
                   className={clsx(
                     "text-[9.5px] tracking-wide transition-all duration-150",
-                    active ? "font-bold text-pulse" : "font-medium text-muted",
+                    active ? "font-semibold text-cobalt" : "font-medium text-muted",
                   )}
                 >
                   {label}

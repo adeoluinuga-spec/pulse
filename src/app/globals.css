@@ -3,38 +3,65 @@
 /* ── Design tokens ────────────────────────────────────────────────────────── */
 
 :root {
-  --ink:          #0d0d0d;
-  --paper:        #f5f2ec;
-  --cream:        #faf8f4;
-  --pulse:        #e8440a;
-  --pulse-soft:   #fde8e0;
-  --pulse-dim:    rgba(232, 68, 10, 0.10);
-  --green:        #1a7a4a;
-  --green-soft:   #d4f0e2;
-  --amber:        #c47d00;
-  --amber-soft:   #fef3d4;
-  --red:          #c0392b;
-  --red-soft:     #fde8e6;
-  --muted:        #7a7570;
-  --border:       #e8e3dc;
+  --font-display: var(--font-inter), "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-ui:      var(--font-inter), "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
+  --background:   #ffffff;
+  --foreground:   #0a0b0d;
+  --surface:      #ffffff;
+  --ink:          #0a0b0d;
+  --paper:        #ffffff;
+  --cream:        #fafafa;
+  --pulse:        #3b5bdb;
+  --pulse-soft:   #edf1fd;
+  --pulse-dim:    rgba(59, 91, 219, 0.10);
+  --green:        #059669;
+  --green-soft:   #ecfdf5;
+  --amber:        #b45309;
+  --amber-soft:   #fffbeb;
+  --red:          #dc2626;
+  --red-soft:     #fef2f2;
+  --muted:        #6f7480;
+  --border:       #ececee;
   --card:         #ffffff;
-  --shadow:       0 1px 12px rgba(13, 13, 13, 0.06);
-  --shadow-lg:    0 8px 40px rgba(13, 13, 13, 0.10);
-  --shadow-xl:    0 20px 60px rgba(13, 13, 13, 0.14);
-  --radius:       16px;
-  --radius-sm:    10px;
-  --radius-lg:    20px;
-  --radius-xl:    24px;
+  --shadow:       0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-lg:    0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
+  --shadow-xl:    0 24px 48px -12px rgba(16, 24, 40, 0.18);
+  --radius:       8px;
+  --radius-sm:    6px;
+  --radius-lg:    12px;
+  --radius-xl:    12px;
 }
 
 /* ── Tailwind v4 theme bridge ─────────────────────────────────────────────── */
 
 @theme inline {
   --color-ink:         var(--ink);
+  --color-ink-950:     #050608;
+  --color-ink-900:     #0a0b0d;
+  --color-ink-800:     #16181d;
+  --color-ink-700:     #24272e;
+  --color-ink-600:     #3a3e48;
+  --color-ink-500:     #565b66;
+  --color-ink-400:     #6f7480;
+  --color-ink-300:     #9ba0aa;
   --color-paper:       var(--paper);
+  --color-paper-50:    #fafafa;
+  --color-paper-100:   #f4f5f6;
+  --color-paper-200:   #ececee;
+  --color-paper-300:   #dfe1e4;
   --color-cream:       var(--cream);
   --color-pulse:       var(--pulse);
   --color-pulse-soft:  var(--pulse-soft);
+  --color-background:  var(--background);
+  --color-foreground:  var(--foreground);
+  --color-surface:     var(--surface);
+  --color-cobalt:      #3b5bdb;
+  --color-cobalt-light:#edf1fd;
+  --color-cobalt-dark: #2b44a8;
+  --color-silver:      #d7dae0;
+  --color-silver-light:#eceef1;
+  --color-silver-dark: #aeb3bc;
   --color-green:       var(--green);
   --color-green-soft:  var(--green-soft);
   --color-amber:       var(--amber);
@@ -45,8 +72,9 @@
   --color-border:      var(--border);
   --color-card:        var(--card);
 
-  --font-syne: var(--font-syne), "Syne", sans-serif;
-  --font-sans: var(--font-dm-sans), "DM Sans", sans-serif;
+  --font-syne: var(--font-display);
+  --font-sans: var(--font-ui);
+  --font-display: var(--font-display);
 }
 
 /* ── Base reset ───────────────────────────────────────────────────────────── */
@@ -61,18 +89,19 @@ html {
 }
 
 body {
-  background-color: var(--cream);
+  background-color: var(--background);
   color: var(--ink);
-  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   touch-action: manipulation;
-  text-rendering: geometricPrecision;
+  font-feature-settings: "cv11";
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-syne), "Syne", sans-serif;
+  font-family: var(--font-display);
+  letter-spacing: 0;
 }
 
 /* ── Utility: hide scrollbars ────────────────────────────────────────────── */
@@ -208,14 +237,22 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .bg-card {
-  background: rgba(255, 255, 255, 0.88);
-  border-color: rgba(226, 221, 214, 0.78);
+  background: var(--surface);
+  border-color: var(--border);
 }
 
 .bg-ink {
-  background:
-    radial-gradient(circle at 18% 0%, rgba(232, 68, 10, 0.16), transparent 28rem),
-    linear-gradient(145deg, #0d0d0d, #17120f);
+  background: var(--ink);
+}
+
+[class*="radial-gradient"],
+[class*="linear-gradient"] {
+  background: var(--background) !important;
+}
+
+.font-black,
+.font-extrabold {
+  font-weight: 700 !important;
 }
 
 button,
@@ -238,6 +275,28 @@ a:active,
   }
 }
 
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl,
+.rounded-\[18px\],
+.rounded-\[20px\],
+.rounded-\[22px\],
+.rounded-\[24px\],
+.rounded-\[28px\] {
+  border-radius: var(--radius) !important;
+}
+
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl,
+.shadow-\[var\(--shadow-lg\)\],
+.shadow-\[0_8px_40px_rgba\(13\,13\,13\,0\.10\)\],
+.shadow-\[0_20px_60px_rgba\(13\,13\,13\,0\.14\)\],
+.shadow-\[0_24px_80px_rgba\(13\,13\,13\,0\.10\)\] {
+  box-shadow: var(--shadow) !important;
+}
+
 /* ── Insight card (AI brief) ─────────────────────────────────────────────── */
 
 .insight-card {
@@ -249,14 +308,7 @@ a:active,
 }
 
 .insight-card::before {
-  content: "";
-  position: absolute;
-  top: -40%;
-  right: -5%;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(232, 68, 10, 0.10) 0%, transparent 70%);
-  pointer-events: none;
+  display: none;
 }
 
 /* ── Type label ──────────────────────────────────────────────────────────── */
@@ -272,7 +324,7 @@ a:active,
 /* ── Metric hero ──────────────────────────────────────────────────────────── */
 
 .metric-hero {
-  font-family: var(--font-syne), "Syne", sans-serif;
+  font-family: var(--font-display);
   font-size: 52px;
   font-weight: 700;
   line-height: 1;

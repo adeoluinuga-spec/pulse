@@ -13,12 +13,10 @@ import {
   Home,
   Settings2,
   ShieldCheck,
-  Sparkles,
   Target,
   Users,
 } from "lucide-react";
 import { useUser } from "@/context/UserContext";
-import { dailyPulseLine } from "@/lib/pulseLanguage";
 
 const primaryItems = [
   { label: "Home", href: "/dashboard", icon: Home },
@@ -38,7 +36,6 @@ function active(pathname: string, href: string) {
 export default function WorkSidebar() {
   const pathname = usePathname();
   const { user, profileImages } = useUser();
-  const pulseLine = dailyPulseLine();
   const profileImage = profileImages[user.id];
   const teamEnabled = user.peopleResponsibility !== "none";
   const portalItems = [
@@ -51,26 +48,18 @@ export default function WorkSidebar() {
   ];
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[280px] border-r border-ink/8 bg-ink px-4 py-5 text-white md:flex md:flex-col">
-      <Link href="/dashboard" className="flex min-h-11 items-center gap-3 rounded-2xl px-2">
-        <span className="relative grid h-9 w-9 place-items-center rounded-2xl bg-pulse text-sm font-black shadow-[0_0_0_6px_rgba(232,68,10,0.12)]">P</span>
-        <div>
-          <p className="font-syne text-lg font-extrabold leading-none">Pulse</p>
-          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Work OS</p>
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-paper-200 bg-paper-50 text-ink md:flex md:flex-col">
+      <Link href="/dashboard" className="flex h-16 items-center gap-2.5 px-5">
+        <span className="grid h-8 w-8 place-items-center rounded-md bg-cobalt text-sm font-semibold text-white">P</span>
+        <div className="leading-tight">
+          <p className="font-display text-[15px] font-semibold text-ink">Pulse</p>
+          <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted">Work OS</p>
         </div>
       </Link>
 
-      <div className="mt-6 rounded-[20px] border border-white/10 bg-white/[0.06] p-4">
-        <div className="flex items-center gap-2 text-pulse">
-          <Sparkles size={14} />
-          <p className="text-xs font-bold">Pulse noticed</p>
-        </div>
-        <p className="mt-2 text-sm leading-relaxed text-white/72">
-          {pulseLine}
-        </p>
-      </div>
-
-      <nav className="mt-6 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-3 pb-6 pt-2">
+        <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-300">Workspace</p>
+        <div className="space-y-0.5">
         {primaryItems.map((item) => {
           const Icon = item.icon;
           const isActive = active(pathname, item.href);
@@ -79,21 +68,22 @@ export default function WorkSidebar() {
               key={item.href}
               href={item.href}
               className={clsx(
-                "group flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm font-bold transition",
-                isActive ? "bg-white text-ink shadow-[0_8px_30px_rgba(0,0,0,0.16)]" : "text-white/56 hover:bg-white/8 hover:text-white",
+                "group flex min-h-9 items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
+                isActive ? "bg-cobalt-light font-semibold text-cobalt-dark" : "text-ink-500 hover:bg-paper-100 hover:text-ink",
               )}
             >
-              <Icon size={17} className={isActive ? "text-pulse" : "text-white/38 group-hover:text-pulse"} />
-              {item.label}
+              <Icon size={16} className={isActive ? "text-cobalt" : "text-ink-300 group-hover:text-ink-500"} />
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
             </Link>
           );
         })}
+        </div>
       </nav>
 
       {portalItems.length > 0 && (
-        <div className="mt-6 border-t border-white/10 pt-5">
-          <p className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/28">Adaptive access</p>
-          <div className="mt-2 space-y-1">
+        <div className="border-t border-paper-200 px-3 py-4">
+          <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-300">Adaptive access</p>
+          <div className="space-y-0.5">
             {portalItems.map((item) => {
               const Icon = item.icon;
               const isActive = active(pathname, item.href);
@@ -102,12 +92,12 @@ export default function WorkSidebar() {
                   key={item.href}
                   href={item.href}
                   className={clsx(
-                    "flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm font-bold transition",
-                    isActive ? "bg-pulse text-white" : "text-white/56 hover:bg-white/8 hover:text-white",
+                    "flex min-h-9 items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
+                    isActive ? "bg-cobalt-light font-semibold text-cobalt-dark" : "text-ink-500 hover:bg-paper-100 hover:text-ink",
                   )}
                 >
-                  <Icon size={17} />
-                  {item.label}
+                  <Icon size={16} className={isActive ? "text-cobalt" : "text-ink-300"} />
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
                 </Link>
               );
             })}
@@ -115,20 +105,16 @@ export default function WorkSidebar() {
         </div>
       )}
 
-      <div className="mt-auto rounded-[22px] border border-white/10 bg-paper p-4 text-ink">
+      <div className="border-t border-paper-200 px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-full text-xs font-black text-white ring-2 ring-white" style={{ backgroundColor: user.avatarColor }}>
+          <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-paper-100 text-xs font-semibold uppercase text-ink-600">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {profileImage ? <img src={profileImage} alt="" className="h-full w-full object-cover" /> : user.initials}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-black">{user.name}</p>
-            <p className="truncate text-xs text-muted">{user.role}</p>
+            <p className="truncate text-xs font-semibold text-ink">{user.name}</p>
+            <p className="truncate text-[11px] text-muted">{user.role}</p>
           </div>
-        </div>
-        <div className="mt-3 flex gap-2">
-          <span className="rounded-full bg-pulse-soft px-2 py-1 text-[10px] font-bold text-pulse">{user.cadre}</span>
-          <span className="rounded-full bg-green-soft px-2 py-1 text-[10px] font-bold text-green">{user.peopleResponsibility}</span>
         </div>
       </div>
     </aside>

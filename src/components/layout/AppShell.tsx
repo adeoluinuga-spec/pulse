@@ -14,12 +14,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isImmersivePortal = pathname === "/hr" || pathname === "/executive";
 
   if (isAuth || isStandalone) {
-    return <div className="min-h-screen bg-paper text-ink">{children}</div>;
+    return <div className="min-h-screen bg-background text-foreground">{children}</div>;
   }
 
   if (isImmersivePortal) {
     return (
-      <div className="min-h-screen bg-paper">
+      <div className="min-h-screen bg-background">
         <TopBar />
         {children}
       </div>
@@ -27,14 +27,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,rgba(232,68,10,0.08),transparent_32rem),linear-gradient(135deg,var(--cream),var(--paper))] text-ink">
+    <div className="flex min-h-screen w-full overflow-x-hidden bg-background text-foreground">
       <WorkSidebar />
-      <div className="min-h-screen md:pl-[280px]">
-        <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col">
-          <TopBar />
-          <div className="flex-1">
-            {children}
-          </div>
+      <div className="flex min-w-0 flex-1 flex-col md:pl-60">
+        <TopBar />
+        <div className="flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+          {children}
         </div>
       </div>
     </div>
