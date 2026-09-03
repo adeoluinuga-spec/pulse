@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import clsx from "clsx";
 import {
   BarChart3,
@@ -62,6 +62,55 @@ type TabKey = "command" | "participants" | "questions" | "self" | "nominations" 
 type LevelFilter = AssessmentLevel | "all";
 type NominationStatus = "pending" | "approved" | "rejected";
 
+type ApiCycle = {
+  id: string;
+  name: string;
+  status?: string;
+  starts_on?: string | null;
+  closes_on?: string | null;
+  reviewer_weights?: Partial<Record<ReviewerGroup, number>>;
+  levels?: AssessmentLevel[];
+  client_context?: string | null;
+};
+
+type ApiSubject = {
+  id: string;
+  name: string;
+  level?: AssessmentLevel;
+  function_name?: string | null;
+  region?: string | null;
+  portfolio?: string | null;
+};
+
+type ApiReviewer = {
+  id: string;
+  subject_id: string;
+  reviewer_name: string;
+  reviewer_group: ReviewerGroup;
+  organisation?: string | null;
+  reviewer_email: string;
+  status?: ReviewerStatus;
+  submitted_at?: string | null;
+};
+
+type ApiNomination = {
+  id: string;
+  subject_id: string;
+  reviewer_name: string;
+  reviewer_email: string;
+  reviewer_group: ReviewerGroup;
+  status?: NominationStatus;
+};
+
+type ApiReport = {
+  subject_id: string;
+  group_scores?: Partial<Record<ReviewerGroup, number>>;
+  competency_scores?: Array<{ competencyId?: string; competency_id?: string; score?: number; benchmark?: number }>;
+  strengths?: string[];
+  development_areas?: string[];
+  risk_notes?: string[];
+};
+
 const tabs: Array<{ key: TabKey; label: string; icon: typeof BarChart3 }> = [
   { key: "command", label: "Command", icon: BarChart3 },
   { key: "participants", label: "Participants", icon: Users },
@@ -111,6 +160,90 @@ function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value));
 }
 
+function initialsFor(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "NP";
+}
+
+function mapApiCycle(cycle: ApiCycle) {
+  return {
+    id: cycle.id,
+    name: cycle.name,
+    clientName: cycle.client_context || active360Cycle.clientName,
+    status: (cycle.status ?? "setup") as typeof active360Cycle.status,
+    startDate: cycle.starts_on ?? active360Cycle.startDate,
+    closeDate: cycle.closes_on ?? active360Cycle.closeDate,
+    levels: cycle.levels?.length ? cycle.levels : active360Cycle.levels,
+    reviewerWeights: {
+      ...active360Cycle.reviewerWeights,
+      ...(cycle.reviewer_weights ?? {}),
+    },
+  };
+}
+
+function mapApiSubject(subject: ApiSubject) {
+  return {
+    id: subject.id,
+    name: subject.name,
+    initials: initialsFor(subject.name),
+    level: subject.level ?? "assistant_director",
+    functionName: subject.function_name || "Not specified",
+    region: subject.region || "Not specified",
+    portfolio: subject.portfolio || "Review participant",
+    tenureYears: 1,
+  };
+}
+
+function mapApiReviewer(reviewer: ApiReviewer): Reviewer {
+  return {
+    id: reviewer.id,
+    assesseeId: reviewer.subject_id,
+    name: reviewer.reviewer_name,
+    group: reviewer.reviewer_group,
+    organisation: reviewer.organisation ?? undefined,
+    email: reviewer.reviewer_email,
+    status: reviewer.status ?? "not_started",
+    submittedAt: reviewer.submitted_at ?? undefined,
+  };
+}
+
+function mapApiNomination(nomination: ApiNomination): RaterNominationItem {
+  return {
+    id: nomination.id,
+    assigneeId: nomination.subject_id,
+    reviewerId: nomination.reviewer_email,
+    name: nomination.reviewer_name,
+    email: nomination.reviewer_email,
+    group: nomination.reviewer_group,
+    status: nomination.status ?? "pending",
+  };
+}
+
+function mapApiReport(report: ApiReport) {
+  return {
+    assesseeId: report.subject_id,
+    groupScores: {
+      direct_report: report.group_scores?.direct_report ?? 0,
+      subordinate: report.group_scores?.subordinate ?? 0,
+      colleague: report.group_scores?.colleague ?? 0,
+      customer: report.group_scores?.customer ?? 0,
+    },
+    competencyScores: (report.competency_scores ?? []).map((entry) => ({
+      competencyId: entry.competencyId ?? entry.competency_id ?? "unknown",
+      score: entry.score ?? 0,
+      benchmark: entry.benchmark ?? 80,
+    })),
+    strongestSignals: report.strengths ?? [],
+    developmentSignals: report.development_areas ?? [],
+    riskNotes: report.risk_notes ?? [],
+  };
+}
+
 const assessmentFunctions: AssessmentFunction[] = ["all", "network", "customer_experience", "commercial", "technology", "operations", "hr", "finance"];
 const competencyGroups: CompetencyDefinition["group"][] = ["leadership", "enterprise", "functional"];
 
@@ -126,6 +259,9 @@ type RaterNominationItem = {
 
 export default function AssessmentsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("command");
+  const [activeCycle, setActiveCycle] = useState(active360Cycle);
+  const [isHydratingAssessmentData, setIsHydratingAssessmentData] = useState(true);
+  const [dataSourceNotice, setDataSourceNotice] = useState("Loading assessment records...");
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
   const [selectedAssesseeId, setSelectedAssesseeId] = useState(assessees[0]?.id ?? "");
   const [reviewerGroup, setReviewerGroup] = useState<ReviewerGroup>("colleague");
@@ -145,6 +281,7 @@ export default function AssessmentsPage() {
   );
   const [participantNotice, setParticipantNotice] = useState("");
   const [assessmentSubjects, setAssessmentSubjects] = useState(assessees);
+  const [assessmentResults, setAssessmentResults] = useState(results);
   const [reviewerName, setReviewerName] = useState("");
   const [reviewerEmail, setReviewerEmail] = useState("");
   const [reviewerOrg, setReviewerOrg] = useState("");
@@ -216,18 +353,99 @@ export default function AssessmentsPage() {
     })),
   );
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAssessmentData() {
+      setIsHydratingAssessmentData(true);
+
+      try {
+        const cyclesResponse = await fetch("/api/assessments/cycles", { cache: "no-store" });
+        const cyclesPayload = await cyclesResponse.json();
+
+        if (!cyclesResponse.ok) {
+          throw new Error(cyclesPayload?.error ?? "Unable to load assessment cycles");
+        }
+
+        const cycle = (cyclesPayload?.cycles ?? [])[0] as ApiCycle | undefined;
+        if (!cycle) {
+          if (!cancelled) {
+            setDataSourceNotice("Demo assessment data active. Create a cycle to switch this workbench to live Supabase records.");
+            setIsHydratingAssessmentData(false);
+          }
+          return;
+        }
+
+        const liveCycle = mapApiCycle(cycle);
+        const [subjectsResponse, reviewersResponse, nominationsResponse, reportsResponse] = await Promise.all([
+          fetch(`/api/assessments/subjects?cycleId=${encodeURIComponent(liveCycle.id)}`, { cache: "no-store" }),
+          fetch(`/api/assessments/reviewers?cycleId=${encodeURIComponent(liveCycle.id)}`, { cache: "no-store" }),
+          fetch(`/api/assessments/nominations?cycleId=${encodeURIComponent(liveCycle.id)}`, { cache: "no-store" }),
+          fetch(`/api/assessments/reports?cycleId=${encodeURIComponent(liveCycle.id)}`, { cache: "no-store" }),
+        ]);
+
+        const [subjectsPayload, reviewersPayload, nominationsPayload, reportsPayload] = await Promise.all([
+          subjectsResponse.json(),
+          reviewersResponse.json(),
+          nominationsResponse.json(),
+          reportsResponse.json(),
+        ]);
+
+        if (!subjectsResponse.ok) throw new Error(subjectsPayload?.error ?? "Unable to load participants");
+        if (!reviewersResponse.ok) throw new Error(reviewersPayload?.error ?? "Unable to load reviewers");
+        if (!nominationsResponse.ok) throw new Error(nominationsPayload?.error ?? "Unable to load nominations");
+        if (!reportsResponse.ok) throw new Error(reportsPayload?.error ?? "Unable to load reports");
+
+        if (cancelled) return;
+
+        const liveSubjects = (subjectsPayload?.subjects ?? []).map(mapApiSubject);
+        const liveReviewers = (reviewersPayload?.reviewers ?? []).map(mapApiReviewer);
+        const liveNominations = (nominationsPayload?.nominations ?? []).map(mapApiNomination);
+        const liveResults = (reportsPayload?.reports ?? []).map(mapApiReport);
+
+        setActiveCycle(liveCycle);
+        setCycleName(liveCycle.name);
+        setCycleClient(liveCycle.clientName);
+        setCycleStartsOn(liveCycle.startDate);
+        setCycleClosesOn(liveCycle.closeDate);
+        setReviewerWeights(liveCycle.reviewerWeights);
+        if (liveSubjects.length) {
+          setAssessmentSubjects(liveSubjects);
+          setSelectedAssesseeId(liveSubjects[0].id);
+        }
+        if (liveReviewers.length) setReviewerAssignments(liveReviewers);
+        if (liveNominations.length) setRaterNominations(liveNominations);
+        if (liveResults.length) setAssessmentResults(liveResults);
+        setDataSourceNotice(`Live Supabase data loaded from ${liveCycle.name}.`);
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : "Unable to hydrate assessment data";
+          setDataSourceNotice(`${message}. Demo assessment data is still available for walkthrough.`);
+        }
+      } finally {
+        if (!cancelled) setIsHydratingAssessmentData(false);
+      }
+    }
+
+    loadAssessmentData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const visibleAssessees = useMemo(
     () => assessmentSubjects.filter((assessee) => levelFilter === "all" || assessee.level === levelFilter),
     [assessmentSubjects, levelFilter],
   );
   const selectedAssessee = assessmentSubjects.find((assessee) => assessee.id === selectedAssesseeId) ?? assessmentSubjects[0] ?? assessees[0];
-  const selectedResult = results.find((result) => result.assesseeId === selectedAssessee.id) ?? results[0];
+  const selectedResult = assessmentResults.find((result) => result.assesseeId === selectedAssessee.id) ?? assessmentResults[0] ?? results[0];
   const selectedAssesseeReviewers = reviewerAssignments.filter((reviewer) => reviewer.assesseeId === selectedAssessee.id);
   const selectedScore = weightedScore(selectedResult, reviewerWeights);
   const readiness = assessmentReadiness(assessmentSubjects, reviewerAssignments);
   const completion = average(assessmentSubjects.map((assessee) => completionForAssessee(assessee.id, reviewerAssignments)));
-  const portfolioScore = average(results.map((result) => weightedScore(result, reviewerWeights)));
-  const riskCount = results.reduce((sum, result) => sum + result.riskNotes.length, 0);
+  const portfolioScore = average(assessmentResults.map((result) => weightedScore(result, reviewerWeights)));
+  const riskCount = assessmentResults.reduce((sum, result) => sum + result.riskNotes.length, 0);
   const submittedCount = reviewerAssignments.filter((reviewer) => reviewer.status === "submitted").length;
   const reviewerSummary = buildReviewerWorkflowSummary(selectedAssesseeReviewers);
   const releaseSummary = releaseReadinessSummary(selectedAssesseeReviewers);
@@ -249,7 +467,7 @@ export default function AssessmentsPage() {
   const assessmentFramework = buildAssessmentFramework({
     orgId: "local-workspace",
     name: frameworkName,
-    levels: active360Cycle.levels,
+    levels: activeCycle.levels,
     businessFunctions: [frameworkFunction],
     defaultGroups: reviewerGroups.map((group) => group.key),
     competencies: configuredCompetencies,
@@ -292,7 +510,7 @@ export default function AssessmentsPage() {
     const submitted = assigned.filter((reviewer) => reviewer.status === "submitted").length;
     const progress = completionForAssessee(assessee.id, reviewerAssignments);
     const release = releaseReadinessSummary(assigned);
-    const result = results.find((entry) => entry.assesseeId === assessee.id);
+    const result = assessmentResults.find((entry) => entry.assesseeId === assessee.id);
 
     return {
       assessee,
@@ -349,7 +567,7 @@ export default function AssessmentsPage() {
     })),
     reviewerWeights,
   );
-  const cohortReportSummaries = results.map((result) => {
+  const cohortReportSummaries = assessmentResults.map((result) => {
     const assessee = assessmentSubjects.find((entry) => entry.id === result.assesseeId);
     const summary = buildAssessmentReportSummary(
       reviewerGroups.map((group) => ({
@@ -441,7 +659,13 @@ export default function AssessmentsPage() {
         throw new Error(payload?.error ?? "Unable to create assessment cycle");
       }
 
+      if (payload.cycle) {
+        const liveCycle = mapApiCycle(payload.cycle);
+        setActiveCycle(liveCycle);
+        setReviewerWeights(liveCycle.reviewerWeights);
+      }
       setCycleNotice(`Assessment cycle created: ${payload.cycle?.name ?? cycleName}`);
+      setDataSourceNotice(`Live Supabase cycle active: ${payload.cycle?.name ?? cycleName}.`);
       setTimeout(() => setCycleNotice(""), 4000);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to create assessment cycle";
@@ -479,7 +703,7 @@ export default function AssessmentsPage() {
     setTimeout(() => setFrameworkNotice(""), 3500);
   }
 
-  function handleSelfSubmit() {
+  async function handleSelfSubmit() {
     const payload = {
       token: `self-${selectedAssessee.id}`,
       responses: selfResponses,
@@ -497,12 +721,41 @@ export default function AssessmentsPage() {
       return;
     }
 
-    setSelfSubmitted(true);
-    setSelfNotice("Self-assessment captured for HR review.");
-    setTimeout(() => setSelfNotice(""), 3500);
+    if (activeCycle.id === active360Cycle.id) {
+      setSelfSubmitted(true);
+      setSelfNotice("Demo self-assessment captured for HR review.");
+      setTimeout(() => setSelfNotice(""), 3500);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/assessments/self", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cycleId: activeCycle.id,
+          subjectId: selectedAssessee.id,
+          assigneeId: selectedAssessee.id,
+          entries: selfResponses,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error ?? "Unable to submit self-assessment");
+      }
+
+      setSelfSubmitted(true);
+      setSelfNotice("Self-assessment captured and saved for HR review.");
+      setTimeout(() => setSelfNotice(""), 3500);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to submit self-assessment";
+      setSelfNotice(message);
+      setTimeout(() => setSelfNotice(""), 3500);
+    }
   }
 
-  function handleAddNomination() {
+  async function handleAddNomination() {
     if (!nomineeName.trim() || !nomineeEmail.trim()) {
       setNominationNotice("Nominee name and email are required.");
       setTimeout(() => setNominationNotice(""), 3500);
@@ -536,12 +789,47 @@ export default function AssessmentsPage() {
       return;
     }
 
-    setRaterNominations((current) => [nextNomination, ...current]);
-    setNomineeName("");
-    setNomineeEmail("");
-    setNomineeGroup("colleague");
-    setNominationNotice("Rater nomination added for approval.");
-    setTimeout(() => setNominationNotice(""), 3500);
+    if (activeCycle.id === active360Cycle.id) {
+      setRaterNominations((current) => [nextNomination, ...current]);
+      setNomineeName("");
+      setNomineeEmail("");
+      setNomineeGroup("colleague");
+      setNominationNotice("Demo rater nomination added for approval.");
+      setTimeout(() => setNominationNotice(""), 3500);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/assessments/nominations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cycleId: activeCycle.id,
+          subjectId: selectedAssessee.id,
+          assigneeId: selectedAssessee.id,
+          reviewerName: nomineeName,
+          reviewerEmail: nomineeEmail,
+          reviewerGroup: nomineeGroup,
+          status: "pending",
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.errors?.[0] ?? result?.error ?? "Unable to add nomination");
+      }
+
+      setRaterNominations((current) => [result.nomination ? mapApiNomination(result.nomination) : nextNomination, ...current]);
+      setNomineeName("");
+      setNomineeEmail("");
+      setNomineeGroup("colleague");
+      setNominationNotice("Rater nomination saved for approval.");
+      setTimeout(() => setNominationNotice(""), 3500);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to add nomination";
+      setNominationNotice(message);
+      setTimeout(() => setNominationNotice(""), 3500);
+    }
   }
 
   function handleNominationDecision(id: string, status: NominationStatus) {
@@ -550,7 +838,7 @@ export default function AssessmentsPage() {
     );
   }
 
-  function handleImportParticipants() {
+  async function handleImportParticipants() {
     const parsed = parseAssessmentParticipantCsv(participantCsv);
     if (!parsed.length) {
       setParticipantNotice("No valid participant rows found. Please use a CSV with name and email columns.");
@@ -558,18 +846,60 @@ export default function AssessmentsPage() {
       return;
     }
 
-    const imported = parsed.map((row, index) => {
+    if (activeCycle.id === active360Cycle.id) {
+      const imported = buildLocalParticipants();
+      setAssessmentSubjects((current) => [...imported, ...current]);
+      setSelectedAssesseeId(imported[0]?.id ?? selectedAssesseeId);
+      setParticipantCsv("");
+      setParticipantNotice(`${imported.length} demo participant${imported.length === 1 ? "" : "s"} imported. Create a cycle to persist participants.`);
+      setTimeout(() => setParticipantNotice(""), 4000);
+      return;
+    }
+
+    try {
+      const saved = await Promise.all(parsed.map(async (row, index) => {
+        const response = await fetch("/api/assessments/subjects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cycleId: activeCycle.id,
+            name: row.name,
+            email: row.email,
+            level: row.level === "director" ? "director" : "assistant_director",
+            functionName: row.functionName,
+            region: row.region,
+            portfolio: row.portfolio,
+          }),
+        });
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result?.error ?? `Unable to save participant row ${index + 1}`);
+        }
+
+        return mapApiSubject(result.subject);
+      }));
+
+      setAssessmentSubjects((current) => [...saved, ...current]);
+      setSelectedAssesseeId(saved[0]?.id ?? selectedAssesseeId);
+      setParticipantCsv("");
+      setParticipantNotice(`${saved.length} participant${saved.length === 1 ? "" : "s"} saved into the assessment cycle.`);
+      setTimeout(() => setParticipantNotice(""), 4000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to import participants";
+      setParticipantNotice(message);
+      setTimeout(() => setParticipantNotice(""), 4000);
+    }
+  }
+
+  function buildLocalParticipants() {
+    const parsed = parseAssessmentParticipantCsv(participantCsv);
+    return parsed.map((row, index) => {
       const level: AssessmentLevel = row.level === "director" ? "director" : "assistant_director";
       return {
         id: `imported-${Date.now()}-${index}`,
         name: row.name,
-        initials: row.name
-          .split(" ")
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((part) => part[0])
-          .join("")
-          .toUpperCase() || "NP",
+        initials: initialsFor(row.name),
         level,
         functionName: row.functionName || "New function",
         region: row.region || "Not specified",
@@ -577,15 +907,9 @@ export default function AssessmentsPage() {
         tenureYears: 1,
       };
     });
-
-    setAssessmentSubjects((current) => [...imported, ...current]);
-    setSelectedAssesseeId(imported[0]?.id ?? selectedAssesseeId);
-    setParticipantCsv("");
-    setParticipantNotice(`${imported.length} participant${imported.length === 1 ? "" : "s"} imported into the assessment cycle.`);
-    setTimeout(() => setParticipantNotice(""), 4000);
   }
 
-  function handleAddReviewer() {
+  async function handleAddReviewer() {
     const candidate = {
       reviewer_name: reviewerName,
       reviewer_email: reviewerEmail,
@@ -614,20 +938,64 @@ export default function AssessmentsPage() {
       reviewerChannel,
     );
 
-    setReviewerAssignments((current) => [nextReviewer, ...current]);
-    setReviewerInvites((current) => [invite, ...current]);
-    setReviewerName("");
-    setReviewerEmail("");
-    setReviewerOrg("");
-    setReviewerGroupForm("direct_report");
-    setReviewerChannel("email");
-    setAssessmentScope("individual");
-    setReviewerNotice("Reviewer assigned and invite generated.");
-    setInviteNotice(`Secure link ready: ${invite.secureLink}`);
-    setTimeout(() => {
-      setReviewerNotice("");
-      setInviteNotice("");
-    }, 5000);
+    if (activeCycle.id === active360Cycle.id) {
+      setReviewerAssignments((current) => [nextReviewer, ...current]);
+      setReviewerInvites((current) => [invite, ...current]);
+      setReviewerName("");
+      setReviewerEmail("");
+      setReviewerOrg("");
+      setReviewerGroupForm("direct_report");
+      setReviewerChannel("email");
+      setAssessmentScope("individual");
+      setReviewerNotice("Demo reviewer assigned and invite generated.");
+      setInviteNotice(`Secure link ready: ${invite.secureLink}`);
+      setTimeout(() => {
+        setReviewerNotice("");
+        setInviteNotice("");
+      }, 5000);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/assessments/reviewers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cycleId: activeCycle.id,
+          subjectId: selectedAssessee.id,
+          reviewerName,
+          reviewerEmail,
+          reviewerGroup: reviewerGroupForm,
+          organisation: reviewerOrg,
+          inviteChannel: reviewerChannel,
+          assessmentScope,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error ?? "Unable to assign reviewer");
+      }
+
+      setReviewerAssignments((current) => [result.reviewer ? mapApiReviewer(result.reviewer) : nextReviewer, ...current]);
+      setReviewerInvites((current) => [result.invite ?? invite, ...current]);
+      setReviewerName("");
+      setReviewerEmail("");
+      setReviewerOrg("");
+      setReviewerGroupForm("direct_report");
+      setReviewerChannel("email");
+      setAssessmentScope("individual");
+      setReviewerNotice("Reviewer assigned and invite generated.");
+      setInviteNotice(`Secure link ready: ${result.invite?.secureLink ?? invite.secureLink}`);
+      setTimeout(() => {
+        setReviewerNotice("");
+        setInviteNotice("");
+      }, 5000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to assign reviewer";
+      setReviewerNotice(message);
+      setTimeout(() => setReviewerNotice(""), 4000);
+    }
   }
 
   return (
@@ -642,7 +1010,7 @@ export default function AssessmentsPage() {
                   Telco 360
                 </span>
                 <span className="rounded-full bg-ink px-3 py-1 text-xs font-bold text-white">
-                  {active360Cycle.clientName}
+                  {activeCycle.clientName}
                 </span>
               </div>
               <h1 className="mt-4 font-syne text-3xl font-black leading-tight sm:text-4xl">
@@ -670,7 +1038,7 @@ export default function AssessmentsPage() {
               ["Completion", `${completion}%`, `${submittedCount}/${reviewerAssignments.length} reviewers submitted`],
               ["Portfolio score", `${portfolioScore}`, "Weighted by reviewer group"],
               ["Readiness", `${readiness}%`, "Coverage, response rate, report quality"],
-              ["Close date", formatDate(active360Cycle.closeDate), "Collection window"],
+              ["Close date", formatDate(activeCycle.closeDate), "Collection window"],
             ].map(([label, value, detail]) => (
               <div key={label} className="rounded-[18px] border border-ink/8 bg-paper px-4 py-4">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted">{label}</p>
@@ -698,6 +1066,14 @@ export default function AssessmentsPage() {
                 </button>
               );
             })}
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-[18px] border border-ink/8 bg-paper px-4 py-3 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+            <span>{dataSourceNotice}</span>
+            <span className="inline-flex items-center gap-2 font-black text-ink">
+              <span className={clsx("h-2.5 w-2.5 rounded-full", isHydratingAssessmentData ? "bg-amber-500" : activeCycle.id === active360Cycle.id ? "bg-blue-500" : "bg-green")} />
+              {isHydratingAssessmentData ? "Syncing" : activeCycle.id === active360Cycle.id ? "Demo fallback" : "Live data"}
+            </span>
           </div>
         </div>
       </section>
@@ -923,7 +1299,7 @@ export default function AssessmentsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Cycle health</p>
-                    <h3 className="mt-1 text-lg font-black">{active360Cycle.name}</h3>
+                    <h3 className="mt-1 text-lg font-black">{activeCycle.name}</h3>
                   </div>
                   <div className={clsx("rounded-2xl px-3 py-2 text-sm font-black", releaseSummary.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700") }>
                     {releaseSummary.ready ? "Ready" : "Blocked"}
@@ -1214,7 +1590,7 @@ export default function AssessmentsPage() {
 
             <div className="grid gap-4 lg:grid-cols-2">
               {visibleAssessees.map((assessee) => {
-                const result = results.find((entry) => entry.assesseeId === assessee.id);
+                const result = assessmentResults.find((entry) => entry.assesseeId === assessee.id);
                 const assesseeReviewers = reviewerAssignments.filter((reviewer) => reviewer.assesseeId === assessee.id);
                 return (
                   <div key={assessee.id} className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
