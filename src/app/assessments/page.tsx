@@ -55,13 +55,14 @@ import { parseAssessmentParticipantCsv } from "@/lib/assessmentParticipants";
 import { canReleaseAssessmentReport, releaseReadinessSummary } from "@/lib/assessmentRelease";
 import { buildReviewSubmissionSummary, validateReviewPayload } from "@/lib/reviewSubmission";
 
-type TabKey = "command" | "participants" | "questions" | "review" | "reports";
+type TabKey = "command" | "participants" | "questions" | "self" | "review" | "reports";
 type LevelFilter = AssessmentLevel | "all";
 
 const tabs: Array<{ key: TabKey; label: string; icon: typeof BarChart3 }> = [
   { key: "command", label: "Command", icon: BarChart3 },
   { key: "participants", label: "Participants", icon: Users },
   { key: "questions", label: "Framework", icon: ClipboardList },
+  { key: "self", label: "Self assessment", icon: Star },
   { key: "review", label: "Review form", icon: MessageSquareText },
   { key: "reports", label: "Reports", icon: FileText },
 ];
@@ -174,6 +175,12 @@ export default function AssessmentsPage() {
   const [competencyWeights, setCompetencyWeights] = useState<Record<string, number>>(
     () => Object.fromEntries(telcoCompetencies.map((competency) => [competency.id, competency.weight])) as Record<string, number>,
   );
+  const [selfRatings, setSelfRatings] = useState<Record<string, number>>(
+    () => Object.fromEntries(demoQuestions.map((question) => [question.competencyId, 4])) as Record<string, number>,
+  );
+  const [selfComments, setSelfComments] = useState<Record<string, string>>({});
+  const [selfSubmitted, setSelfSubmitted] = useState(false);
+  const [selfNotice, setSelfNotice] = useState("");
 
   const visibleAssessees = useMemo(
     () => assessmentSubjects.filter((assessee) => levelFilter === "all" || assessee.level === levelFilter),
@@ -222,6 +229,15 @@ export default function AssessmentsPage() {
   const raterCoverage = buildRaterCoverage(reviewerAssignments.map((reviewer) => ({ reviewerGroup: reviewer.group, status: reviewer.status })));
   const reviewerWeightTotal = Object.values(reviewerWeights).reduce((sum, weight) => sum + weight, 0);
   const competencyWeightTotal = Object.values(competencyWeights).reduce((sum, weight) => sum + weight, 0);
+  const selfResponses = demoQuestions.map((question) => ({
+    competencyId: question.competencyId,
+    score: selfRatings[question.competencyId] ?? 4,
+    comment: selfComments[question.competencyId] ?? "",
+  }));
+  const selfAnswered = selfResponses.filter((response) => response.comment.trim()).length;
+  const selfCompletion = demoQuestions.length ? Math.round((selfAnswered / demoQuestions.length) * 100) : 0;
+  const selfAverage = average(selfResponses.map((response) => response.score));
+  const selfVsOthersGap = Math.round(selfAverage * 20 - selectedScore);
 
   async function handleDemoSubmit() {
     const payload = {
@@ -322,6 +338,29 @@ export default function AssessmentsPage() {
     setCompetencyDraftFunction("all");
     setFrameworkNotice("Competency added to the draft framework.");
     setTimeout(() => setFrameworkNotice(""), 3500);
+  }
+
+  function handleSelfSubmit() {
+    const payload = {
+      token: `self-${selectedAssessee.id}`,
+      responses: selfResponses,
+    };
+
+    if (!selfAssessmentEnabled) {
+      setSelfNotice("Self-assessment is disabled for this framework.");
+      setTimeout(() => setSelfNotice(""), 3500);
+      return;
+    }
+
+    if (!validateReviewPayload(payload)) {
+      setSelfNotice("Complete every self-assessment rating with an evidence comment.");
+      setTimeout(() => setSelfNotice(""), 3500);
+      return;
+    }
+
+    setSelfSubmitted(true);
+    setSelfNotice("Self-assessment captured for HR review.");
+    setTimeout(() => setSelfNotice(""), 3500);
   }
 
   function handleImportParticipants() {
@@ -1113,6 +1152,119 @@ export default function AssessmentsPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "self" && (
+          <div className="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
+            <div className="space-y-5">
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Self-assessment</p>
+                    <h3 className="mt-2 font-syne text-2xl font-black">{selectedAssessee.name}</h3>
+                    <p className="mt-2 text-sm leading-6 text-muted">{selectedAssessee.portfolio}</p>
+                  </div>
+                  <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", selfSubmitted ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                    {selfSubmitted ? "Submitted" : "In progress"}
+                  </span>
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl bg-paper p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Completion</p>
+                    <p className="mt-2 text-3xl font-black">{selfCompletion}%</p>
+                  </div>
+                  <div className="rounded-2xl bg-paper p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Self score</p>
+                    <p className="mt-2 text-3xl font-black">{selfAverage}/5</p>
+                  </div>
+                  <div className={clsx("rounded-2xl p-4", selfVsOthersGap >= 0 ? "bg-pulse-soft text-pulse" : "bg-amber-50 text-amber-700")}>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em]">Gap</p>
+                    <p className="mt-2 text-3xl font-black">{selfVsOthersGap >= 0 ? "+" : ""}{selfVsOthersGap}</p>
+                  </div>
+                </div>
+                <div className="mt-5 h-2 overflow-hidden rounded-full bg-ink/8">
+                  <div className="h-full rounded-full bg-pulse" style={{ width: `${selfCompletion}%` }} />
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Comparison signals</p>
+                <h3 className="mt-2 text-xl font-black">Self versus 360 view</h3>
+                <div className="mt-5 space-y-3">
+                  {selectedResult.competencyScores.slice(0, 4).map((item) => {
+                    const competency = telcoCompetencies.find((entry) => entry.id === item.competencyId);
+                    const selfScore = (selfRatings[item.competencyId] ?? 4) * 20;
+                    const gap = Math.round(selfScore - item.score);
+                    return (
+                      <div key={item.competencyId} className="rounded-2xl bg-paper p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-black">{competency?.name}</p>
+                          <span className={clsx("rounded-full px-2 py-1 text-xs font-black", gap >= 0 ? "bg-pulse-soft text-pulse" : "bg-amber-50 text-amber-700")}>
+                            {gap >= 0 ? "+" : ""}{gap}
+                          </span>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-muted">
+                          <span>Self {selfScore}</span>
+                          <span>Others {item.score}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Leader input</p>
+                  <h3 className="mt-2 text-xl font-black">Complete self-assessment</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSelfSubmit}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white"
+                >
+                  <Send size={16} />
+                  Submit self view
+                </button>
+              </div>
+              {selfNotice && <div className="mt-4 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse">{selfNotice}</div>}
+              <div className="mt-5 space-y-5">
+                {demoQuestions.map((question) => {
+                  const competency = telcoCompetencies.find((item) => item.id === question.competencyId);
+                  return (
+                    <div key={question.id} className="rounded-[18px] border border-ink/8 bg-paper p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-black">{competency?.name}</p>
+                          <p className="mt-1 text-sm leading-6 text-muted">{question.prompt}</p>
+                        </div>
+                        <span className="rounded-2xl bg-white px-3 py-2 text-sm font-black text-pulse">
+                          {selfRatings[question.competencyId]}/5
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="5"
+                        value={selfRatings[question.competencyId]}
+                        onChange={(event) => setSelfRatings((current) => ({ ...current, [question.competencyId]: Number(event.target.value) }))}
+                        className="mt-4 w-full accent-pulse"
+                        aria-label={`Self rating for ${competency?.name}`}
+                      />
+                      <textarea
+                        value={selfComments[question.competencyId] ?? ""}
+                        onChange={(event) => setSelfComments((current) => ({ ...current, [question.competencyId]: event.target.value }))}
+                        placeholder="Evidence, example, or reflection"
+                        className="mt-3 min-h-20 w-full resize-none rounded-2xl border border-ink/8 bg-white p-3 text-sm outline-none transition placeholder:text-muted focus:border-pulse/50"
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
