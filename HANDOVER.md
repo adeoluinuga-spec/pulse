@@ -333,7 +333,7 @@ This must stay enforced server-side.
 - [x] nomination and approval UX
 - [x] admin dashboard and progress views
 - [x] reporting presentation layer
-- [ ] end-to-end testing and edge-case validation
+- [x] end-to-end testing and edge-case validation
 
 ---
 

@@ -117,7 +117,8 @@ This is the working checklist for taking Pulse from the current prototype into a
 - [ ] Add visual regression snapshots for the redesigned shell and assessment pages.
 - [ ] Add accessibility checks for keyboard navigation, focus states, contrast, labels, and dialogs.
 - [ ] Add test data factories.
-- [ ] Document manual QA scenarios.
+- [x] Add 360 workflow validation tests for setup, nominations, self-assessment, reviews, and reports.
+- [x] Document manual QA scenarios.
 
 ## 8. Client Demo Readiness
 
