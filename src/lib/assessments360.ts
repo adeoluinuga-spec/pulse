@@ -38,6 +38,10 @@ export interface Reviewer {
   email: string;
   status: ReviewerStatus;
   submittedAt?: string;
+  inviteStatus?: "draft" | "sent" | "opened" | "submitted" | "expired";
+  inviteChannel?: "email" | "sms" | "whatsapp" | "portal";
+  assessmentScope?: "individual" | "team" | "customer_experience" | "functional";
+  tokenExpiresAt?: string;
 }
 
 export interface CompetencyScore {

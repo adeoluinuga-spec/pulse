@@ -100,6 +100,37 @@ export async function POST(request: NextRequest) {
 
   for (const invitee of invitees) {
     const emailName = invitee.email.split("@")[0];
+    const { data: existingEmployee, error: lookupError } = await admin
+      .from("employees")
+      .select("id")
+      .eq("org_id", orgId)
+      .eq("email", invitee.email)
+      .maybeSingle();
+
+    if (lookupError) {
+      await admin.from("organisations").delete().eq("id", orgId);
+      return NextResponse.json({ error: lookupError.message }, { status: 500 });
+    }
+
+    if (existingEmployee) {
+      const { error: updateError } = await admin
+        .from("employees")
+        .update({
+          name: emailName,
+          initials: emailName.slice(0, 2).toUpperCase(),
+          platform_role: invitee.role,
+          cadre: invitee.role === "executive_view" ? "executive" : "senior",
+          people_responsibility: invitee.role === "executive_view" ? "director" : "manager",
+        })
+        .eq("id", existingEmployee.id);
+
+      if (updateError) {
+        await admin.from("organisations").delete().eq("id", orgId);
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+      continue;
+    }
+
     const { error: empError } = await admin.from("employees").insert({
       org_id: orgId,
       email: invitee.email,

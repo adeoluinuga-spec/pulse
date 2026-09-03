@@ -120,19 +120,23 @@ export async function GET(request: Request) {
     if (!existing) {
       isFirstTimeInvite = true;
 
-      // For bulk-imported employees: link user_id to pre-created email record
-      const { data: emailMatch } = await admin
+      // For bulk-imported employees: link user_id to the first pre-created email record in this org
+      const { data: emailMatches } = await admin
         .from("employees")
-        .select("id")
+        .select("id, platform_role, created_at")
         .eq("email", user.email ?? "")
         .eq("org_id", metaOrgId)
-        .is("user_id", null)
-        .maybeSingle();
+        .order("created_at", { ascending: true });
+
+      const emailMatch = (emailMatches ?? []).find((row) => !(row as { user_id?: string | null }).user_id) ?? (emailMatches ?? [])[0];
 
       if (emailMatch) {
         await admin
           .from("employees")
-          .update({ user_id: user.id })
+          .update({
+            user_id: user.id,
+            platform_role: invitedAs,
+          })
           .eq("id", (emailMatch as { id: string }).id);
       } else if (invitedAs === "hr_admin" || invitedAs === "executive_view") {
         const emailName = (user.email ?? "").split("@")[0];

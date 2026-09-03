@@ -155,6 +155,14 @@ function initials(name: string) {
   return name.split(" ").filter(Boolean).map((p) => p[0]).join("").toUpperCase().slice(0, 2) || "??";
 }
 
+function accessRoleLabel(emp: { role: string | null; platform_role: string | null }) {
+  if (emp.platform_role === "hr_admin") return "HR Admin";
+  if (emp.platform_role === "super_admin") return "Super Admin";
+  if (emp.platform_role === "executive_view") return "Executive";
+  if (emp.role) return emp.role;
+  return "Role pending";
+}
+
 function scoreBg(score: number | null) {
   if (score === null) return "bg-paper text-muted";
   if (score >= 80) return "bg-green-soft text-green";
@@ -545,7 +553,7 @@ function OperationalDashboard({
                       </span>
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-bold text-ink">{emp.name}</span>
-                        <span className="block truncate text-[11px] text-muted">{emp.role ?? "Role pending"}{emp.department ? ` · ${emp.department}` : ""}</span>
+                        <span className="block truncate text-[11px] text-muted">{accessRoleLabel(emp)}{emp.department ? ` · ${emp.department}` : ""}</span>
                       </span>
                     </div>
                     <span className={clsx("hidden rounded-full px-2 py-1 text-[10px] font-bold md:inline-block", badgePill(emp.badge))}>
@@ -1223,7 +1231,7 @@ function PeopleSetup({ employees, orgId, hrEmail, onEmployeesChange }: {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-bold text-ink">{e.name}</span>
                     <span className="block truncate text-xs text-muted">
-                      {e.email} · {e.role || "Role pending"}{e.department ? ` · ${e.department}` : ""}
+                      {e.email} · {accessRoleLabel(e)}{e.department ? ` · ${e.department}` : ""}
                     </span>
                   </span>
                   {isConfirm ? (

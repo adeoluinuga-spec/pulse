@@ -21,6 +21,14 @@ export function canManageAssessmentCycle(role?: string | null): boolean {
   return role === "hr_admin" || role === "super_admin";
 }
 
+export function canViewAssessmentWorkspace(role?: string | null): boolean {
+  return role === "hr_admin" || role === "super_admin" || role === "executive_view";
+}
+
+export function canManageAssessmentWorkspace(role?: string | null): boolean {
+  return role === "hr_admin" || role === "super_admin";
+}
+
 export function isReviewerRole(role?: string | null): boolean {
   return role === "reviewer" || role === "standard";
 }

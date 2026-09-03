@@ -3,13 +3,14 @@ export type ReviewChannel = "email" | "sms" | "whatsapp" | "portal";
 
 export interface ReviewerInvite {
   token: string;
+  reviewerId?: string;
   reviewerName: string;
   reviewerEmail: string;
   channel: ReviewChannel;
   scope: AssessmentScope;
   secureLink: string;
   expiresAt: string;
-  status: "sent" | "opened" | "submitted";
+  status: "draft" | "sent" | "opened" | "submitted" | "expired";
 }
 
 export type ReviewerWorkflowSummary = {

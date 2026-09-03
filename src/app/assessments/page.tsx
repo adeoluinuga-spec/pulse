@@ -7,10 +7,14 @@ import {
   Building2,
   CheckCircle2,
   ClipboardList,
+  Clock3,
+  Copy,
   Download,
+  ExternalLink,
   FileText,
   Mail,
   MessageSquareText,
+  RefreshCw,
   Send,
   ShieldCheck,
   SlidersHorizontal,
@@ -36,6 +40,8 @@ import {
   type ReviewerGroup,
   type ReviewerStatus,
 } from "@/lib/assessments360";
+import { useUser } from "@/context/UserContext";
+import { canManageAssessmentWorkspace, canViewAssessmentWorkspace } from "@/lib/tenant";
 import {
   buildAssessmentFramework,
   buildRaterCoverage,
@@ -61,6 +67,7 @@ import { buildReviewSubmissionSummary, validateReviewPayload } from "@/lib/revie
 type TabKey = "command" | "participants" | "questions" | "self" | "nominations" | "review" | "reports";
 type LevelFilter = AssessmentLevel | "all";
 type NominationStatus = "pending" | "approved" | "rejected";
+type InviteStatus = "draft" | "sent" | "opened" | "submitted" | "expired";
 
 type ApiCycle = {
   id: string;
@@ -90,6 +97,10 @@ type ApiReviewer = {
   organisation?: string | null;
   reviewer_email: string;
   status?: ReviewerStatus;
+  invite_status?: InviteStatus;
+  invite_channel?: "email" | "sms" | "whatsapp" | "portal";
+  assessment_scope?: "individual" | "team" | "customer_experience" | "functional";
+  token_expires_at?: string | null;
   submitted_at?: string | null;
 };
 
@@ -125,6 +136,14 @@ const statusMeta: Record<ReviewerStatus, { label: string; className: string }> =
   not_started: { label: "Not started", className: "bg-amber-50 text-amber-700 ring-amber-200" },
   in_progress: { label: "In progress", className: "bg-blue-50 text-blue-700 ring-blue-200" },
   submitted: { label: "Submitted", className: "bg-green-soft text-green ring-green/20" },
+};
+
+const inviteStatusMeta: Record<InviteStatus, { label: string; className: string }> = {
+  draft: { label: "Draft", className: "bg-ink/5 text-muted ring-ink/10" },
+  sent: { label: "Sent", className: "bg-pulse-soft text-pulse ring-pulse/20" },
+  opened: { label: "Opened", className: "bg-blue-50 text-blue-700 ring-blue-200" },
+  submitted: { label: "Submitted", className: "bg-green-soft text-green ring-green/20" },
+  expired: { label: "Expired", className: "bg-red-50 text-red-700 ring-red-200" },
 };
 
 const groupTone: Record<ReviewerGroup, string> = {
@@ -209,6 +228,10 @@ function mapApiReviewer(reviewer: ApiReviewer): Reviewer {
     email: reviewer.reviewer_email,
     status: reviewer.status ?? "not_started",
     submittedAt: reviewer.submitted_at ?? undefined,
+    inviteStatus: reviewer.invite_status ?? "draft",
+    inviteChannel: reviewer.invite_channel ?? (reviewer.reviewer_group === "customer" ? "whatsapp" : "email"),
+    assessmentScope: reviewer.assessment_scope ?? (reviewer.reviewer_group === "customer" ? "customer_experience" : "individual"),
+    tokenExpiresAt: reviewer.token_expires_at ?? undefined,
   };
 }
 
@@ -258,10 +281,14 @@ type RaterNominationItem = {
 };
 
 export default function AssessmentsPage() {
+  const { user } = useUser();
+  const canViewAssessments = canViewAssessmentWorkspace(user.platformRole);
+  const canManageAssessments = canManageAssessmentWorkspace(user.platformRole);
   const [activeTab, setActiveTab] = useState<TabKey>("command");
   const [activeCycle, setActiveCycle] = useState(active360Cycle);
   const [isHydratingAssessmentData, setIsHydratingAssessmentData] = useState(true);
   const [dataSourceNotice, setDataSourceNotice] = useState("Loading assessment records...");
+  const [nowTimestamp] = useState(() => Date.now());
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
   const [selectedAssesseeId, setSelectedAssesseeId] = useState(assessees[0]?.id ?? "");
   const [reviewerGroup, setReviewerGroup] = useState<ReviewerGroup>("colleague");
@@ -452,6 +479,34 @@ export default function AssessmentsPage() {
   const canReleaseSelectedReport = canReleaseAssessmentReport(selectedAssesseeReviewers);
   const normalizedScope = normalizeAssessmentScope(assessmentScope);
   const whatsappEnabled = supportsReviewChannel(reviewerChannel);
+  const invitationQueue = reviewerAssignments.map((reviewer) => {
+    const invite = reviewerInvites.find((entry) =>
+      entry.reviewerId === reviewer.id || entry.reviewerEmail.toLowerCase() === reviewer.email.toLowerCase(),
+    );
+    const inviteStatus = (invite?.status ?? reviewer.inviteStatus ?? "draft") as InviteStatus;
+    const channel = invite?.channel ?? reviewer.inviteChannel ?? (reviewer.group === "customer" ? "whatsapp" : "email");
+    const scope = invite?.scope ?? reviewer.assessmentScope ?? (reviewer.group === "customer" ? "customer_experience" : "individual");
+    const expiresAt = invite?.expiresAt ?? reviewer.tokenExpiresAt;
+    const currentTimestamp = nowTimestamp ?? 0;
+    const expired = expiresAt && currentTimestamp > 0 ? new Date(expiresAt).getTime() < currentTimestamp : false;
+
+    return {
+      reviewer,
+      invite,
+      status: expired && inviteStatus !== "submitted" ? "expired" as InviteStatus : inviteStatus,
+      channel,
+      scope,
+      expiresAt,
+      secureLink: invite?.secureLink,
+    };
+  });
+  const invitationStats = {
+    total: invitationQueue.length,
+    sent: invitationQueue.filter((entry) => entry.status === "sent" || entry.status === "opened").length,
+    submitted: invitationQueue.filter((entry) => entry.status === "submitted" || entry.reviewer.status === "submitted").length,
+    expired: invitationQueue.filter((entry) => entry.status === "expired").length,
+    needsInvite: invitationQueue.filter((entry) => entry.status === "draft" || entry.status === "expired").length,
+  };
   const submittedReviewScores = [
     { score: 80, weight: 30, scope: "individual", channel: "email" },
     { score: 75, weight: 35, scope: "customer_experience", channel: "whatsapp" },
@@ -640,6 +695,12 @@ export default function AssessmentsPage() {
   async function handleCreateCycle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!canManageAssessments) {
+      setCycleNotice("Only HR admins and super admins can create or edit assessment cycles.");
+      setTimeout(() => setCycleNotice(""), 3500);
+      return;
+    }
+
     try {
       const response = await fetch("/api/assessments/cycles", {
         method: "POST",
@@ -675,6 +736,12 @@ export default function AssessmentsPage() {
   }
 
   function handleAddCompetency() {
+    if (!canManageAssessments) {
+      setFrameworkNotice("Only HR admins and super admins can update the assessment framework.");
+      setTimeout(() => setFrameworkNotice(""), 3500);
+      return;
+    }
+
     if (!competencyDraftName.trim()) {
       setFrameworkNotice("Competency name is required.");
       setTimeout(() => setFrameworkNotice(""), 3500);
@@ -839,6 +906,12 @@ export default function AssessmentsPage() {
   }
 
   async function handleImportParticipants() {
+    if (!canManageAssessments) {
+      setParticipantNotice("Only HR admins and super admins can import assessment participants.");
+      setTimeout(() => setParticipantNotice(""), 3500);
+      return;
+    }
+
     const parsed = parseAssessmentParticipantCsv(participantCsv);
     if (!parsed.length) {
       setParticipantNotice("No valid participant rows found. Please use a CSV with name and email columns.");
@@ -996,6 +1069,98 @@ export default function AssessmentsPage() {
       setReviewerNotice(message);
       setTimeout(() => setReviewerNotice(""), 4000);
     }
+  }
+
+  async function handleIssueInvite(reviewer: Reviewer) {
+    const localInvite = createSecureReviewerInvite(
+      { name: reviewer.name, email: reviewer.email },
+      reviewer.assessmentScope ?? (reviewer.group === "customer" ? "customer_experience" : "individual"),
+      reviewer.inviteChannel ?? (reviewer.group === "customer" ? "whatsapp" : "email"),
+    );
+
+    if (activeCycle.id === active360Cycle.id) {
+      setReviewerInvites((current) => [{ ...localInvite, reviewerId: reviewer.id }, ...current]);
+      setReviewerAssignments((current) =>
+        current.map((entry) => entry.id === reviewer.id ? { ...entry, inviteStatus: "sent", tokenExpiresAt: localInvite.expiresAt } : entry),
+      );
+      setInviteNotice(`Demo invite ready: ${localInvite.secureLink}`);
+      setTimeout(() => setInviteNotice(""), 5000);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/assessments/reviewers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reviewerId: reviewer.id,
+          action: "issue_invite",
+          inviteChannel: reviewer.inviteChannel,
+          assessmentScope: reviewer.assessmentScope,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error ?? "Unable to issue reviewer invite");
+      }
+
+      if (result.reviewer) {
+        setReviewerAssignments((current) =>
+          current.map((entry) => entry.id === reviewer.id ? mapApiReviewer(result.reviewer) : entry),
+        );
+      }
+
+      if (result.invite) {
+        setReviewerInvites((current) => [result.invite, ...current.filter((entry) => entry.reviewerId !== reviewer.id)]);
+        setInviteNotice(`Invite link issued: ${result.invite.secureLink}`);
+      }
+      setTimeout(() => setInviteNotice(""), 5000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to issue reviewer invite";
+      setInviteNotice(message);
+      setTimeout(() => setInviteNotice(""), 5000);
+    }
+  }
+
+  async function handleCopyInvite(link?: string) {
+    if (!link) {
+      setInviteNotice("Issue an invite before copying the secure link.");
+      setTimeout(() => setInviteNotice(""), 3500);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(link);
+      setInviteNotice("Invite link copied.");
+    } catch {
+      setInviteNotice(link);
+    }
+    setTimeout(() => setInviteNotice(""), 3500);
+  }
+
+  if (!canViewAssessments) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-paper px-6 py-10">
+        <div className="w-full max-w-md rounded-[28px] border border-border bg-card p-6 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-soft text-red">
+            <ShieldCheck size={28} />
+          </div>
+          <h1 className="font-syne text-2xl font-black text-ink">Assessment access restricted</h1>
+          <p className="mt-3 text-sm leading-6 text-muted">
+            This assessment workspace is limited to HR admins, super admins, and executive viewers.
+            Ask the organisation admin to grant access for this account.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="mt-5 inline-flex min-h-11 items-center justify-center rounded-2xl bg-ink px-4 text-sm font-black text-white"
+          >
+            Go back
+          </button>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -1459,8 +1624,6 @@ export default function AssessmentsPage() {
               </div>
 
               {reviewerNotice && <div className="mt-3 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{reviewerNotice}</div>}
-              {inviteNotice && <div className="mt-3 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse break-all">{inviteNotice}</div>}
-
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <label className="block text-sm font-black text-muted md:col-span-2">
                   Assessment scope
@@ -1551,27 +1714,110 @@ export default function AssessmentsPage() {
 
             <div className="space-y-4">
               <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer invites</p>
-                <h3 className="mt-2 text-xl font-black">Secure links and response tracking</h3>
-                <div className="mt-4 space-y-3">
-                  {reviewerInvites.map((invite) => (
-                    <div key={invite.token} className="rounded-2xl border border-ink/8 bg-paper p-3">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm font-black">{invite.reviewerName}</p>
-                          <p className="text-xs text-muted">{invite.reviewerEmail}</p>
-                        </div>
-                        <span className="rounded-full bg-pulse-soft px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-pulse">
-                          {invite.channel}
-                        </span>
-                      </div>
-                      <p className="mt-2 break-all text-xs text-muted">{invite.secureLink}</p>
-                      <div className="mt-2 flex items-center justify-between text-[11px] text-muted">
-                        <span>Scope: {invite.scope}</span>
-                        <span>Status: {invite.status}</span>
-                      </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer invitation workflow</p>
+                    <h3 className="mt-2 text-xl font-black">Secure links and delivery queue</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      invitationQueue
+                        .filter((entry) => entry.status === "draft" || entry.status === "expired")
+                        .slice(0, 5)
+                        .forEach((entry) => void handleIssueInvite(entry.reviewer));
+                    }}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-ink/10 bg-white px-3 text-xs font-black text-ink transition hover:border-pulse/40"
+                  >
+                    <Send size={14} />
+                    Issue pending
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-4">
+                  {[
+                    ["Total", invitationStats.total],
+                    ["Sent/opened", invitationStats.sent],
+                    ["Submitted", invitationStats.submitted],
+                    ["Needs invite", invitationStats.needsInvite],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-2xl bg-paper p-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted">{label}</p>
+                      <p className="mt-1 text-xl font-black">{value}</p>
                     </div>
                   ))}
+                </div>
+
+                {inviteNotice && <div className="mt-3 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse break-all">{inviteNotice}</div>}
+
+                <div className="mt-4 space-y-3">
+                  {invitationQueue.map((entry) => {
+                    const meta = inviteStatusMeta[entry.status];
+                    const canIssue = entry.status !== "submitted" && entry.reviewer.status !== "submitted";
+                    return (
+                      <div key={entry.reviewer.id} className="rounded-2xl border border-ink/8 bg-paper p-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="truncate text-sm font-black">{entry.reviewer.name}</p>
+                              <span className={clsx("rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] ring-1", meta.className)}>
+                                {meta.label}
+                              </span>
+                            </div>
+                            <p className="mt-1 truncate text-xs text-muted">{entry.reviewer.email}</p>
+                            <p className="mt-2 text-xs text-muted">
+                              {reviewerGroupLabel(entry.reviewer.group)} / {entry.channel} / {entry.scope.replace("_", " ")}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void handleIssueInvite(entry.reviewer)}
+                              disabled={!canIssue}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-ink/10 bg-white text-ink transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-40"
+                              title={entry.secureLink ? "Reissue invite link" : "Issue invite link"}
+                              aria-label={entry.secureLink ? "Reissue invite link" : "Issue invite link"}
+                            >
+                              <RefreshCw size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleCopyInvite(entry.secureLink)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-ink/10 bg-white text-ink transition hover:border-pulse/40"
+                              title="Copy invite link"
+                              aria-label="Copy invite link"
+                            >
+                              <Copy size={15} />
+                            </button>
+                            {entry.secureLink && (
+                              <a
+                                href={entry.secureLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-white transition hover:bg-ink/90"
+                                title="Open invite link"
+                                aria-label="Open invite link"
+                              >
+                                <ExternalLink size={15} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        {entry.secureLink ? (
+                          <p className="mt-3 break-all rounded-xl bg-white p-2 text-xs text-muted">{entry.secureLink}</p>
+                        ) : (
+                          <p className="mt-3 rounded-xl bg-white p-2 text-xs font-bold text-muted">No visible link yet. Issue an invite to generate a fresh secure token.</p>
+                        )}
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted">
+                          <span className="inline-flex items-center gap-1">
+                            <Clock3 size={12} />
+                            {entry.expiresAt ? `Expires ${formatDate(entry.expiresAt)}` : "No expiry set"}
+                          </span>
+                          {invitationStats.expired > 0 && entry.status === "expired" && <span className="font-black text-red-700">Fresh link required</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
