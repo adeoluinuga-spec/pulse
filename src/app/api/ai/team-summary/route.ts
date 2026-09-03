@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, extractText } from "@/lib/anthropic";
+import { getRouteUser } from "@/lib/apiAuth";
 
 function fallback(managerName?: string) {
   return {
@@ -8,6 +9,9 @@ function fallback(managerName?: string) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await getRouteUser())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   let body: { managerName?: string } = {};
   try {
     body = await request.json();

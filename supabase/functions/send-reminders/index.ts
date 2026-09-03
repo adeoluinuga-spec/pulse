@@ -3,8 +3,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+// Shared secret so only pg_cron (or our own server) can trigger the reminder blast.
+const PULSE_EDGE_SECRET = Deno.env.get("PULSE_EDGE_SECRET") ?? "";
 
-serve(async (_req) => {
+serve(async (req) => {
+  if (!PULSE_EDGE_SECRET || req.headers.get("x-pulse-secret") !== PULSE_EDGE_SECRET) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -46,6 +54,7 @@ serve(async (_req) => {
       headers: {
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
         "Content-Type": "application/json",
+        "x-pulse-secret": PULSE_EDGE_SECRET,
       },
       body: JSON.stringify({
         type: "report_due",

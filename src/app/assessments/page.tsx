@@ -35,6 +35,7 @@ import {
   type ReviewerGroup,
   type ReviewerStatus,
 } from "@/lib/assessments360";
+import { canReleaseAssessmentReport, releaseReadinessSummary } from "@/lib/assessmentRelease";
 
 type TabKey = "command" | "participants" | "questions" | "review" | "reports";
 type LevelFilter = AssessmentLevel | "all";
@@ -99,12 +100,15 @@ export default function AssessmentsPage() {
   );
   const selectedAssessee = assessees.find((assessee) => assessee.id === selectedAssesseeId) ?? assessees[0];
   const selectedResult = results.find((result) => result.assesseeId === selectedAssessee.id) ?? results[0];
+  const selectedAssesseeReviewers = reviewers.filter((reviewer) => reviewer.assesseeId === selectedAssessee.id);
   const selectedScore = weightedScore(selectedResult);
   const readiness = assessmentReadiness();
   const completion = average(assessees.map((assessee) => completionForAssessee(assessee.id)));
   const portfolioScore = average(results.map((result) => weightedScore(result)));
   const riskCount = results.reduce((sum, result) => sum + result.riskNotes.length, 0);
   const submittedCount = reviewers.filter((reviewer) => reviewer.status === "submitted").length;
+  const releaseSummary = releaseReadinessSummary(selectedAssesseeReviewers);
+  const canReleaseSelectedReport = canReleaseAssessmentReport(selectedAssesseeReviewers);
 
   function handleDemoSubmit() {
     setNotice("Demo review captured. In production this writes to the encrypted 360 response table.");
@@ -283,7 +287,9 @@ export default function AssessmentsPage() {
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Cycle health</p>
                     <h3 className="mt-1 text-lg font-black">{active360Cycle.name}</h3>
                   </div>
-                  <div className="rounded-2xl bg-green-soft px-3 py-2 text-sm font-black text-green">Live</div>
+                  <div className={clsx("rounded-2xl px-3 py-2 text-sm font-black", releaseSummary.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700") }>
+                    {releaseSummary.ready ? "Ready" : "Blocked"}
+                  </div>
                 </div>
                 <div className="mt-5 space-y-4">
                   {reviewerGroups.map((group) => {
@@ -300,6 +306,16 @@ export default function AssessmentsPage() {
                       </div>
                     );
                   })}
+                </div>
+                <div className="mt-4 rounded-2xl bg-paper p-3 text-sm text-muted">
+                  <span className="font-black text-ink">
+                    {releaseSummary.remaining === 0 ? "All reviewers submitted" : `${releaseSummary.remaining} reviewer${releaseSummary.remaining === 1 ? "" : "s"} outstanding`}
+                  </span>
+                  {releaseSummary.missingGroups.length > 0 && (
+                    <span className="mt-1 block text-amber-700">
+                      Missing groups: {releaseSummary.missingGroups.join(", ")}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -550,12 +566,29 @@ export default function AssessmentsPage() {
                 ))}
               </div>
               <div className="mt-5 rounded-2xl border border-ink/8 bg-paper p-4">
-                <p className="text-sm font-black">Release checklist</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-black">Release checklist</p>
+                  <button
+                    disabled={!canReleaseSelectedReport}
+                    className={clsx(
+                      "inline-flex min-h-10 items-center gap-2 rounded-2xl px-3 text-sm font-black transition",
+                      canReleaseSelectedReport ? "bg-ink text-white" : "cursor-not-allowed border border-ink/10 bg-white text-muted",
+                    )}
+                  >
+                    <FileText size={16} />
+                    {canReleaseSelectedReport ? "Release report" : "Release blocked"}
+                  </button>
+                </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {["Minimum reviewer anonymity met", "HR calibration completed", "Coach notes approved", "Customer comments redacted"].map((item) => (
-                    <div key={item} className="flex items-center gap-2 text-sm font-semibold text-muted">
-                      <CheckCircle2 className="text-green" size={16} />
-                      {item}
+                  {[
+                    { label: "All reviewer groups represented", ok: releaseSummary.missingGroups.length === 0 },
+                    { label: "All submissions complete", ok: releaseSummary.remaining === 0 },
+                    { label: "HR calibration completed", ok: selectedResult.riskNotes.length === 0 },
+                    { label: "Customer comments redacted", ok: true },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-2 text-sm font-semibold text-muted">
+                      <CheckCircle2 className={item.ok ? "text-green" : "text-muted/50"} size={16} />
+                      {item.label}
                     </div>
                   ))}
                 </div>

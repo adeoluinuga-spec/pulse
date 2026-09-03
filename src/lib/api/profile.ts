@@ -219,20 +219,42 @@ export async function uploadDocument(
 
     if (uploadError) return null;
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("documents").getPublicUrl(path);
-
+    // The documents bucket is private — store the storage path, and mint
+    // short-lived signed URLs on demand via getDocumentSignedUrl().
     const { error: dbError } = await supabase.from("documents").insert({
       employee_id: employeeId,
       org_id: orgId,
       name: file.name,
       doc_type: docType,
-      file_url: publicUrl,
+      file_url: path,
       status: "pending",
     });
 
-    return dbError ? null : publicUrl;
+    return dbError ? null : path;
+  } catch {
+    return null;
+  }
+}
+
+// Mint a short-lived signed URL for a private document.
+// Accepts either a storage path (new records) or a legacy full public URL
+// (old records), from which the path is extracted.
+export async function getDocumentSignedUrl(
+  filePathOrUrl: string,
+  expiresInSeconds = 3600,
+): Promise<string | null> {
+  try {
+    const marker = "/object/public/documents/";
+    const path = filePathOrUrl.includes(marker)
+      ? filePathOrUrl.split(marker)[1]
+      : filePathOrUrl;
+
+    const { data, error } = await getSupabase()
+      .storage.from("documents")
+      .createSignedUrl(path, expiresInSeconds);
+
+    if (error || !data?.signedUrl) return null;
+    return data.signedUrl;
   } catch {
     return null;
   }

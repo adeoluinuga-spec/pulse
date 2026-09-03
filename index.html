@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Pulse gives every employee a live performance score, AI-powered insights, and a complete view of their work life — all in one place.">
+<meta property="og:title" content="Pulse — Performance Intelligence">
+<meta property="og:description" content="The performance management platform that actually works for people.">
+<meta property="og:image" content="https://pulse.stuartdavidson.org/og.png">
+<title>Pulse — Performance Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  /* Jost is a geometric sans-serif designed as a Futura revival */
+  :root {
+    --heading-font: 'Jost', sans-serif;
+  }
+</style>
+
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --ink: #0d0d0d;
+  --ink-80: rgba(13,13,13,0.8);
+  --paper: #f5f2ec;
+  --cream: #faf8f4;
+  --pulse: #e8440a;
+  --pulse-soft: #fde8e0;
+  --pulse-dim: rgba(232,68,10,0.1);
+  --green: #1a7a4a;
+  --green-soft: #d4f0e2;
+  --muted: #7a7570;
+  --border: #e2ddd6;
+  --card: #ffffff;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  overflow-x: hidden;
+}
+
+/* ─── NOISE TEXTURE OVERLAY ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+/* ─── TYPOGRAPHY ─── */
+h1, h2, h3, h4, h5 { font-family: var(--heading-font); }
+
+/* ─── NAV ─── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 0 max(5vw, 20px);
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(250,248,244,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+}
+
+.nav-dot {
+  width: 10px; height: 10px;
+  background: var(--pulse);
+  border-radius: 50%;
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.65); }
+}
+
+.nav-wordmark {
+  font-family: var(--heading-font);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: 0px;
+}
+
+.nav-right { display: flex; align-items: center; gap: 12px; }
+
+.nav-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.nav-link:hover { color: var(--ink); }
+
+.nav-cta {
+  background: var(--ink);
+  color: white;
+  border: none;
+  padding: 9px 20px;
+  border-radius: 100px;
+  font-family: var(--heading-font);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.nav-cta:hover { background: var(--pulse); transform: translateY(-1px); }
+
+/* ─── HERO ─── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120px max(5vw, 20px) 80px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232,68,10,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 20% 80%, rgba(26,122,74,0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--pulse-dim);
+  border: 1px solid rgba(232,68,10,0.2);
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulse);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fadeUp 0.6s ease 0.2s forwards;
+}
+
+.hero-eyebrow::before {
+  content: '✦';
+  font-size: 10px;
+}
+
+.hero-title {
+  font-family: var(--heading-font);
+  font-size: clamp(42px, 7vw, 88px);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -1px;
+  color: var(--ink);
+  max-width: 900px;
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: fadeUp 0.7s ease 0.35s forwards;
+}
+
+.hero-title em {
+  font-style: normal;
+  color: var(--pulse);
+  position: relative;
+}
+
+.hero-title em::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 0; right: 0;
+  height: 3px;
+  background: var(--pulse);
+  opacity: 0.3;
+  border-radius: 2px;
+}
+
+.hero-sub {
+  font-size: clamp(16px, 2vw, 20px);
+  font-weight: 400;
+  color: var(--muted);
+  max-width: 580px;
+  line-height: 1.65;
+  margin-bottom: 48px;
+  opacity: 0;
+  animation: fadeUp 0.7s ease 0.5s forwards;
+}
+
+.hero-form {
+  display: flex;
+  gap: 10px;
+  max-width: 460px;
+  width: 100%;
+  opacity: 0;
+  animation: fadeUp 0.7s ease 0.65s forwards;
+}
+
+.hero-input {
+  flex: 1;
+  padding: 14px 18px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+  background: white;
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 0;
+}
+.hero-input:focus { border-color: var(--pulse); }
+.hero-input::placeholder { color: var(--muted); }
+
+.hero-btn {
+  background: var(--pulse);
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-family: var(--heading-font);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hero-btn:hover { background: #c73c09; transform: translateY(-1px); }
+.hero-btn:active { transform: scale(0.97); }
+
+.hero-social-proof {
+  margin-top: 32px;
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  animation: fadeUp 0.7s ease 0.8s forwards;
+}
+
+.proof-avatars {
+  display: flex;
+}
+
+.proof-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--cream);
+  margin-left: -8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--heading-font);
+  font-size: 9px;
+  font-weight: 700;
+  color: white;
+}
+.proof-avatars .proof-avatar:first-child { margin-left: 0; }
+
+/* ─── DASHBOARD PREVIEW ─── */
+.preview-section {
+  padding: 0 max(5vw, 20px) 100px;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 1s forwards;
+}
+
+.dashboard-preview {
+  max-width: 880px;
+  width: 100%;
+  background: var(--ink);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 40px 120px rgba(13,13,13,0.25), 0 0 0 1px rgba(255,255,255,0.06);
+  position: relative;
+}
+
+.preview-topbar {
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.preview-logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--heading-font);
+  font-size: 16px;
+  font-weight: 800;
+  color: white;
+}
+
+.preview-dot {
+  width: 7px; height: 7px;
+  background: var(--pulse);
+  border-radius: 50%;
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+.preview-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.preview-tab {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.4);
+}
+.preview-tab.active {
+  background: var(--pulse);
+  color: white;
+}
+
+.preview-avatar-small {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--pulse);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--heading-font);
+  font-size: 10px; font-weight: 700;
+  color: white;
+}
+
+.preview-body {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.preview-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.preview-card.span2 { grid-column: span 2; }
+.preview-card.dark { background: rgba(255,255,255,0.03); }
+
+.preview-card-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 10px;
+}
+
+.preview-score {
+  font-family: var(--heading-font);
+  font-size: 52px;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+}
+
+.preview-score span { color: var(--pulse); font-size: 28px; }
+
+.preview-trend {
+  font-size: 12px;
+  color: #4cd97a;
+  margin-top: 4px;
+}
+
+.preview-bar-wrap {
+  margin-top: 14px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  height: 5px;
+}
+
+.preview-bar-fill {
+  height: 100%;
+  width: 78%;
+  background: linear-gradient(90deg, var(--pulse), #ff8c5a);
+  border-radius: 4px;
+}
+
+.preview-goal {
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.preview-goal:last-child { border-bottom: none; }
+
+.preview-goal-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.preview-goal-name {
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+}
+
+.preview-goal-pct {
+  font-family: var(--heading-font);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pulse);
+}
+
+.preview-mini-bar {
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+}
+
+.preview-mini-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--pulse), #ff8c5a);
+}
+
+.preview-ai {
+  background: rgba(232,68,10,0.1);
+  border: 1px solid rgba(232,68,10,0.2);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.preview-ai-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--pulse);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.preview-ai-text {
+  font-size: 11px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.6);
+}
+
+.preview-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.preview-stat {
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.preview-stat-num {
+  font-family: var(--heading-font);
+  font-size: 22px;
+  font-weight: 800;
+  color: white;
+}
+
+.preview-stat-label {
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+}
+
+/* ─── SECTIONS ─── */
+.section {
+  padding: 100px max(5vw, 20px);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-full {
+  padding: 100px max(5vw, 20px);
+  background: var(--ink);
+  color: white;
+}
+
+.section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--pulse);
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-family: var(--heading-font);
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.08;
+  margin-bottom: 20px;
+  color: var(--ink);
+}
+
+.section-title.light { color: white; }
+
+.section-sub {
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 520px;
+  font-weight: 400;
+}
+
+.section-sub.light { color: rgba(255,255,255,0.6); }
+
+/* ─── PROBLEM SECTION ─── */
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 60px;
+}
+
+.problem-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.problem-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 60px rgba(13,13,13,0.08);
+}
+
+.problem-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--pulse);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.problem-card:hover::before { opacity: 1; }
+
+.problem-icon {
+  font-size: 28px;
+  margin-bottom: 16px;
+}
+
+.problem-title {
+  font-family: var(--heading-font);
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--ink);
+}
+
+.problem-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* ─── FEATURES ─── */
+.features-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  margin-top: 80px;
+}
+
+.features-layout.flip { direction: rtl; }
+.features-layout.flip > * { direction: ltr; }
+
+.feature-visual {
+  background: var(--ink);
+  border-radius: 24px;
+  overflow: hidden;
+  aspect-ratio: 4/3;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feature-visual-inner {
+  padding: 24px;
+  width: 100%;
+}
+
+.feature-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--pulse);
+  margin-bottom: 10px;
+}
+
+.feature-num {
+  font-family: var(--heading-font);
+  font-size: 64px;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+}
+
+.feature-num span { color: var(--pulse); font-size: 36px; }
+
+.feature-desc-small {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 4px;
+}
+
+.feature-bars { margin-top: 16px; }
+
+.feature-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.feature-bar-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.fbar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.fbar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--pulse), #ff8c5a);
+  animation: barGrow 1.5s ease forwards;
+}
+
+@keyframes barGrow {
+  from { width: 0; }
+}
+
+.feature-pct {
+  font-family: var(--heading-font);
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  width: 32px;
+  text-align: right;
+}
+
+.feature-content-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--pulse);
+  margin-bottom: 16px;
+}
+
+.feature-title {
+  font-family: var(--heading-font);
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+
+.feature-title.light { color: white; }
+
+.feature-body {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.feature-body.light { color: rgba(255,255,255,0.6); }
+
+.feature-bullets { list-style: none; }
+
+.feature-bullets li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.feature-bullets li::before {
+  content: '✦';
+  color: var(--pulse);
+  font-size: 10px;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+/* ─── HOW IT WORKS ─── */
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 40px;
+  margin-top: 60px;
+  position: relative;
+}
+
+.steps-grid::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  left: 48px; right: 48px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), var(--border), transparent);
+}
+
+.step {
+  position: relative;
+  padding-top: 60px;
+}
+
+.step-num {
+  position: absolute;
+  top: 0;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--heading-font);
+  font-size: 16px;
+  font-weight: 800;
+  color: white;
+  border: 4px solid var(--cream);
+}
+
+.step-num.accent { background: var(--pulse); }
+
+.step-title {
+  font-family: var(--heading-font);
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--ink);
+}
+
+.step-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* ─── DIFFERENTIATORS ─── */
+.diff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 60px;
+}
+
+.diff-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
+  padding: 28px;
+  transition: background 0.2s;
+}
+
+.diff-card:hover { background: rgba(255,255,255,0.07); }
+
+.diff-icon {
+  font-size: 24px;
+  margin-bottom: 14px;
+}
+
+.diff-title {
+  font-family: var(--heading-font);
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.diff-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.5);
+}
+
+/* ─── PILOT SECTION ─── */
+.pilot-section {
+  background: var(--pulse-dim);
+  border: 1px solid rgba(232,68,10,0.15);
+  border-radius: 28px;
+  padding: 64px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.pilot-section::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 240px; height: 240px;
+  border-radius: 50%;
+  background: var(--pulse);
+  opacity: 0.06;
+}
+
+.pilot-section::after {
+  content: '';
+  position: absolute;
+  bottom: -80px; left: -80px;
+  width: 300px; height: 300px;
+  border-radius: 50%;
+  background: var(--pulse);
+  opacity: 0.04;
+}
+
+.pilot-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--pulse);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pilot-title {
+  font-family: var(--heading-font);
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--ink);
+  margin-bottom: 16px;
+  line-height: 1.1;
+}
+
+.pilot-sub {
+  font-size: 17px;
+  color: var(--muted);
+  max-width: 500px;
+  margin: 0 auto 40px;
+  line-height: 1.6;
+}
+
+.pilot-perks {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.pilot-perk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.pilot-perk::before {
+  content: '✓';
+  width: 20px; height: 20px;
+  background: var(--green-soft);
+  color: var(--green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ─── WAITLIST FORM ─── */
+.waitlist-form {
+  max-width: 560px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 20px 60px rgba(13,13,13,0.1);
+  text-align: left;
+}
+
+.form-title {
+  font-family: var(--heading-font);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.form-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.form-row { margin-bottom: 14px; }
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+  background: white;
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: none;
+}
+
+.form-input:focus, .form-select:focus { border-color: var(--pulse); }
+.form-input::placeholder { color: var(--muted); }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-submit {
+  width: 100%;
+  background: var(--pulse);
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 12px;
+  font-family: var(--heading-font);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.form-submit:hover { background: #c73c09; transform: translateY(-1px); }
+.form-submit:active { transform: scale(0.98); }
+
+.form-disclaimer {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+.form-success {
+  display: none;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.form-success-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.form-success-title {
+  font-family: var(--heading-font);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.form-success-text {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ─── FOOTER ─── */
+footer {
+  background: var(--ink);
+  color: rgba(255,255,255,0.5);
+  padding: 48px max(5vw, 20px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--heading-font);
+  font-size: 18px;
+  font-weight: 800;
+  color: white;
+}
+
+.footer-text {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.footer-text a {
+  color: var(--pulse);
+  text-decoration: none;
+}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 768px) {
+  .features-layout,
+  .features-layout.flip {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    direction: ltr;
+  }
+
+  .pilot-section { padding: 40px 24px; }
+  .pilot-perks { gap: 16px; }
+
+  .steps-grid::before { display: none; }
+
+  .nav-link { display: none; }
+
+  .preview-body {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-card.span2 { grid-column: span 1; }
+
+  .form-grid { grid-template-columns: 1fr; }
+
+  .hero-form { flex-direction: column; }
+  .hero-btn { justify-content: center; }
+
+  .hero-title { letter-spacing: -1px; }
+}
+
+@media (max-width: 480px) {
+  .preview-section { padding-left: 0; padding-right: 0; }
+  .dashboard-preview { border-radius: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-dot"></div>
+    <span class="nav-wordmark">Pulse</span>
+  </a>
+  <div class="nav-right">
+    <a href="#how-it-works" class="nav-link">How it works</a>
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#waitlist" class="nav-cta">Join the waitlist →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+
+  <div class="hero-eyebrow">Now accepting pilot organisations</div>
+
+  <h1 class="hero-title">
+    Performance management<br>that works for <em>people</em>
+  </h1>
+
+  <p class="hero-sub">
+    Pulse gives every employee a live performance score, AI-powered insights, and a complete view of their work life — so appraisals are never a surprise, and no one falls through the cracks.
+  </p>
+
+  <form class="hero-form" id="heroForm" onsubmit="handleHeroSubmit(event)">
+    <input type="email" class="hero-input" placeholder="Your work email" required id="heroEmail">
+    <button type="submit" class="hero-btn">
+      Get early access →
+    </button>
+  </form>
+
+  <div class="hero-social-proof">
+    <div class="proof-avatars">
+      <div class="proof-avatar" style="background:#1a7a4a">AO</div>
+      <div class="proof-avatar" style="background:#c47d00">BF</div>
+      <div class="proof-avatar" style="background:#6c5ce7">KA</div>
+      <div class="proof-avatar" style="background:#0984e3">TF</div>
+    </div>
+    <span>Join 40+ HR leaders on the waitlist</span>
+  </div>
+</section>
+
+<!-- DASHBOARD PREVIEW -->
+<div class="preview-section">
+  <div class="dashboard-preview">
+    <div class="preview-topbar">
+      <div class="preview-logo">
+        <div class="preview-dot"></div>
+        Pulse
+      </div>
+      <div class="preview-tabs">
+        <div class="preview-tab active">Performance</div>
+        <div class="preview-tab">Goals</div>
+        <div class="preview-tab">Reports</div>
+        <div class="preview-tab">AI &amp; Wellbeing</div>
+      </div>
+      <div class="preview-avatar-small">AO</div>
+    </div>
+    <div class="preview-body">
+      <!-- Score card -->
+      <div class="preview-card">
+        <div class="preview-card-label">Live Performance Score</div>
+        <div class="preview-score">78<span>%</span></div>
+        <div class="preview-trend">↑ +4 pts this month</div>
+        <div class="preview-bar-wrap">
+          <div class="preview-bar-fill"></div>
+        </div>
+        <div style="margin-top:14px">
+          <div class="preview-ai">
+            <div class="preview-ai-label">✦ Performance Coach</div>
+            <div class="preview-ai-text">Reach 85% to unlock your ₦310,000 Q2 bonus. Your report consistency is your biggest lever right now.</div>
+          </div>
+        </div>
+      </div>
+      <!-- Goals -->
+      <div class="preview-card span2">
+        <div class="preview-card-label">My Goals — Q2 2026</div>
+        <div class="preview-goal">
+          <div class="preview-goal-header">
+            <span class="preview-goal-name">Increase Q2 Sales Revenue</span>
+            <span class="preview-goal-pct">84%</span>
+          </div>
+          <div class="preview-mini-bar"><div class="preview-mini-fill" style="width:84%"></div></div>
+        </div>
+        <div class="preview-goal">
+          <div class="preview-goal-header">
+            <span class="preview-goal-name">Product Certification</span>
+            <span class="preview-goal-pct">60%</span>
+          </div>
+          <div class="preview-mini-bar"><div class="preview-mini-fill" style="width:60%;background:linear-gradient(90deg,#c47d00,#ffd166)"></div></div>
+        </div>
+        <div class="preview-goal">
+          <div class="preview-goal-header">
+            <span class="preview-goal-name">Data Analysis Report ⚠️</span>
+            <span class="preview-goal-pct">34%</span>
+          </div>
+          <div class="preview-mini-bar"><div class="preview-mini-fill" style="width:34%;background:linear-gradient(90deg,#c0392b,#e74c3c)"></div></div>
+        </div>
+        <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div class="preview-stat">
+            <div class="preview-stat-num">₦245k</div>
+            <div class="preview-stat-label">Q2 bonus earned</div>
+          </div>
+          <div class="preview-stat">
+            <div class="preview-stat-num">12</div>
+            <div class="preview-stat-label">Week streak</div>
+          </div>
+          <div class="preview-stat">
+            <div class="preview-stat-num">4.2</div>
+            <div class="preview-stat-label">Peer rating</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROBLEM SECTION -->
+<section class="section reveal" id="problem">
+  <div style="max-width:600px">
+    <div class="section-eyebrow">✦ The problem</div>
+    <h2 class="section-title">Performance management is broken. Everyone knows it.</h2>
+    <p class="section-sub">Annual appraisals feel arbitrary. Employees don't know where they stand. Managers are too busy to give real feedback. HR is stuck chasing paperwork. Pulse fixes all of it.</p>
+  </div>
+
+  <div class="problem-grid" style="margin-top:60px">
+    <div class="problem-card reveal">
+      <div class="problem-icon">😤</div>
+      <div class="problem-title">Employees are in the dark</div>
+      <div class="problem-text">Most employees only find out how they're performing once a year — at their appraisal. By then it's too late to change anything. Pulse gives every employee a live score, every day.</div>
+    </div>
+    <div class="problem-card reveal">
+      <div class="problem-icon">📋</div>
+      <div class="problem-title">Qualitative reports go nowhere</div>
+      <div class="problem-text">Employees spend time writing weekly reports that managers don't have time to read properly. Critical information — blockers, frustrations, wins — gets lost. Pulse's AI reads every word and surfaces what matters.</div>
+    </div>
+    <div class="problem-card reveal">
+      <div class="problem-icon">⚖️</div>
+      <div class="problem-title">Appraisals feel unfair</div>
+      <div class="problem-text">When scoring is opaque, employees feel judged on who they are, not what they've done. Pulse makes every component of every score visible and explainable — to both the employee and their manager.</div>
+    </div>
+    <div class="problem-card reveal">
+      <div class="problem-icon">🔇</div>
+      <div class="problem-title">Struggling employees go unnoticed</div>
+      <div class="problem-text">High performers get attention. Struggling employees get overlooked until it's too late. Pulse flags risk early and privately recommends collaboration — before performance becomes a crisis.</div>
+    </div>
+    <div class="problem-card reveal">
+      <div class="problem-icon">🗂️</div>
+      <div class="problem-title">HR is buried in admin</div>
+      <div class="problem-text">HR teams spend months coordinating appraisals, chasing submissions, and compiling data manually. Pulse automates the process end-to-end and gives HR a live view of every employee, every cycle.</div>
+    </div>
+    <div class="problem-card reveal">
+      <div class="problem-icon">💸</div>
+      <div class="problem-title">Performance isn't linked to pay</div>
+      <div class="problem-text">Most employees don't know what their performance score means for their bonus — until they receive it. Pulse shows every employee exactly what their score is worth, in real numbers, in real time.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div style="max-width:600px" class="reveal">
+    <div class="section-eyebrow">✦ What Pulse does</div>
+    <h2 class="section-title">One platform.<br>Every employee.<br>No surprises.</h2>
+  </div>
+
+  <!-- Feature 1 -->
+  <div class="features-layout reveal">
+    <div class="feature-visual">
+      <div class="feature-visual-inner">
+        <div class="feature-tag">Live Performance Score</div>
+        <div class="feature-num">78<span>%</span></div>
+        <div class="feature-desc-small">Updated in real-time · Q2 2026</div>
+        <div class="feature-bars">
+          <div class="feature-bar-row">
+            <span class="feature-bar-label">Goal Achievement</span>
+            <div class="fbar"><div class="fbar-fill" style="width:84%"></div></div>
+            <span class="feature-pct">84%</span>
+          </div>
+          <div class="feature-bar-row">
+            <span class="feature-bar-label">Report Consistency</span>
+            <div class="fbar"><div class="fbar-fill" style="width:90%"></div></div>
+            <span class="feature-pct">90%</span>
+          </div>
+          <div class="feature-bar-row">
+            <span class="feature-bar-label">KPI Performance</span>
+            <div class="fbar"><div class="fbar-fill" style="width:72%"></div></div>
+            <span class="feature-pct">72%</span>
+          </div>
+          <div class="feature-bar-row">
+            <span class="feature-bar-label">Peer Feedback</span>
+            <div class="fbar"><div class="fbar-fill" style="width:88%"></div></div>
+            <span class="feature-pct">88%</span>
+          </div>
+        </div>
+        <div style="margin-top:14px;padding:10px;background:rgba(232,68,10,0.12);border-radius:8px;border:1px solid rgba(232,68,10,0.2)">
+          <div style="font-size:10px;color:var(--pulse);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">✦ Bonus tracker</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.6)">At 78% → ₦245,000 bonus · Reach 85% → ₦310,000</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="feature-content-label">01 — Live Appraisal</div>
+      <h3 class="feature-title">Your score. Every day. No surprises.</h3>
+      <p class="feature-body">Pulse calculates every employee's appraisal score in real-time — not just at the end of a cycle. Employees always know where they stand, what's driving their score, and exactly what they need to do to improve.</p>
+      <ul class="feature-bullets">
+        <li>Weighted scoring across goals, KPIs, reports, peer feedback, and manager assessment</li>
+        <li>Every component is visible and explainable to the employee</li>
+        <li>Performance-linked compensation displayed in plain numbers</li>
+        <li>Configurable weights per department and cadre level</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Feature 2 -->
+  <div class="features-layout flip reveal" style="margin-top:80px">
+    <div class="feature-visual">
+      <div class="feature-visual-inner">
+        <div class="feature-tag">AI Report Analysis</div>
+        <div style="margin-top:8px">
+          <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:8px">
+            <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:6px">Employee submitted:</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.6);line-height:1.6;font-style:italic">"This week I closed the Dangote account after 3 months of negotiations. Still having trouble getting data access from IT which is slowing down Q2 reporting..."</div>
+          </div>
+          <div style="background:rgba(232,68,10,0.1);border:1px solid rgba(232,68,10,0.2);border-radius:10px;padding:12px">
+            <div style="font-size:10px;color:var(--pulse);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">✦ AI extracted for manager</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:6px">✅ Key win: Dangote account closed (Q2 target impact)</div>
+            <div style="font-size:11px;color:#ffd166;margin-bottom:6px">⚠️ Blocker: IT data access — mentioned 3rd consecutive week</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5)">🎯 Goals referenced: Q2 Revenue, Data Analysis Report</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="feature-content-label">02 — AI Report Intelligence</div>
+      <h3 class="feature-title">AI reads every report so managers don't have to miss anything.</h3>
+      <p class="feature-body">Employees write. AI extracts. Managers act. Pulse's AI processes every qualitative report and surfaces accomplishments, blockers, goal references, and sentiment — mapped to the employee's live appraisal score.</p>
+      <ul class="feature-bullets">
+        <li>Extracts key accomplishments and maps them to company OKRs</li>
+        <li>Flags repeated blockers before they become performance issues</li>
+        <li>Detects early sentiment signals — engagement, stress, disengagement</li>
+        <li>Manager sees a structured digest — raw report always one tap away</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Feature 3 -->
+  <div class="features-layout reveal" style="margin-top:80px">
+    <div class="feature-visual">
+      <div class="feature-visual-inner">
+        <div class="feature-tag">Adaptive Dashboard</div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+          <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:50%;background:#1a7a4a;display:flex;align-items:center;justify-content:center;font-family:Syne;font-size:10px;font-weight:700;color:white;flex-shrink:0">AO</div>
+            <div>
+              <div style="font-size:12px;color:white;font-weight:600">Entry-level — Individual contributor</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.4)">Sees: Personal dashboard only</div>
+            </div>
+          </div>
+          <div style="background:rgba(232,68,10,0.1);border:1px solid rgba(232,68,10,0.2);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--pulse);display:flex;align-items:center;justify-content:center;font-family:Syne;font-size:10px;font-weight:700;color:white;flex-shrink:0">BA</div>
+            <div>
+              <div style="font-size:12px;color:white;font-weight:600">Senior Manager — Manages 3 teams</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.4)">Sees: Own dashboard + My Team tab + dept view</div>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:50%;background:#6c5ce7;display:flex;align-items:center;justify-content:center;font-family:Syne;font-size:10px;font-weight:700;color:white;flex-shrink:0">KA</div>
+            <div>
+              <div style="font-size:12px;color:white;font-weight:600">HR Admin — Platform administrator</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.4)">Sees: Own dashboard + full HR portal</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="feature-content-label">03 — One Portal, Every Role</div>
+      <h3 class="feature-title">One login. The right view for every person.</h3>
+      <p class="feature-body">Pulse adapts to every employee automatically. Entry-level staff, team leads, senior managers, HR admins, and executives — all get exactly the information and tools relevant to their role. No separate portals. No switching between systems.</p>
+      <ul class="feature-bullets">
+        <li>Dual-layer role model: cadre level × people responsibility</li>
+        <li>Team management tab appears automatically when someone manages others</li>
+        <li>HR and Executive portals accessible via a single toggle — not a separate login</li>
+        <li>AI coaching tone and suggestions adapt to each employee's level</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section reveal" id="how-it-works">
+  <div style="text-align:center;max-width:600px;margin:0 auto">
+    <div class="section-eyebrow">✦ How it works</div>
+    <h2 class="section-title">Up and running in a week</h2>
+    <p class="section-sub">We onboard your organisation, set up your goals and appraisal framework, and invite your team. You're live in days, not months.</p>
+  </div>
+
+  <div class="steps-grid">
+    <div class="step reveal">
+      <div class="step-num">1</div>
+      <div class="step-title">We onboard you</div>
+      <div class="step-text">Your HR admin configures the org structure, appraisal weights, leave types, and goal framework. We help you get it right from day one.</div>
+    </div>
+    <div class="step reveal">
+      <div class="step-num accent">2</div>
+      <div class="step-title">Staff get invited</div>
+      <div class="step-text">Every employee receives a personalised invite. First login takes 3 minutes — they confirm their details and they're in their dashboard.</div>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">3</div>
+      <div class="step-title">Goals go live</div>
+      <div class="step-text">Managers set goals from the top down. Org → Department → Team → Individual. Every employee sees exactly what they're working toward and why it matters.</div>
+    </div>
+    <div class="step reveal">
+      <div class="step-num accent">4</div>
+      <div class="step-title">Reports flow in</div>
+      <div class="step-text">Employees submit weekly reports. AI processes them instantly. Managers get digests, not novels. Scores update automatically.</div>
+    </div>
+  </div>
+</section>
+
+<!-- DIFFERENTIATORS (dark section) -->
+<section class="section-full reveal">
+  <div style="max-width:1200px;margin:0 auto">
+    <div style="max-width:600px;margin-bottom:60px">
+      <div class="section-eyebrow" style="color:var(--pulse)">✦ Why Pulse</div>
+      <h2 class="section-title light">Built different.<br>On purpose.</h2>
+      <p class="section-sub light">Pulse isn't a tweaked version of what already exists. Every design decision was made by asking: what do employees actually need to perform well?</p>
+    </div>
+
+    <div class="diff-grid">
+      <div class="diff-card reveal">
+        <div class="diff-icon">📊</div>
+        <div class="diff-title">Data by default, AI on demand</div>
+        <div class="diff-text">Pulse shows you numbers and trends. AI interpretation is opt-in. No platform telling you what to think about your own employees unless you ask.</div>
+      </div>
+      <div class="diff-card reveal">
+        <div class="diff-icon">💰</div>
+        <div class="diff-title">Performance linked to pay, visibly</div>
+        <div class="diff-text">Employees see their bonus calculation update in real time as their score moves. No more wondering what an appraisal score actually means.</div>
+      </div>
+      <div class="diff-card reveal">
+        <div class="diff-icon">🤝</div>
+        <div class="diff-title">Private collaboration suggestions</div>
+        <div class="diff-text">When an employee is struggling, Pulse quietly suggests a peer who can help. No one is publicly flagged. Support happens before it becomes a problem.</div>
+      </div>
+      <div class="diff-card reveal">
+        <div class="diff-icon">🧠</div>
+        <div class="diff-title">AI reads what employees write</div>
+        <div class="diff-text">No competitor processes qualitative reports and extracts structured insight from them. Pulse does. Every weekly update becomes data.</div>
+      </div>
+      <div class="diff-card reveal">
+        <div class="diff-icon">💚</div>
+        <div class="diff-title">Wellbeing built in, not bolted on</div>
+        <div class="diff-text">Weekly emotional check-ins, tiered AI escalation, and anonymous HR flags — all configurable. People are not headcount.</div>
+      </div>
+      <div class="diff-card reveal">
+        <div class="diff-icon">⚡</div>
+        <div class="diff-title">One platform, not five tools</div>
+        <div class="diff-text">Goals, reports, appraisals, leave, team chat, escalations, and AI coaching — all in one place. No switching between Slack, BambooHR, and a spreadsheet.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PILOT / WAITLIST SECTION -->
+<section class="section" id="waitlist">
+  <div class="pilot-section reveal">
+    <div class="pilot-eyebrow">✦ Pilot Programme — Limited to 5 organisations</div>
+    <h2 class="pilot-title">Be first.<br>Shape what Pulse becomes.</h2>
+    <p class="pilot-sub">We're onboarding 5 organisations for our pilot programme. You'll get full platform access, direct line to the founding team, and significant influence over the product roadmap.</p>
+
+    <div class="pilot-perks">
+      <div class="pilot-perk">Free during the pilot</div>
+      <div class="pilot-perk">Full feature access</div>
+      <div class="pilot-perk">Direct founder support</div>
+      <div class="pilot-perk">Shape the product roadmap</div>
+      <div class="pilot-perk">Priority onboarding</div>
+    </div>
+
+    <div class="waitlist-form">
+      <div id="formContent">
+        <div class="form-title">Join the waitlist</div>
+        <div class="form-sub">We'll be in touch within 48 hours to discuss fit and next steps.</div>
+
+        <form onsubmit="handleWaitlistSubmit(event)">
+          <div class="form-grid">
+            <div class="form-row">
+              <label class="form-label">First name</label>
+              <input type="text" class="form-input" placeholder="Adaeze" required>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Last name</label>
+              <input type="text" class="form-input" placeholder="Okafor" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Work email</label>
+            <input type="email" class="form-input" placeholder="adaeze@yourcompany.com" required>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Organisation name</label>
+            <input type="text" class="form-input" placeholder="Zenith Corp" required>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-row">
+              <label class="form-label">Your role</label>
+              <select class="form-select form-input" required>
+                <option value="" disabled selected>Select role</option>
+                <option>HR Director / Head of HR</option>
+                <option>CHRO / Chief People Officer</option>
+                <option>HR Manager</option>
+                <option>CEO / Managing Director</option>
+                <option>COO / Operations Director</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Team size</label>
+              <select class="form-select form-input" required>
+                <option value="" disabled selected>Select size</option>
+                <option>10–50 employees</option>
+                <option>51–200 employees</option>
+                <option>201–500 employees</option>
+                <option>500+ employees</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">What's your biggest performance management challenge right now?</label>
+            <textarea class="form-input" rows="3" placeholder="Tell us what's not working..." style="resize:none;line-height:1.5"></textarea>
+          </div>
+
+          <button type="submit" class="form-submit">
+            Request early access →
+          </button>
+
+          <div class="form-disclaimer">
+            We'll never spam you. No auto-subscriptions. A real person will read your submission.
+          </div>
+        </form>
+      </div>
+
+      <div class="form-success" id="formSuccess">
+        <div class="form-success-icon">🎯</div>
+        <div class="form-success-title">You're on the list.</div>
+        <div class="form-success-text">We'll reach out within 48 hours to learn more about your organisation and discuss whether Pulse is the right fit for your pilot.<br><br>In the meantime, feel free to explore the live prototype at <a href="https://pulse-eight-eta.vercel.app" style="color:var(--pulse)">pulse-eight-eta.vercel.app</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <div style="width:8px;height:8px;background:var(--pulse);border-radius:50%"></div>
+    Pulse
+  </div>
+  <div class="footer-text">
+    © 2026 Pulse Performance Intelligence.<br>
+    Questions? <a href="mailto:hello@pulse.stuartdavidson.org">hello@pulse.stuartdavidson.org</a>
+  </div>
+  <div class="footer-text" style="text-align:right">
+    Built for the humans<br>who show up every day.
+  </div>
+</footer>
+
+<script>
+// ─── SCROLL REVEAL ───
+const revealEls = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), i * 80);
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+revealEls.forEach(el => observer.observe(el));
+
+const FORMSPREE = 'https://formspree.io/f/xjgzqegg';
+
+// ─── HERO FORM ───
+// Submits quick email to Formspree then scrolls to full waitlist form
+function handleHeroSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('heroEmail').value;
+  const btn = e.target.querySelector('.hero-btn');
+  btn.textContent = 'Hold on...';
+  btn.style.opacity = '0.7';
+
+  fetch(FORMSPREE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ email, source: 'hero_quick_signup', timestamp: new Date().toISOString() })
+  })
+  .finally(() => {
+    btn.textContent = 'Done ✓';
+    btn.style.background = '#1a7a4a';
+    btn.style.opacity = '1';
+    setTimeout(() => {
+      document.getElementById('waitlist').scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => {
+        document.querySelectorAll('.waitlist-form input[type="email"]')
+          .forEach(input => input.value = email);
+      }, 700);
+    }, 500);
+  });
+}
+
+// ─── WAITLIST FORM ───
+function handleWaitlistSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+
+  const data = {
+    firstName: form.querySelector('input[placeholder="Adaeze"]').value,
+    lastName: form.querySelector('input[placeholder="Okafor"]').value,
+    email: form.querySelector('input[type="email"]').value,
+    organisation: form.querySelector('input[placeholder="Zenith Corp"]').value,
+    role: form.querySelectorAll('select')[0].value,
+    teamSize: form.querySelectorAll('select')[1].value,
+    biggestChallenge: form.querySelector('textarea').value,
+    source: 'waitlist_full_form',
+    timestamp: new Date().toISOString()
+  };
+
+  const btn = form.querySelector('.form-submit');
+  btn.textContent = 'Submitting...';
+  btn.style.background = '#333';
+  btn.disabled = true;
+
+  fetch(FORMSPREE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(res => res.json())
+  .then(result => {
+    if (result.ok || result.next) {
+      document.getElementById('formContent').style.display = 'none';
+      document.getElementById('formSuccess').style.display = 'block';
+    } else {
+      throw new Error('submission failed');
+    }
+  })
+  .catch(() => {
+    btn.textContent = 'Something went wrong — try again';
+    btn.style.background = '#c0392b';
+    btn.disabled = false;
+    setTimeout(() => {
+      btn.textContent = 'Request early access →';
+      btn.style.background = 'var(--pulse)';
+    }, 3500);
+  });
+}
+
+// ─── NAV SHRINK ON SCROLL ───
+const nav = document.querySelector('nav');
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 60) {
+    nav.style.height = '56px';
+    nav.style.boxShadow = '0 4px 20px rgba(13,13,13,0.08)';
+  } else {
+    nav.style.height = '68px';
+    nav.style.boxShadow = 'none';
+  }
+});
+</script>
+
+</body>
+</html>

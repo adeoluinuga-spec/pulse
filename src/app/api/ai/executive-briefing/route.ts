@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAnthropicClient, extractText } from "@/lib/anthropic";
+import { getRouteUser } from "@/lib/apiAuth";
 
 function fallbackBriefing(body: Record<string, unknown>) {
   const orgName = typeof body.orgName === "string" ? body.orgName : "the organisation";
@@ -12,6 +13,9 @@ function fallbackBriefing(body: Record<string, unknown>) {
 }
 
 export async function POST(request: Request) {
+  if (!(await getRouteUser())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   let body: Record<string, unknown> = {};
 
   try {

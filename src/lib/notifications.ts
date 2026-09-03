@@ -42,6 +42,7 @@ export async function sendNotification(input: NotificationInput): Promise<void> 
         headers: {
           Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
           "Content-Type": "application/json",
+          "x-pulse-secret": process.env.PULSE_EDGE_SECRET ?? "",
         },
         body: JSON.stringify({
           type: input.type,

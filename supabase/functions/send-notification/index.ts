@@ -3,6 +3,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const FROM_EMAIL = Deno.env.get("FROM_EMAIL") ?? "notifications@usepulse.app";
 const APP_URL = Deno.env.get("APP_URL") ?? "https://usepulse.app";
+// Shared secret so only our own server/cron can trigger emails.
+// Anyone with just the public anon key gets a 401.
+const PULSE_EDGE_SECRET = Deno.env.get("PULSE_EDGE_SECRET") ?? "";
 
 interface NotificationPayload {
   type: string;
@@ -185,6 +188,13 @@ function buildEmail(payload: NotificationPayload): { subject: string; html: stri
 serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
+  }
+
+  if (!PULSE_EDGE_SECRET || req.headers.get("x-pulse-secret") !== PULSE_EDGE_SECRET) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   try {

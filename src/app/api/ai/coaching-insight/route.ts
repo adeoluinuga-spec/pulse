@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, extractText } from "@/lib/anthropic";
+import { getRouteUser } from "@/lib/apiAuth";
 
 function fallback(employeeName?: string, score?: number) {
   const current = typeof score === "number" ? score : 78;
@@ -11,6 +12,9 @@ function fallback(employeeName?: string, score?: number) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await getRouteUser())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   let body: {
     employee?: { name?: string; performanceScore?: number; cadre?: string };
     cadre?: string;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, extractText } from "@/lib/anthropic";
+import { getRouteUser } from "@/lib/apiAuth";
 
 function fallback(level = "mixed") {
   if (level === "positive") {
@@ -28,6 +29,9 @@ function fallback(level = "mixed") {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await getRouteUser())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   let body: { escalationLevel?: string } = {};
   try {
     body = await request.json();
