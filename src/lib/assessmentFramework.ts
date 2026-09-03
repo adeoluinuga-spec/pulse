@@ -42,6 +42,12 @@ export type RaterCoverageSummary = {
   missingGroups: string[];
 };
 
+type RawCompetencyDefinition = Omit<Partial<CompetencyDefinition>, "group" | "level" | "function"> & {
+  group?: string;
+  level?: string;
+  function?: string;
+};
+
 export function normalizeAssessmentFramework(input: {
   orgId?: string;
   name?: string;
@@ -49,11 +55,12 @@ export function normalizeAssessmentFramework(input: {
   businessFunctions?: Array<string | undefined>;
   defaultGroups?: Array<string | undefined>;
   selfAssessmentEnabled?: boolean | string;
-  competencies?: Array<Partial<CompetencyDefinition>>;
+  competencies?: RawCompetencyDefinition[];
 }): AssessmentFramework {
   const validLevels = ["director", "assistant_director", "all"] as const;
   const validFunctions = ["network", "customer_experience", "commercial", "technology", "operations", "hr", "finance", "all"] as const;
   const validGroups = ["direct_report", "subordinate", "colleague", "customer"] as const;
+  const validCompetencyGroups = ["leadership", "enterprise", "functional"] as const;
 
   const levels = (input.levels ?? ["director", "assistant_director"]).reduce<Array<AssessmentLevel | "all">>((acc, level) => {
     const normalized = String(level ?? "").trim().toLowerCase();
@@ -79,15 +86,27 @@ export function normalizeAssessmentFramework(input: {
     return acc;
   }, []);
 
-  const competencies = (input.competencies ?? []).map((competency, index) => ({
-    id: competency.id ?? `competency_${index + 1}`,
-    name: competency.name ?? "Unnamed competency",
-    group: (competency.group ?? "enterprise") as CompetencyDefinition["group"],
-    level: (competency.level ?? "all") as CompetencyDefinition["level"],
-    function: (competency.function ?? "all") as AssessmentFunction,
-    description: competency.description ?? "",
-    active: competency.active ?? true,
-  }));
+  const competencies = (input.competencies ?? []).map((competency, index) => {
+    const competencyGroup = String(competency.group ?? "enterprise").trim().toLowerCase();
+    const level = String(competency.level ?? "all").trim().toLowerCase();
+    const businessFunction = String(competency.function ?? "all").trim().toLowerCase();
+
+    return {
+      id: competency.id ?? `competency_${index + 1}`,
+      name: competency.name ?? "Unnamed competency",
+      group: validCompetencyGroups.includes(competencyGroup as (typeof validCompetencyGroups)[number])
+        ? (competencyGroup as CompetencyDefinition["group"])
+        : "enterprise",
+      level: validLevels.includes(level as (typeof validLevels)[number])
+        ? (level as CompetencyDefinition["level"])
+        : "all",
+      function: validFunctions.includes(businessFunction as (typeof validFunctions)[number])
+        ? (businessFunction as AssessmentFunction)
+        : "all",
+      description: competency.description ?? "",
+      active: competency.active ?? true,
+    };
+  });
 
   const selfAssessmentEnabled = input.selfAssessmentEnabled === true || String(input.selfAssessmentEnabled ?? "").toLowerCase() === "yes";
 
@@ -109,11 +128,7 @@ export function buildAssessmentFramework(input: {
   levels?: string[];
   businessFunctions?: string[];
   defaultGroups?: string[];
-  competencies?: Array<Partial<CompetencyDefinition> & {
-    level?: string;
-    function?: string;
-    group?: "leadership" | "enterprise" | "functional" | string;
-  }>;
+  competencies?: RawCompetencyDefinition[];
   selfAssessmentEnabled?: boolean;
 }): AssessmentFramework {
   return normalizeAssessmentFramework({

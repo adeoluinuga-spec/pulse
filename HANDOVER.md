@@ -329,7 +329,7 @@ This must stay enforced server-side.
 ### Codex / UX owner
 - [x] assessment lifecycle screens
 - [x] competency configuration workflow UI
-- [ ] self-assessment completion UX
+- [x] self-assessment completion UX
 - [ ] nomination and approval UX
 - [ ] admin dashboard and progress views
 - [ ] reporting presentation layer

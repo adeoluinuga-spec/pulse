@@ -17,6 +17,20 @@ create table if not exists public.assessment_cycles (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.assessment_frameworks (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null references public.organisations(id) on delete cascade,
+  name text not null,
+  levels text[] not null default array['director', 'assistant_director'],
+  business_functions text[] not null default array['all'],
+  default_groups text[] not null default array['direct_report', 'subordinate', 'colleague', 'customer'],
+  competencies jsonb not null default '[]'::jsonb,
+  self_assessment_enabled boolean not null default false,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.assessment_competencies (
   id uuid primary key default gen_random_uuid(),
   cycle_id uuid not null references public.assessment_cycles(id) on delete cascade,
@@ -102,6 +116,7 @@ create table if not exists public.assessment_audit_events (
 );
 
 alter table public.assessment_cycles enable row level security;
+alter table public.assessment_frameworks enable row level security;
 alter table public.assessment_competencies enable row level security;
 alter table public.assessment_subjects enable row level security;
 alter table public.assessment_reviewers enable row level security;
@@ -110,6 +125,7 @@ alter table public.assessment_reports enable row level security;
 alter table public.assessment_audit_events enable row level security;
 
 create index if not exists assessment_cycles_org_id_idx on public.assessment_cycles(org_id);
+create index if not exists assessment_frameworks_org_id_idx on public.assessment_frameworks(org_id);
 create index if not exists assessment_subjects_cycle_id_idx on public.assessment_subjects(cycle_id);
 create index if not exists assessment_reviewers_cycle_id_idx on public.assessment_reviewers(cycle_id);
 create index if not exists assessment_reviewers_subject_id_idx on public.assessment_reviewers(subject_id);
@@ -147,6 +163,40 @@ create policy "hr can manage assessment cycles"
       select 1
       from public.employees e
       where e.org_id = assessment_cycles.org_id
+        and e.user_id = auth.uid()
+        and e.platform_role in ('hr_admin', 'super_admin')
+    )
+  );
+
+create policy "org members can read assessment frameworks"
+  on public.assessment_frameworks
+  for select
+  using (
+    exists (
+      select 1
+      from public.employees e
+      where e.org_id = assessment_frameworks.org_id
+        and e.user_id = auth.uid()
+    )
+  );
+
+create policy "hr can manage assessment frameworks"
+  on public.assessment_frameworks
+  for all
+  using (
+    exists (
+      select 1
+      from public.employees e
+      where e.org_id = assessment_frameworks.org_id
+        and e.user_id = auth.uid()
+        and e.platform_role in ('hr_admin', 'super_admin')
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.employees e
+      where e.org_id = assessment_frameworks.org_id
         and e.user_id = auth.uid()
         and e.platform_role in ('hr_admin', 'super_admin')
     )
