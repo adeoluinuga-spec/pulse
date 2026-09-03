@@ -39,6 +39,7 @@ import {
 import {
   buildAssessmentFramework,
   buildRaterCoverage,
+  validateRaterNomination,
   validateSelfAssessmentConfig,
   type AssessmentFunction,
   type CompetencyDefinition,
@@ -55,14 +56,16 @@ import { parseAssessmentParticipantCsv } from "@/lib/assessmentParticipants";
 import { canReleaseAssessmentReport, releaseReadinessSummary } from "@/lib/assessmentRelease";
 import { buildReviewSubmissionSummary, validateReviewPayload } from "@/lib/reviewSubmission";
 
-type TabKey = "command" | "participants" | "questions" | "self" | "review" | "reports";
+type TabKey = "command" | "participants" | "questions" | "self" | "nominations" | "review" | "reports";
 type LevelFilter = AssessmentLevel | "all";
+type NominationStatus = "pending" | "approved" | "rejected";
 
 const tabs: Array<{ key: TabKey; label: string; icon: typeof BarChart3 }> = [
   { key: "command", label: "Command", icon: BarChart3 },
   { key: "participants", label: "Participants", icon: Users },
   { key: "questions", label: "Framework", icon: ClipboardList },
   { key: "self", label: "Self assessment", icon: Star },
+  { key: "nominations", label: "Nominations", icon: ShieldCheck },
   { key: "review", label: "Review form", icon: MessageSquareText },
   { key: "reports", label: "Reports", icon: FileText },
 ];
@@ -104,6 +107,16 @@ function average(values: number[]) {
 
 const assessmentFunctions: AssessmentFunction[] = ["all", "network", "customer_experience", "commercial", "technology", "operations", "hr", "finance"];
 const competencyGroups: CompetencyDefinition["group"][] = ["leadership", "enterprise", "functional"];
+
+type RaterNominationItem = {
+  id: string;
+  assigneeId: string;
+  reviewerId: string;
+  name: string;
+  email: string;
+  group: ReviewerGroup;
+  status: NominationStatus;
+};
 
 export default function AssessmentsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("command");
@@ -181,6 +194,21 @@ export default function AssessmentsPage() {
   const [selfComments, setSelfComments] = useState<Record<string, string>>({});
   const [selfSubmitted, setSelfSubmitted] = useState(false);
   const [selfNotice, setSelfNotice] = useState("");
+  const [nomineeName, setNomineeName] = useState("");
+  const [nomineeEmail, setNomineeEmail] = useState("");
+  const [nomineeGroup, setNomineeGroup] = useState<ReviewerGroup>("colleague");
+  const [nominationNotice, setNominationNotice] = useState("");
+  const [raterNominations, setRaterNominations] = useState<RaterNominationItem[]>(
+    reviewers.slice(0, 4).map((reviewer) => ({
+      id: `nomination-${reviewer.id}`,
+      assigneeId: reviewer.assesseeId,
+      reviewerId: reviewer.email,
+      name: reviewer.name,
+      email: reviewer.email,
+      group: reviewer.group,
+      status: reviewer.status === "submitted" ? "approved" : "pending",
+    })),
+  );
 
   const visibleAssessees = useMemo(
     () => assessmentSubjects.filter((assessee) => levelFilter === "all" || assessee.level === levelFilter),
@@ -238,6 +266,18 @@ export default function AssessmentsPage() {
   const selfCompletion = demoQuestions.length ? Math.round((selfAnswered / demoQuestions.length) * 100) : 0;
   const selfAverage = average(selfResponses.map((response) => response.score));
   const selfVsOthersGap = Math.round(selfAverage * 20 - selectedScore);
+  const selectedNominations = raterNominations.filter((nomination) => nomination.assigneeId === selectedAssessee.id);
+  const approvedNominations = selectedNominations.filter((nomination) => nomination.status === "approved").length;
+  const pendingNominations = selectedNominations.filter((nomination) => nomination.status === "pending").length;
+  const nominationValidation = validateRaterNomination({
+    employeeId: selectedAssessee.id,
+    assigneeId: selectedAssessee.id,
+    nominations: selectedNominations.map((nomination) => ({
+      reviewerId: nomination.reviewerId,
+      reviewerGroup: nomination.group,
+    })),
+    allowedGroups: reviewerGroups.map((group) => group.key),
+  });
 
   async function handleDemoSubmit() {
     const payload = {
@@ -361,6 +401,53 @@ export default function AssessmentsPage() {
     setSelfSubmitted(true);
     setSelfNotice("Self-assessment captured for HR review.");
     setTimeout(() => setSelfNotice(""), 3500);
+  }
+
+  function handleAddNomination() {
+    if (!nomineeName.trim() || !nomineeEmail.trim()) {
+      setNominationNotice("Nominee name and email are required.");
+      setTimeout(() => setNominationNotice(""), 3500);
+      return;
+    }
+
+    const nextNomination: RaterNominationItem = {
+      id: `nomination-${Date.now()}`,
+      assigneeId: selectedAssessee.id,
+      reviewerId: nomineeEmail.trim().toLowerCase(),
+      name: nomineeName.trim(),
+      email: nomineeEmail.trim().toLowerCase(),
+      group: nomineeGroup,
+      status: "pending",
+    };
+
+    const validation = validateRaterNomination({
+      employeeId: selectedAssessee.id,
+      assigneeId: selectedAssessee.id,
+      nominations: [...selectedNominations, nextNomination].map((nomination) => ({
+        reviewerId: nomination.reviewerId,
+        reviewerGroup: nomination.group,
+      })),
+      allowedGroups: reviewerGroups.map((group) => group.key),
+    });
+
+    if (!validation.valid) {
+      setNominationNotice(validation.errors[0] ?? "Nomination could not be added.");
+      setTimeout(() => setNominationNotice(""), 3500);
+      return;
+    }
+
+    setRaterNominations((current) => [nextNomination, ...current]);
+    setNomineeName("");
+    setNomineeEmail("");
+    setNomineeGroup("colleague");
+    setNominationNotice("Rater nomination added for approval.");
+    setTimeout(() => setNominationNotice(""), 3500);
+  }
+
+  function handleNominationDecision(id: string, status: NominationStatus) {
+    setRaterNominations((current) =>
+      current.map((nomination) => (nomination.id === id ? { ...nomination, status } : nomination)),
+    );
   }
 
   function handleImportParticipants() {
@@ -1265,6 +1352,136 @@ export default function AssessmentsPage() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "nominations" && (
+          <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
+            <div className="space-y-5">
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Rater nomination</p>
+                <h3 className="mt-2 font-syne text-2xl font-black">{selectedAssessee.name}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted">{levelLabel(selectedAssessee.level)} - {selectedAssessee.functionName} - {selectedAssessee.region}</p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl bg-paper p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Nominated</p>
+                    <p className="mt-2 text-3xl font-black">{selectedNominations.length}</p>
+                  </div>
+                  <div className="rounded-2xl bg-green-soft p-4 text-green">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em]">Approved</p>
+                    <p className="mt-2 text-3xl font-black">{approvedNominations}</p>
+                  </div>
+                  <div className="rounded-2xl bg-amber-50 p-4 text-amber-700">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em]">Pending</p>
+                    <p className="mt-2 text-3xl font-black">{pendingNominations}</p>
+                  </div>
+                </div>
+                <div className={clsx("mt-5 rounded-2xl p-3 text-sm font-black", nominationValidation.valid ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                  {nominationValidation.valid ? "Nomination list passes current validation." : nominationValidation.errors[0]}
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Nominate rater</p>
+                <h3 className="mt-2 text-xl font-black">Add reviewer candidate</h3>
+                {nominationNotice && <div className="mt-3 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse">{nominationNotice}</div>}
+                <div className="mt-5 grid gap-3">
+                  <label className="block text-sm font-black text-muted">
+                    Name
+                    <input
+                      value={nomineeName}
+                      onChange={(event) => setNomineeName(event.target.value)}
+                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      placeholder="Nominee name"
+                    />
+                  </label>
+                  <label className="block text-sm font-black text-muted">
+                    Email
+                    <input
+                      value={nomineeEmail}
+                      onChange={(event) => setNomineeEmail(event.target.value)}
+                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      placeholder="nominee@company.com"
+                    />
+                  </label>
+                  <label className="block text-sm font-black text-muted">
+                    Reviewer group
+                    <select
+                      value={nomineeGroup}
+                      onChange={(event) => setNomineeGroup(event.target.value as ReviewerGroup)}
+                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    >
+                      {reviewerGroups.map((group) => (
+                        <option key={group.key} value={group.key}>
+                          {group.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <button type="button" onClick={handleAddNomination} className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white">
+                  <Users size={16} />
+                  Add nomination
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Approval queue</p>
+                  <h3 className="mt-2 text-xl font-black">Manager / HR review</h3>
+                </div>
+                <span className="rounded-2xl bg-paper px-3 py-2 text-sm font-black text-muted">
+                  {approvedNominations}/{selectedNominations.length} approved
+                </span>
+              </div>
+              <div className="mt-5 space-y-3">
+                {selectedNominations.length === 0 && (
+                  <div className="rounded-[18px] border border-dashed border-ink/15 bg-paper p-6 text-sm font-semibold text-muted">
+                    No nominations for this leader yet.
+                  </div>
+                )}
+                {selectedNominations.map((nomination) => (
+                  <div key={nomination.id} className="rounded-[18px] border border-ink/8 bg-paper p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black">{nomination.name}</p>
+                        <p className="truncate text-xs text-muted">{nomination.email}</p>
+                        <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-muted">{reviewerGroupLabel(nomination.group)}</p>
+                      </div>
+                      <span
+                        className={clsx(
+                          "w-fit rounded-full px-3 py-1 text-xs font-black capitalize",
+                          nomination.status === "approved" && "bg-green-soft text-green",
+                          nomination.status === "pending" && "bg-amber-50 text-amber-700",
+                          nomination.status === "rejected" && "bg-red-50 text-red-600",
+                        )}
+                      >
+                        {nomination.status}
+                      </span>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleNominationDecision(nomination.id, "approved")}
+                        className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-ink px-3 text-sm font-black text-white"
+                      >
+                        <CheckCircle2 size={16} />
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleNominationDecision(nomination.id, "rejected")}
+                        className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-3 text-sm font-black text-muted"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
