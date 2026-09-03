@@ -23,10 +23,6 @@ function dashboardPath(role?: string) {
   return "/dashboard";
 }
 
-function isOrgRepresentative(role?: string) {
-  return role === "hr_admin" || role === "executive_view";
-}
-
 function routeAfterAuth(role?: string, onboardingCompleted?: boolean) {
   // Only HR admins go through org onboarding — executives always go to their dashboard
   if (role === "hr_admin" && !onboardingCompleted) return "/onboarding";

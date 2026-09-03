@@ -7,6 +7,7 @@ import {
   BarChart3,
   BriefcaseBusiness,
   Building2,
+  ClipboardList,
   FileText,
   HeartPulse,
   Home,
@@ -24,6 +25,7 @@ const primaryItems = [
   { label: "Profile", href: "/dashboard/profile", icon: BriefcaseBusiness },
   { label: "Performance", href: "/dashboard/performance", icon: BarChart3 },
   { label: "Goals", href: "/goals", icon: Target },
+  { label: "360 Assessments", href: "/assessments", icon: ClipboardList },
   { label: "Reports", href: "/dashboard/reports", icon: FileText },
   { label: "AI & Wellbeing", href: "/dashboard/ai-wellbeing", icon: HeartPulse },
 ];

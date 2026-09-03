@@ -178,7 +178,9 @@ function OrgListView() {
     }
   }, []);
 
-  useEffect(() => { fetchOrgs(); }, [fetchOrgs]);
+  useEffect(() => {
+    void Promise.resolve().then(fetchOrgs);
+  }, [fetchOrgs]);
 
   async function handleDelete(id: string) {
     if (confirmDeleteId !== id) {

@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Target, FileText, Star, Users } from "lucide-react";
+import { ClipboardList, Home, Target, FileText, Star, Users } from "lucide-react";
 import clsx from "clsx";
 import { useUser } from "@/context/UserContext";
 
 const TABS = [
   { id: "home",      label: "Home",      href: "/dashboard", Icon: Home     },
   { id: "goals",     label: "Goals",     href: "/goals",     Icon: Target   },
-  { id: "reports",   label: "Reports",   href: "/reports",   Icon: FileText },
+  { id: "assessments", label: "360",     href: "/assessments", Icon: ClipboardList },
+  { id: "reports",   label: "Reports",   href: "/dashboard/reports", Icon: FileText },
   { id: "appraisal", label: "Appraisal", href: "/appraisal", Icon: Star     },
-  { id: "team",      label: "Team",      href: "/team",      Icon: Users    },
+  { id: "team",      label: "Team",      href: "/dashboard/team", Icon: Users    },
 ] as const;
 
 function isActive(id: string, href: string, pathname: string): boolean {

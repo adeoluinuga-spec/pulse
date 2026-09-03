@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import clsx from "clsx";
@@ -197,12 +197,10 @@ function HRDashboard() {
   const [state, setState] = useState<DashState>({ org: null, employees: [], goals: [], reportedIds: new Set(), pendingLeave: [] });
   const [error, setError] = useState("");
   const [orgId, setOrgId] = useState("");
-  const [showSetup, setShowSetup] = useState(forceSetup);
-  const [setupTab, setSetupTab] = useState<SetupTab>(urlTab);
-
-  // Keep showSetup in sync with URL param
-  useEffect(() => { setShowSetup(forceSetup); }, [forceSetup]);
-  useEffect(() => { setSetupTab(urlTab); }, [urlTab]);
+  const [showSetupOverride, setShowSetupOverride] = useState(false);
+  const [setupTabOverride, setSetupTabOverride] = useState<SetupTab | null>(null);
+  const showSetup = forceSetup || showSetupOverride;
+  const setupTab = setupTabOverride ?? urlTab;
 
   useEffect(() => {
     let alive = true;
@@ -242,8 +240,8 @@ function HRDashboard() {
   }, []);
 
   function goToSetupTab(tab: SetupTab) {
-    setShowSetup(true);
-    setSetupTab(tab);
+    setShowSetupOverride(true);
+    setSetupTabOverride(tab);
     router.push(`/dashboard/hr?mode=setup&tab=${tab}`, { scroll: false });
   }
 
@@ -287,10 +285,11 @@ function HRDashboard() {
         orgId={orgId}
         userEmail={user.email}
         activeTab={setupTab}
-        onTabChange={setSetupTab}
+        onTabChange={setSetupTabOverride}
         isOverlay={staff.length > 0}
         onExitSetup={() => {
-          setShowSetup(false);
+          setShowSetupOverride(false);
+          setSetupTabOverride(null);
           router.push("/dashboard/hr", { scroll: false });
         }}
         onUpdateEmployees={(employees) => setState((prev) => ({ ...prev, employees }))}
@@ -325,7 +324,6 @@ function OperationalDashboard({
   onUpdateEmployee: (emp: EmployeeRow) => void;
 }) {
   const [search, setSearch] = useState("");
-  const [leave, setLeave] = useState<LeaveRow[]>(state.pendingLeave);
   const [leavingId, setLeavingId] = useState<string | null>(null);
   const [selectedEmp, setSelectedEmp] = useState<EmployeeRow | null>(null);
   const [setupOpen, setSetupOpen] = useState(false);
@@ -333,8 +331,7 @@ function OperationalDashboard({
   const setupBtnRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Sync leave state from parent
-  useEffect(() => { setLeave(state.pendingLeave); }, [state.pendingLeave]);
+  const leave = state.pendingLeave;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -382,7 +379,6 @@ function OperationalDashboard({
     const { error } = await supabase.from("leave_requests").update({ status: action }).eq("id", id);
     if (!error) {
       const next = leave.filter((l) => l.id !== id);
-      setLeave(next);
       onUpdateLeave(next);
     }
     setLeavingId(null);
@@ -1042,7 +1038,11 @@ function PeopleSetup({ employees, orgId, hrEmail, onEmployeesChange }: {
 
   // Keep in sync if parent re-fetches
   useEffect(() => {
-    setLocalStaff(employees.filter((e) => e.email !== hrEmail));
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (!cancelled) setLocalStaff(employees.filter((e) => e.email !== hrEmail));
+    });
+    return () => { cancelled = true; };
   }, [employees, hrEmail]);
 
   async function handleCSV(file: File) {
@@ -1403,7 +1403,7 @@ function AddEmployeePanel({ orgId, employees, onClose, onAdded }: {
             )}
 
             <div className="rounded-xl border border-border bg-paper p-3 text-xs text-muted leading-relaxed">
-              An invite email will be sent to <strong className="text-ink">{form.email || "their address"}</strong> as soon as you submit. They'll click the link, verify with OTP, and complete their profile.
+              An invite email will be sent to <strong className="text-ink">{form.email || "their address"}</strong> as soon as you submit. They&apos;ll click the link, verify with OTP, and complete their profile.
             </div>
           </div>
 
