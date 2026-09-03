@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
+import { createHash, randomBytes } from "crypto";
+
+export const dynamic = "force-dynamic";
 
 function getAdminClient() {
   return createClient(
@@ -9,6 +12,14 @@ function getAdminClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
+}
+
+function createInviteToken(): string {
+  return randomBytes(24).toString("base64url");
+}
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 export async function GET(request: NextRequest) {
@@ -51,7 +62,7 @@ export async function GET(request: NextRequest) {
 
   const { data: reviewers } = await admin
     .from("assessment_reviewers")
-    .select("id, subject_id, reviewer_name, reviewer_group, organisation, reviewer_email, status")
+    .select("id, subject_id, reviewer_name, reviewer_group, organisation, reviewer_email, status, invite_status, invite_channel, assessment_scope, token_expires_at")
     .eq("cycle_id", cycleId)
     .order("reviewer_name", { ascending: true });
 
@@ -100,11 +111,18 @@ export async function POST(request: NextRequest) {
     reviewerEmail?: string;
     reviewerGroup?: string;
     organisation?: string;
+    inviteChannel?: string;
+    assessmentScope?: string;
   };
 
   if (!body.cycleId || !body.subjectId || !body.reviewerName?.trim() || !body.reviewerEmail?.trim()) {
     return NextResponse.json({ error: "cycleId, subjectId, reviewerName, and reviewerEmail are required" }, { status: 400 });
   }
+
+  const token = createInviteToken();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString();
+  const inviteChannel = body.inviteChannel ?? (body.reviewerGroup === "customer" ? "whatsapp" : "email");
+  const assessmentScope = body.assessmentScope ?? (body.reviewerGroup === "customer" ? "customer_experience" : "individual");
 
   const { data, error } = await admin
     .from("assessment_reviewers")
@@ -115,14 +133,26 @@ export async function POST(request: NextRequest) {
       reviewer_email: body.reviewerEmail.trim(),
       reviewer_group: body.reviewerGroup ?? "colleague",
       organisation: body.organisation ?? null,
+      token_hash: hashToken(token),
+      token_expires_at: expiresAt,
+      invite_status: "sent",
+      invite_channel: inviteChannel,
+      assessment_scope: assessmentScope,
       status: "not_started",
     })
-    .select("id, subject_id, reviewer_name, reviewer_group, organisation, reviewer_email, status")
+    .select("id, subject_id, reviewer_name, reviewer_group, organisation, reviewer_email, status, invite_status, invite_channel, assessment_scope, token_expires_at")
     .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ reviewer: data }, { status: 201 });
+  return NextResponse.json({
+    reviewer: data,
+    invite: {
+      token,
+      secureLink: `${request.nextUrl.origin}/review/${token}`,
+      expiresAt,
+    },
+  }, { status: 201 });
 }

@@ -46,6 +46,7 @@ import {
 } from "@/lib/assessmentReviewers";
 import { parseAssessmentParticipantCsv } from "@/lib/assessmentParticipants";
 import { canReleaseAssessmentReport, releaseReadinessSummary } from "@/lib/assessmentRelease";
+import { buildReviewSubmissionSummary, validateReviewPayload } from "@/lib/reviewSubmission";
 
 type TabKey = "command" | "participants" | "questions" | "review" | "reports";
 type LevelFilter = AssessmentLevel | "all";
@@ -131,6 +132,12 @@ export default function AssessmentsPage() {
       ),
     ),
   );
+  const [submissionToken, setSubmissionToken] = useState("reviewer-token-123");
+  const [submissionScores, setSubmissionScores] = useState<Record<string, number>>(
+    () => Object.fromEntries(demoQuestions.map((question) => [question.competencyId, 4])) as Record<string, number>,
+  );
+  const [submissionComments, setSubmissionComments] = useState<Record<string, string>>({});
+  const [submissionNotice, setSubmissionNotice] = useState("");
 
   const visibleAssessees = useMemo(
     () => assessmentSubjects.filter((assessee) => levelFilter === "all" || assessee.level === levelFilter),
@@ -156,10 +163,52 @@ export default function AssessmentsPage() {
     { score: 82, weight: 35, scope: "team", channel: "portal" },
   ];
   const liveReviewScore = aggregateReviewScores(submittedReviewScores);
+  const reviewSubmissionSummary = buildReviewSubmissionSummary(
+    demoQuestions.map((question) => ({
+      score: submissionScores[question.competencyId] ?? 4,
+      comment: submissionComments[question.competencyId] ?? "Quality evidence provided",
+    })),
+  );
 
   async function handleDemoSubmit() {
-    setNotice("Demo review captured. In production this writes to the encrypted 360 response table.");
-    window.setTimeout(() => setNotice(""), 3200);
+    const payload = {
+      token: submissionToken,
+      responses: demoQuestions.map((question) => ({
+        competencyId: question.competencyId,
+        score: submissionScores[question.competencyId] ?? 4,
+        comment: submissionComments[question.competencyId] ?? "Evidence provided",
+      })),
+    };
+
+    if (!validateReviewPayload(payload)) {
+      setSubmissionNotice("A valid review submission requires a token and complete responses with comments.");
+      window.setTimeout(() => setSubmissionNotice(""), 3200);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/assessments/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error ?? "Unable to submit review");
+      }
+
+      setNotice(result?.submission?.persisted ? "Review captured and persisted." : "Demo review captured through the submission endpoint.");
+      setSubmissionNotice(`Review submitted successfully. Average score: ${result?.submission?.summary?.average ?? reviewSubmissionSummary.average}/5`);
+      window.setTimeout(() => {
+        setNotice("");
+        setSubmissionNotice("");
+      }, 3200);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to submit review";
+      setSubmissionNotice(message);
+      window.setTimeout(() => setSubmissionNotice(""), 3200);
+    }
   }
 
   async function handleCreateCycle(event: FormEvent<HTMLFormElement>) {
@@ -845,7 +894,23 @@ export default function AssessmentsPage() {
                   Submit demo
                 </button>
               </div>
+              <div className="mt-4 rounded-[18px] border border-ink/8 bg-paper p-4">
+                <label className="block text-sm font-black text-muted">
+                  Review token
+                  <input
+                    value={submissionToken}
+                    onChange={(event) => setSubmissionToken(event.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    placeholder="reviewer-token-123"
+                  />
+                </label>
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white p-3">
+                  <span className="text-sm font-black">Aggregate score</span>
+                  <span className="rounded-full bg-pulse-soft px-3 py-1 text-sm font-black text-pulse">{reviewSubmissionSummary.average}/5</span>
+                </div>
+              </div>
               {notice && <div className="mt-4 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{notice}</div>}
+              {submissionNotice && <div className="mt-4 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse">{submissionNotice}</div>}
               <div className="mt-5 space-y-5">
                 {demoQuestions.map((question) => {
                   const competency = telcoCompetencies.find((item) => item.id === question.competencyId);
@@ -865,17 +930,21 @@ export default function AssessmentsPage() {
                         min="1"
                         max="5"
                         value={ratings[question.competencyId]}
-                        onChange={(event) =>
-                          setRatings((current) => ({ ...current, [question.competencyId]: Number(event.target.value) }))
-                        }
+                        onChange={(event) => {
+                          const nextValue = Number(event.target.value);
+                          setRatings((current) => ({ ...current, [question.competencyId]: nextValue }));
+                          setSubmissionScores((current) => ({ ...current, [question.competencyId]: nextValue }));
+                        }}
                         className="mt-4 w-full accent-pulse"
                         aria-label={`Rating for ${competency?.name}`}
                       />
                       <textarea
                         value={comments[question.competencyId] ?? ""}
-                        onChange={(event) =>
-                          setComments((current) => ({ ...current, [question.competencyId]: event.target.value }))
-                        }
+                        onChange={(event) => {
+                          const nextValue = event.target.value;
+                          setComments((current) => ({ ...current, [question.competencyId]: nextValue }));
+                          setSubmissionComments((current) => ({ ...current, [question.competencyId]: nextValue }));
+                        }}
                         placeholder="Evidence, example, or coaching note"
                         className="mt-3 min-h-20 w-full resize-none rounded-2xl border border-ink/8 bg-white p-3 text-sm outline-none transition placeholder:text-muted focus:border-pulse/50"
                       />

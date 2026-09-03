@@ -31,3 +31,15 @@ test("reports remain blocked while reviewer groups are incomplete or pending", (
   assert.equal(releaseReadinessSummary(reviewers).missingGroups.includes("customer"), true);
   assert.equal(releaseReadinessSummary(reviewers).remaining > 0, true);
 });
+
+test("accepts in-memory reviewer group names from the assessment workbench", () => {
+  const reviewers = [
+    { group: "direct_report", status: "submitted" },
+    { group: "subordinate", status: "submitted" },
+    { group: "colleague", status: "submitted" },
+    { group: "customer", status: "submitted" },
+  ];
+
+  assert.equal(canReleaseAssessmentReport(reviewers), true);
+  assert.equal(releaseReadinessSummary(reviewers).ready, true);
+});

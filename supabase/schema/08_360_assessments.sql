@@ -52,6 +52,11 @@ create table if not exists public.assessment_reviewers (
   reviewer_group text not null check (reviewer_group in ('direct_report', 'subordinate', 'colleague', 'customer')),
   organisation text,
   token_hash text,
+  token_expires_at timestamptz,
+  invite_status text not null default 'draft' check (invite_status in ('draft', 'sent', 'opened', 'submitted', 'expired')),
+  invite_channel text not null default 'email' check (invite_channel in ('email', 'sms', 'whatsapp', 'portal')),
+  assessment_scope text not null default 'individual' check (assessment_scope in ('individual', 'team', 'functional', 'customer_experience')),
+  opened_at timestamptz,
   status text not null default 'not_started' check (status in ('not_started', 'in_progress', 'submitted')),
   submitted_at timestamptz,
   created_at timestamptz not null default now(),
@@ -86,19 +91,32 @@ create table if not exists public.assessment_reports (
   unique (cycle_id, subject_id)
 );
 
+create table if not exists public.assessment_audit_events (
+  id uuid primary key default gen_random_uuid(),
+  cycle_id uuid not null references public.assessment_cycles(id) on delete cascade,
+  subject_id uuid references public.assessment_subjects(id) on delete set null,
+  reviewer_id uuid references public.assessment_reviewers(id) on delete set null,
+  action text not null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
 alter table public.assessment_cycles enable row level security;
 alter table public.assessment_competencies enable row level security;
 alter table public.assessment_subjects enable row level security;
 alter table public.assessment_reviewers enable row level security;
 alter table public.assessment_responses enable row level security;
 alter table public.assessment_reports enable row level security;
+alter table public.assessment_audit_events enable row level security;
 
 create index if not exists assessment_cycles_org_id_idx on public.assessment_cycles(org_id);
 create index if not exists assessment_subjects_cycle_id_idx on public.assessment_subjects(cycle_id);
 create index if not exists assessment_reviewers_cycle_id_idx on public.assessment_reviewers(cycle_id);
 create index if not exists assessment_reviewers_subject_id_idx on public.assessment_reviewers(subject_id);
+create unique index if not exists assessment_reviewers_token_hash_idx on public.assessment_reviewers(token_hash) where token_hash is not null;
 create index if not exists assessment_responses_reviewer_id_idx on public.assessment_responses(reviewer_id);
 create index if not exists assessment_reports_cycle_id_idx on public.assessment_reports(cycle_id);
+create index if not exists assessment_audit_events_cycle_id_idx on public.assessment_audit_events(cycle_id);
 
 create policy "org members can read assessment cycles"
   on public.assessment_cycles
@@ -314,6 +332,20 @@ create policy "hr can manage assessment reports"
       from public.assessment_cycles c
       join public.employees e on e.org_id = c.org_id
       where c.id = assessment_reports.cycle_id
+        and e.user_id = auth.uid()
+        and e.platform_role in ('hr_admin', 'super_admin')
+    )
+  );
+
+create policy "hr can read assessment audit events"
+  on public.assessment_audit_events
+  for select
+  using (
+    exists (
+      select 1
+      from public.assessment_cycles c
+      join public.employees e on e.org_id = c.org_id
+      where c.id = assessment_audit_events.cycle_id
         and e.user_id = auth.uid()
         and e.platform_role in ('hr_admin', 'super_admin')
     )

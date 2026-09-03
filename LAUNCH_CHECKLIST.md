@@ -39,6 +39,7 @@ This is the working checklist for taking Pulse from the current prototype into a
 - [x] Add reviewer assignment matrix for direct reports, subordinates, colleagues, and customers.
 - [x] Allow the assessment scope to be selected for individual, team, functional, and customer-experience reviews.
 - [x] Support external review channels including WhatsApp for customer-facing assessment routes.
+- [x] Add real review submission endpoint with token validation, response persistence, and audit event recording.
 - [ ] Add reviewer invitation workflow.
 - [ ] Add secure external customer review links.
 - [ ] Add reviewer anonymity thresholds before reports can be released.
