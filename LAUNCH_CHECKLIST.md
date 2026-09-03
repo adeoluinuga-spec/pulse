@@ -25,11 +25,11 @@ This is the working checklist for taking Pulse from the current prototype into a
 - [x] Create shared Button, Card, Badge, Tabs, Table, EmptyState, Drawer, Modal, and Form components.
 - [x] Refactor AppShell, WorkSidebar, TopBar, BottomNav into the final enterprise layout.
 - [x] Rework `/assessments` as the new design reference page.
-- [ ] Rework `/dashboard/hr` into a dense operational HR console.
-- [ ] Rework `/dashboard/executive` into board-ready executive reporting.
-- [ ] Rework `/goals`, `/appraisal`, `/dashboard/reports`, `/dashboard/team`, `/settings`.
+- [x] Rework `/dashboard/hr` into a dense operational HR console.
+- [x] Rework `/dashboard/executive` into board-ready executive reporting.
+- [x] Rework `/goals`, `/appraisal`, `/dashboard/reports`, `/dashboard/team`, `/settings`.
 - [x] Remove old decorative gradients, oversized radii, and warm palette remnants.
-- [ ] Verify mobile and desktop layouts for no overlap, overflow, or awkward wrapping.
+- [x] Verify mobile and desktop layouts for no overlap, overflow, or awkward wrapping.
 
 ## 2. 360 Assessment Product
 

@@ -236,6 +236,38 @@ h1, h2, h3, h4, h5, h6 {
   animation: fade-up 0.42s ease-out both;
 }
 
+.dashboard-page .bg-ink {
+  background: var(--surface) !important;
+  border: 1px solid var(--border);
+  color: var(--ink) !important;
+  box-shadow: var(--shadow);
+}
+
+.dashboard-page .bg-ink .text-white,
+.dashboard-page .bg-ink [class*="text-white/"] {
+  color: var(--muted) !important;
+}
+
+.dashboard-page .bg-ink h1,
+.dashboard-page .bg-ink h2,
+.dashboard-page .bg-ink h3,
+.dashboard-page .bg-ink .font-syne,
+.dashboard-page .bg-ink .font-display {
+  color: var(--ink) !important;
+}
+
+.dashboard-page .bg-ink .bg-white\/\[0\.06\],
+.dashboard-page .bg-ink .bg-white\/\[0\.08\],
+.dashboard-page .bg-ink .bg-white\/8,
+.dashboard-page .bg-ink .bg-white\/10 {
+  background: var(--muted) !important;
+}
+
+.dashboard-page .bg-ink .border-white\/10,
+.dashboard-page .bg-ink .border-white\/20 {
+  border-color: var(--border) !important;
+}
+
 .bg-card {
   background: var(--surface);
   border-color: var(--border);
@@ -253,6 +285,13 @@ h1, h2, h3, h4, h5, h6 {
 .font-black,
 .font-extrabold {
   font-weight: 700 !important;
+}
+
+.tracking-\[0\.16em\],
+.tracking-\[0\.18em\],
+.tracking-\[0\.2em\],
+.tracking-widest {
+  letter-spacing: 0.08em !important;
 }
 
 button,

@@ -2,22 +2,22 @@
 
 import { useState } from "react";
 import clsx from "clsx";
-import { Check, Sparkles } from "lucide-react";
+import { Check, SlidersHorizontal } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 
 const themes = [
-  { name: "Executive Cream", tone: "bg-cream", text: "Warm, spacious, boardroom calm." },
-  { name: "Midnight Focus", tone: "bg-ink text-white", text: "Deep focus for executive review sessions." },
-  { name: "Warm Paper", tone: "bg-paper", text: "Soft paper texture for daily operating rhythm." },
-  { name: "Graphite Pro", tone: "bg-[#24211f] text-white", text: "Restrained contrast with premium depth." },
-  { name: "Deep Focus", tone: "bg-[#14110f] text-white", text: "Quiet command-center mood." },
+  { name: "Finance OS", tone: "bg-surface", text: "White surfaces, cool greys, cobalt actions." },
+  { name: "Board Review", tone: "bg-paper-50", text: "Dense reporting with low visual noise." },
+  { name: "Operations", tone: "bg-cobalt-light", text: "Blue-tinted focus for active work sessions." },
+  { name: "Audit Desk", tone: "bg-paper-100", text: "Neutral review mode for HR governance." },
+  { name: "Executive", tone: "bg-ink text-white", text: "High-contrast mode for presentation rooms." },
 ];
 
 const backgrounds = [
-  "Soft gradient",
-  "Layered paper texture",
-  "Calm abstract field",
-  "Muted executive glow",
+  "Plain white",
+  "Near-white banding",
+  "Compact console",
+  "Board pack",
 ];
 
 export default function SettingsPage() {
@@ -26,25 +26,25 @@ export default function SettingsPage() {
   const [background, setBackground] = useState(backgrounds[0]);
 
   return (
-    <main className="dashboard-page space-y-6 px-4 md:px-7">
-      <section className="rounded-[28px] bg-ink p-6 text-white">
-        <div className="flex items-center gap-2 text-pulse">
-          <Sparkles size={15} />
-          <p className="text-xs font-bold uppercase tracking-[0.18em]">Personalization</p>
+    <main className="dashboard-page space-y-5">
+      <section className="rounded-lg border border-paper-200 bg-surface p-5 shadow-sm">
+        <div className="flex items-center gap-2 text-cobalt">
+          <SlidersHorizontal size={15} />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em]">Personalization</p>
         </div>
-        <h1 className="mt-3 font-syne text-3xl font-bold">Make Pulse feel like your work rhythm.</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/58">
-          These settings are session-based for now. They preview the premium, restrained personalization layer planned for each employee.
+        <h1 className="mt-3 text-2xl font-semibold text-ink">Workspace appearance</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+          Settings now follow the Harvesters Finance style: restrained surfaces, compact controls, and minimal color.
         </p>
       </section>
 
       <section>
-        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">Curated Themes</p>
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Curated themes</p>
         <div className="grid gap-3 md:grid-cols-3">
           {themes.map((item) => (
-            <button key={item.name} onClick={() => setTheme(item.name)} className={clsx("relative min-h-36 rounded-[24px] border p-4 text-left shadow-sm transition", item.tone, theme === item.name ? "border-pulse" : "border-border")}>
-              {theme === item.name && <span className="absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-full bg-pulse text-white"><Check size={14} /></span>}
-              <p className="font-syne text-lg font-bold">{item.name}</p>
+            <button key={item.name} onClick={() => setTheme(item.name)} className={clsx("relative min-h-32 rounded-lg border p-4 text-left shadow-sm transition", item.tone, theme === item.name ? "border-cobalt" : "border-paper-200")}>
+              {theme === item.name && <span className="absolute right-3 top-3 grid h-6 w-6 place-items-center rounded-full bg-cobalt text-white"><Check size={13} /></span>}
+              <p className="text-base font-semibold">{item.name}</p>
               <p className={clsx("mt-2 text-sm", item.tone.includes("text-white") ? "text-white/58" : "text-muted")}>{item.text}</p>
             </button>
           ))}
@@ -52,16 +52,16 @@ export default function SettingsPage() {
       </section>
 
       <section>
-        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">Ambient Background</p>
-        <div className="rounded-[24px] border border-border bg-card p-4">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Workspace background</p>
+        <div className="rounded-lg border border-paper-200 bg-surface p-4 shadow-sm">
           <div className="grid gap-2 md:grid-cols-4">
             {backgrounds.map((item) => (
-              <button key={item} onClick={() => setBackground(item)} className={clsx("rounded-2xl border px-4 py-4 text-left text-sm font-bold", background === item ? "border-pulse bg-pulse-soft text-pulse" : "border-border bg-paper text-muted")}>{item}</button>
+              <button key={item} onClick={() => setBackground(item)} className={clsx("rounded-md border px-4 py-3 text-left text-sm font-semibold", background === item ? "border-cobalt bg-cobalt-light text-cobalt-dark" : "border-paper-200 bg-paper-50 text-muted")}>{item}</button>
             ))}
           </div>
-          <div className="mt-4 overflow-hidden rounded-[22px] border border-border bg-[radial-gradient(circle_at_20%_10%,rgba(232,68,10,0.12),transparent_34%),linear-gradient(135deg,var(--cream),var(--paper))] p-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted">Preview for {user.name}</p>
-            <p className="mt-2 font-syne text-2xl font-bold text-ink">{theme}</p>
+          <div className="mt-4 overflow-hidden rounded-lg border border-paper-200 bg-paper-50 p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Preview for {user.name}</p>
+            <p className="mt-2 text-xl font-semibold text-ink">{theme}</p>
             <p className="mt-1 text-sm text-muted">{background}</p>
           </div>
         </div>
