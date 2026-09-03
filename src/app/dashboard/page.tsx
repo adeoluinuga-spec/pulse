@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import type { Employee } from "@/types";
+import { DEV_AUTH_BYPASS } from "@/lib/devAuth";
 
 function dashboardFor(user: Employee): string {
   if (user.platformRole === "hr_admin" || user.platformRole === "super_admin") {
@@ -24,7 +25,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (loading) return;
-    if (!session) {
+    if (!session && !DEV_AUTH_BYPASS) {
       router.replace("/auth/login");
       return;
     }
@@ -32,7 +33,7 @@ export default function DashboardPage() {
     router.replace(dashboardFor(user));
   }, [loading, router, session, user]);
 
-  if (!loading && session && user.id === "unlinked") {
+  if (!loading && !DEV_AUTH_BYPASS && session && user.id === "unlinked") {
     return (
       <main className="min-h-screen bg-paper px-4 py-10">
         <section className="mx-auto max-w-md rounded-2xl border border-border bg-card p-6 text-center">

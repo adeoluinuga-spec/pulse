@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/Toast";
 import { getSupabase } from "@/lib/supabase";
 import { getMyProfile } from "@/lib/api/profile";
 import { getMyNotifications } from "@/lib/api/notifications";
+import { DEV_AUTH_BYPASS, DEV_AUTH_USER_ID } from "@/lib/devAuth";
 
 interface UserContextValue {
   user: Employee;
@@ -35,7 +36,7 @@ interface UserContextValue {
   closeNotif: () => void;
 }
 
-const DEFAULT_USER = employees.find((e) => e.id === "e01") ?? employees[0];
+const DEFAULT_USER = employees.find((e) => e.id === DEV_AUTH_USER_ID) ?? employees[0];
 
 const EMPTY_USER: Employee = {
   ...DEFAULT_USER,
@@ -137,7 +138,7 @@ const UserContext = createContext<UserContextValue>({
 export function UserProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { showToast } = useToast();
-  const [userId, setUserId] = useState("e01");
+  const [userId, setUserId] = useState(DEV_AUTH_USER_ID);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -266,6 +267,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
+    if (DEV_AUTH_BYPASS) {
+      void Promise.resolve().then(() => {
+        if (!active) return;
+        const devUser = employees.find((e) => e.id === DEV_AUTH_USER_ID) ?? DEFAULT_USER;
+        setSession(null);
+        setLiveEmployee(null);
+        setUserId(devUser.id);
+        setNotifs([...devUser.notifications]);
+        setLoading(false);
+        setResolved(true);
+      });
+      return () => {
+        active = false;
+      };
+    }
+
     getSupabase().auth.getSession().then(({ data }) => {
       if (!active) return;
       setSession(data.session);
@@ -316,6 +333,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     realtimeRef.current?.unsubscribe();
     realtimeRef.current = null;
+    if (DEV_AUTH_BYPASS) {
+      setSession(null);
+      setLiveEmployee(null);
+      setUserId(DEV_AUTH_USER_ID);
+      router.replace("/assessments");
+      router.refresh();
+      return;
+    }
     await getSupabase().auth.signOut();
     setSession(null);
     setLiveEmployee(null);

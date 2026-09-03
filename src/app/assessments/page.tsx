@@ -112,7 +112,7 @@ export default function AssessmentsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-paper pb-28 text-ink md:pl-[280px]">
+    <main className="min-h-screen bg-paper pb-28 text-ink">
       <section className="border-b border-ink/8 bg-white">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">

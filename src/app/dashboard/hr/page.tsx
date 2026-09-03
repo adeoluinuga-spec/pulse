@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { getSupabase } from "@/lib/supabase";
+import { employees as mockEmployees, org as mockOrg } from "@/data/mockData";
+import { DEV_AUTH_BYPASS } from "@/lib/devAuth";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -170,6 +172,55 @@ function badgePill(badge: string | null) {
   }
 }
 
+function devDashboardState(): DashState {
+  const employees = mockEmployees.map((employee): EmployeeRow => ({
+    id: employee.id,
+    name: employee.name,
+    email: employee.email,
+    department: employee.department,
+    team: employee.team,
+    role: employee.role,
+    cadre: employee.cadre,
+    platform_role: employee.platformRole,
+    avatar_color: employee.avatarColor,
+    performance_score: employee.performanceScore,
+    badge: employee.badge,
+    consistency_index: employee.consistencyIndex,
+    week_streak: employee.weekStreak,
+    line_manager_id: employee.lineManagerId,
+    employment_type: employee.employmentType,
+    join_date: employee.joinDate,
+    band_current: employee.band.current,
+  }));
+
+  const goals = mockEmployees.flatMap((employee) =>
+    employee.goals.slice(0, 2).map((goal): GoalRow => ({
+      id: `${employee.id}-${goal.id}`,
+      title: goal.name,
+      goal_type: goal.type,
+      department: employee.department,
+      team: employee.team,
+      owner_id: employee.id,
+      status: goal.status,
+    })),
+  );
+
+  return {
+    org: {
+      id: mockOrg.id,
+      name: mockOrg.name,
+      appraisal_cadence: mockOrg.appraisalCadence,
+      current_cycle: mockOrg.currentCycle,
+      cycle_start_date: "2026-04-01",
+      cycle_end_date: "2026-06-30",
+    },
+    employees,
+    goals,
+    reportedIds: new Set(mockEmployees.slice(0, 8).map((employee) => employee.id)),
+    pendingLeave: [],
+  };
+}
+
 // ── Root (Suspense boundary required for useSearchParams) ─────────────────────
 
 export default function HRDashboardPage() {
@@ -204,6 +255,17 @@ function HRDashboard() {
 
   useEffect(() => {
     let alive = true;
+
+    if (DEV_AUTH_BYPASS) {
+      void Promise.resolve().then(() => {
+        if (!alive) return;
+        setOrgId(mockOrg.id);
+        setState(devDashboardState());
+        setLoading(false);
+      });
+      return () => { alive = false; };
+    }
+
     async function load() {
       setLoading(true); setError("");
       try {

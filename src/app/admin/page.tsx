@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { getSupabase } from "@/lib/supabase";
+import { DEV_AUTH_BYPASS, DEV_AUTH_EMAIL } from "@/lib/devAuth";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -57,16 +58,21 @@ const inputCls =
 // ── Root page ──────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const [authEmail, setAuthEmail] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authEmail, setAuthEmail] = useState<string | null>(DEV_AUTH_BYPASS ? DEV_AUTH_EMAIL : null);
+  const [loading, setLoading] = useState(!DEV_AUTH_BYPASS);
   const superAdminEmail = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL ?? "";
 
   useEffect(() => {
+    if (DEV_AUTH_BYPASS) return;
     getSupabase().auth.getUser().then(({ data }) => {
       setAuthEmail(data.user?.email ?? null);
       setLoading(false);
     });
   }, []);
+
+  if (DEV_AUTH_BYPASS) {
+    return <AdminDashboard authEmail={DEV_AUTH_EMAIL} />;
+  }
 
   const isAuthorised =
     authEmail !== null &&

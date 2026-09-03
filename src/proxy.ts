@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { NextResponse, type NextRequest } from "next/server";
+import { DEV_AUTH_BYPASS } from "@/lib/devAuth";
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -17,6 +18,10 @@ const PROTECTED_PREFIXES = [
 ];
 
 export async function proxy(request: NextRequest) {
+  if (DEV_AUTH_BYPASS) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
