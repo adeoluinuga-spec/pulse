@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import clsx from "clsx";
 import {
   BarChart3,
@@ -93,6 +93,11 @@ export default function AssessmentsPage() {
   );
   const [comments, setComments] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
+  const [cycleName, setCycleName] = useState(active360Cycle.name);
+  const [cycleClient, setCycleClient] = useState(active360Cycle.clientName);
+  const [cycleStartsOn, setCycleStartsOn] = useState(active360Cycle.startDate);
+  const [cycleClosesOn, setCycleClosesOn] = useState(active360Cycle.closeDate);
+  const [cycleNotice, setCycleNotice] = useState("");
 
   const visibleAssessees = useMemo(
     () => assessees.filter((assessee) => levelFilter === "all" || assessee.level === levelFilter),
@@ -110,9 +115,40 @@ export default function AssessmentsPage() {
   const releaseSummary = releaseReadinessSummary(selectedAssesseeReviewers);
   const canReleaseSelectedReport = canReleaseAssessmentReport(selectedAssesseeReviewers);
 
-  function handleDemoSubmit() {
+  async function handleDemoSubmit() {
     setNotice("Demo review captured. In production this writes to the encrypted 360 response table.");
     window.setTimeout(() => setNotice(""), 3200);
+  }
+
+  async function handleCreateCycle(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      const response = await fetch("/api/assessments/cycles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: cycleName,
+          clientContext: cycleClient,
+          startsOn: cycleStartsOn,
+          closesOn: cycleClosesOn,
+          levels: ["director", "assistant_director"],
+          reviewerWeights: active360Cycle.reviewerWeights,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Unable to create assessment cycle");
+      }
+
+      setCycleNotice(`Assessment cycle created: ${payload.cycle?.name ?? cycleName}`);
+      setTimeout(() => setCycleNotice(""), 4000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to create assessment cycle";
+      setCycleNotice(message);
+      setTimeout(() => setCycleNotice(""), 4000);
+    }
   }
 
   return (
@@ -317,6 +353,59 @@ export default function AssessmentsPage() {
                     </span>
                   )}
                 </div>
+              </div>
+
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Cycle setup</p>
+                <h3 className="mt-2 text-lg font-black">Create a new assessment cycle</h3>
+                {cycleNotice && <div className="mt-3 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{cycleNotice}</div>}
+                <form onSubmit={handleCreateCycle} className="mt-4 space-y-3">
+                  <label className="block text-sm font-black text-muted">
+                    Cycle name
+                    <input
+                      value={cycleName}
+                      onChange={(event) => setCycleName(event.target.value)}
+                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      placeholder="Directorate 360 Leadership Assessment"
+                    />
+                  </label>
+                  <label className="block text-sm font-black text-muted">
+                    Client / organisation
+                    <input
+                      value={cycleClient}
+                      onChange={(event) => setCycleClient(event.target.value)}
+                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      placeholder="Telco Leadership Group"
+                    />
+                  </label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block text-sm font-black text-muted">
+                      Start date
+                      <input
+                        type="date"
+                        value={cycleStartsOn}
+                        onChange={(event) => setCycleStartsOn(event.target.value)}
+                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      />
+                    </label>
+                    <label className="block text-sm font-black text-muted">
+                      Close date
+                      <input
+                        type="date"
+                        value={cycleClosesOn}
+                        onChange={(event) => setCycleClosesOn(event.target.value)}
+                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="submit"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white shadow-sm transition hover:bg-ink/90"
+                  >
+                    <SlidersHorizontal size={16} />
+                    Create cycle
+                  </button>
+                </form>
               </div>
 
               <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
