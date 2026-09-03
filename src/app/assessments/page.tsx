@@ -35,6 +35,7 @@ import {
   type ReviewerGroup,
   type ReviewerStatus,
 } from "@/lib/assessments360";
+import { parseAssessmentParticipantCsv } from "@/lib/assessmentParticipants";
 import { canReleaseAssessmentReport, releaseReadinessSummary } from "@/lib/assessmentRelease";
 
 type TabKey = "command" | "participants" | "questions" | "review" | "reports";
@@ -98,17 +99,22 @@ export default function AssessmentsPage() {
   const [cycleStartsOn, setCycleStartsOn] = useState(active360Cycle.startDate);
   const [cycleClosesOn, setCycleClosesOn] = useState(active360Cycle.closeDate);
   const [cycleNotice, setCycleNotice] = useState("");
+  const [participantCsv, setParticipantCsv] = useState(
+    "name,email,level,function_name,region,portfolio\nAmina Lawal,amina.lawal@example.com,director,Network Operations,North Central,Radio access network and field operations",
+  );
+  const [participantNotice, setParticipantNotice] = useState("");
+  const [assessmentSubjects, setAssessmentSubjects] = useState(assessees);
 
   const visibleAssessees = useMemo(
-    () => assessees.filter((assessee) => levelFilter === "all" || assessee.level === levelFilter),
-    [levelFilter],
+    () => assessmentSubjects.filter((assessee) => levelFilter === "all" || assessee.level === levelFilter),
+    [assessmentSubjects, levelFilter],
   );
-  const selectedAssessee = assessees.find((assessee) => assessee.id === selectedAssesseeId) ?? assessees[0];
+  const selectedAssessee = assessmentSubjects.find((assessee) => assessee.id === selectedAssesseeId) ?? assessmentSubjects[0] ?? assessees[0];
   const selectedResult = results.find((result) => result.assesseeId === selectedAssessee.id) ?? results[0];
   const selectedAssesseeReviewers = reviewers.filter((reviewer) => reviewer.assesseeId === selectedAssessee.id);
   const selectedScore = weightedScore(selectedResult);
   const readiness = assessmentReadiness();
-  const completion = average(assessees.map((assessee) => completionForAssessee(assessee.id)));
+  const completion = average(assessmentSubjects.map((assessee) => completionForAssessee(assessee.id)));
   const portfolioScore = average(results.map((result) => weightedScore(result)));
   const riskCount = results.reduce((sum, result) => sum + result.riskNotes.length, 0);
   const submittedCount = reviewers.filter((reviewer) => reviewer.status === "submitted").length;
@@ -149,6 +155,41 @@ export default function AssessmentsPage() {
       setCycleNotice(message);
       setTimeout(() => setCycleNotice(""), 4000);
     }
+  }
+
+  function handleImportParticipants() {
+    const parsed = parseAssessmentParticipantCsv(participantCsv);
+    if (!parsed.length) {
+      setParticipantNotice("No valid participant rows found. Please use a CSV with name and email columns.");
+      setTimeout(() => setParticipantNotice(""), 4000);
+      return;
+    }
+
+    const imported = parsed.map((row, index) => {
+      const level: AssessmentLevel = row.level === "director" ? "director" : "assistant_director";
+      return {
+        id: `imported-${Date.now()}-${index}`,
+        name: row.name,
+        initials: row.name
+          .split(" ")
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part[0])
+          .join("")
+          .toUpperCase() || "NP",
+        level,
+        functionName: row.functionName || "New function",
+        region: row.region || "Not specified",
+        portfolio: row.portfolio || "Review participant",
+        tenureYears: 1,
+      };
+    });
+
+    setAssessmentSubjects((current) => [...imported, ...current]);
+    setSelectedAssesseeId(imported[0]?.id ?? selectedAssesseeId);
+    setParticipantCsv("");
+    setParticipantNotice(`${imported.length} participant${imported.length === 1 ? "" : "s"} imported into the assessment cycle.`);
+    setTimeout(() => setParticipantNotice(""), 4000);
   }
 
   return (
@@ -433,50 +474,86 @@ export default function AssessmentsPage() {
         )}
 
         {activeTab === "participants" && (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {visibleAssessees.map((assessee) => {
-              const result = results.find((entry) => entry.assesseeId === assessee.id);
-              const assesseeReviewers = reviewers.filter((reviewer) => reviewer.assesseeId === assessee.id);
-              return (
-                <div key={assessee.id} className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex min-w-0 gap-3">
-                      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-ink text-sm font-black text-white">
-                        {assessee.initials}
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="truncate text-lg font-black">{assessee.name}</h3>
-                        <p className="truncate text-sm text-muted">
-                          {levelLabel(assessee.level)} - {assessee.functionName}
-                        </p>
-                      </div>
-                    </div>
-                    <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", scoreTone(result ? weightedScore(result) : 0))}>
-                      {result ? weightedScore(result) : 0}
-                    </span>
-                  </div>
-                  <div className="mt-4 flex items-center gap-3">
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink/8">
-                      <div className="h-full rounded-full bg-green" style={{ width: `${completionForAssessee(assessee.id)}%` }} />
-                    </div>
-                    <span className="text-sm font-black">{completionForAssessee(assessee.id)}%</span>
-                  </div>
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                    {assesseeReviewers.map((reviewer) => (
-                      <div key={reviewer.id} className="rounded-2xl border border-ink/8 bg-paper p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-sm font-black">{reviewer.name}</p>
-                          <span className={clsx("shrink-0 rounded-full px-2 py-1 text-[10px] font-black ring-1", statusMeta[reviewer.status].className)}>
-                            {statusMeta[reviewer.status].label}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs text-muted">{reviewerGroupLabel(reviewer.group)}</p>
-                      </div>
-                    ))}
-                  </div>
+          <div className="space-y-5">
+            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Participant import</p>
+              <h3 className="mt-2 text-xl font-black">Add leaders to the assessment cycle</h3>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                Upload a CSV with the columns name, email, level, function_name, region, and portfolio. The platform will prepare subjects for the reviewer matrix.
+              </p>
+              {participantNotice && <div className="mt-3 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{participantNotice}</div>}
+              <div className="mt-4 space-y-3">
+                <textarea
+                  value={participantCsv}
+                  onChange={(event) => setParticipantCsv(event.target.value)}
+                  className="min-h-32 w-full resize-y rounded-2xl border border-ink/8 bg-paper p-3 text-sm outline-none transition placeholder:text-muted focus:border-pulse/50"
+                  placeholder="name,email,level,function_name,region,portfolio"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleImportParticipants}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white"
+                  >
+                    <Users size={16} />
+                    Import participants
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setParticipantCsv("name,email,level,function_name,region,portfolio\nAmina Lawal,amina.lawal@example.com,director,Network Operations,North Central,Radio access network and field operations")}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black text-ink"
+                  >
+                    Use sample CSV
+                  </button>
                 </div>
-              );
-            })}
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              {visibleAssessees.map((assessee) => {
+                const result = results.find((entry) => entry.assesseeId === assessee.id);
+                const assesseeReviewers = reviewers.filter((reviewer) => reviewer.assesseeId === assessee.id);
+                return (
+                  <div key={assessee.id} className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex min-w-0 gap-3">
+                        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-ink text-sm font-black text-white">
+                          {assessee.initials}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="truncate text-lg font-black">{assessee.name}</h3>
+                          <p className="truncate text-sm text-muted">
+                            {levelLabel(assessee.level)} - {assessee.functionName}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", scoreTone(result ? weightedScore(result) : 0))}>
+                        {result ? weightedScore(result) : 0}
+                      </span>
+                    </div>
+                    <div className="mt-4 flex items-center gap-3">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink/8">
+                        <div className="h-full rounded-full bg-green" style={{ width: `${completionForAssessee(assessee.id)}%` }} />
+                      </div>
+                      <span className="text-sm font-black">{completionForAssessee(assessee.id)}%</span>
+                    </div>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      {assesseeReviewers.map((reviewer) => (
+                        <div key={reviewer.id} className="rounded-2xl border border-ink/8 bg-paper p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="truncate text-sm font-black">{reviewer.name}</p>
+                            <span className={clsx("shrink-0 rounded-full px-2 py-1 text-[10px] font-black ring-1", statusMeta[reviewer.status].className)}>
+                              {statusMeta[reviewer.status].label}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-muted">{reviewerGroupLabel(reviewer.group)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

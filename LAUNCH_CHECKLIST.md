@@ -35,7 +35,7 @@ This is the working checklist for taking Pulse from the current prototype into a
 
 - [ ] Replace demo-only assessment data with Supabase-backed CRUD.
 - [x] Create HR assessment cycle setup flow.
-- [ ] Add participant import for Directors and Assistant Directors.
+- [x] Add participant import for Directors and Assistant Directors.
 - [ ] Add reviewer assignment matrix for direct reports, subordinates, colleagues, and customers.
 - [ ] Add reviewer invitation workflow.
 - [ ] Add secure external customer review links.

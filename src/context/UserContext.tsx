@@ -17,7 +17,7 @@ import { useToast } from "@/components/ui/Toast";
 import { getSupabase } from "@/lib/supabase";
 import { getMyProfile } from "@/lib/api/profile";
 import { getMyNotifications } from "@/lib/api/notifications";
-import { DEV_AUTH_BYPASS, DEV_AUTH_USER_ID } from "@/lib/devAuth";
+import { DEV_AUTH_BYPASS, DEV_AUTH_USER_ID, isDemoModeEnabled } from "@/lib/devAuth";
 
 interface UserContextValue {
   user: Employee;
@@ -36,7 +36,56 @@ interface UserContextValue {
   closeNotif: () => void;
 }
 
-const DEFAULT_USER = employees.find((e) => e.id === DEV_AUTH_USER_ID) ?? employees[0];
+const DEFAULT_USER: Employee = {
+  id: DEV_AUTH_USER_ID,
+  name: "Pulse Developer",
+  initials: "PD",
+  email: "dev.user@pulse.local",
+  phone: "",
+  homeAddress: "",
+  department: "Operations",
+  team: "Platform",
+  role: "Product",
+  lineManagerId: null,
+  cadre: "entry",
+  peopleResponsibility: "none",
+  platformRole: "super_admin",
+  avatarColor: "#0d5cfd",
+  joinDate: "2026-01-01",
+  employmentType: "full_time",
+  band: { current: "", next: "", requirements: [] },
+  compensation: {
+    basic: 0,
+    housing: 0,
+    transport: 0,
+    medical: 0,
+    otherAllowances: [],
+    totalGross: 0,
+    bonusStructure: [],
+  },
+  performanceScore: 0,
+  consistencyIndex: 0,
+  peerRating: 0,
+  weekStreak: 0,
+  badge: "Good Standing",
+  aiRec: { recommendation: "good_standing", confidence: 0, evidence: [] },
+  goals: [],
+  kpis: [],
+  reports: [],
+  appraisalComponents: [],
+  trainingSuggestions: [],
+  wellbeingHistory: [],
+  documents: [],
+  leaveBalance: {
+    annual: { total: 0, used: 0, remaining: 0 },
+    sick: { total: 0, used: 0, remaining: 0 },
+    compassionate: { total: 0, used: 0, remaining: 0 },
+  },
+  leaveHistory: [],
+  meetings: [],
+  tasks: [],
+  notifications: [],
+};
 
 const EMPTY_USER: Employee = {
   ...DEFAULT_USER,
@@ -153,9 +202,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [resolved, setResolved] = useState(false);
   const realtimeRef = useRef<ReturnType<ReturnType<typeof getSupabase>["channel"]> | null>(null);
 
-  // In production and resolved: only use real data. In dev / unresolved: allow mock fallback.
+  const demoModeEnabled = isDemoModeEnabled();
+
+  // Default to live SaaS behavior. Demo/mock data is only used when explicitly enabled.
   const user = liveEmployee ??
-    (process.env.NODE_ENV === "development" || !resolved
+    (demoModeEnabled && (process.env.NODE_ENV === "development" || !resolved)
       ? employees.find((e) => e.id === userId) ?? employees[0]
       : EMPTY_USER);
 
@@ -197,10 +248,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    if (authSession && process.env.NODE_ENV === "development") {
-      const mockEmp = process.env.NODE_ENV === "development" && email
-        ? employees.find((e) => e.email.toLowerCase() === email)
-        : undefined;
+    if (authSession && process.env.NODE_ENV === "development" && isDemoModeEnabled()) {
+      const mockEmp = email ? employees.find((e) => e.email.toLowerCase() === email) : undefined;
       const fallback = mockEmp ?? authFallbackEmployee(authSession);
       setLiveEmployee(fallback);
       setUserId(fallback.id);
@@ -216,8 +265,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     // In development only: keep the unauthenticated demo usable.
-    if (process.env.NODE_ENV === "development") {
-      const mockEmp = employees.find((e) => e.email.toLowerCase() === email) ?? DEFAULT_USER;
+    if (process.env.NODE_ENV === "development" && isDemoModeEnabled()) {
+      const mockEmp = email ? employees.find((e) => e.email.toLowerCase() === email) ?? DEFAULT_USER : DEFAULT_USER;
       setLiveEmployee(null);
       setUserId(mockEmp.id);
       setNotifs([...mockEmp.notifications]);
