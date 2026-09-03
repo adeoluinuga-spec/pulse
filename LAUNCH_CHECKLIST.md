@@ -47,7 +47,7 @@ This is the working checklist for taking Pulse from the current prototype into a
 - [ ] Add reviewer anonymity thresholds before reports can be released.
 - [x] Add competency/question-bank builder.
 - [x] Add weighting controls by reviewer group and competency.
-- [ ] Add live completion dashboard by leader, reviewer group, department, and region.
+- [x] Add live completion dashboard by leader, reviewer group, department, and region.
 - [ ] Add reviewer reminder scheduling.
 - [ ] Add calibration workflow for HR before report release.
 - [ ] Add individual 360 report generation.

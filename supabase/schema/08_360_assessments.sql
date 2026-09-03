@@ -90,6 +90,37 @@ create table if not exists public.assessment_responses (
   unique (reviewer_id, competency_id)
 );
 
+create table if not exists public.assessment_self_assessments (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null references public.organisations(id) on delete cascade,
+  cycle_id uuid not null references public.assessment_cycles(id) on delete cascade,
+  subject_id uuid not null references public.assessment_subjects(id) on delete cascade,
+  assignee_id uuid references public.employees(id) on delete set null,
+  responses jsonb not null default '[]'::jsonb,
+  status text not null default 'submitted' check (status in ('draft', 'submitted', 'approved', 'rejected')),
+  submitted_at timestamptz,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  unique (cycle_id, subject_id)
+);
+
+create table if not exists public.assessment_nominations (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null references public.organisations(id) on delete cascade,
+  cycle_id uuid not null references public.assessment_cycles(id) on delete cascade,
+  subject_id uuid not null references public.assessment_subjects(id) on delete cascade,
+  assignee_id uuid references public.employees(id) on delete set null,
+  reviewer_employee_id uuid references public.employees(id) on delete set null,
+  reviewer_name text not null,
+  reviewer_email text not null,
+  reviewer_group text not null check (reviewer_group in ('direct_report', 'subordinate', 'colleague', 'customer')),
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (cycle_id, subject_id, reviewer_email, reviewer_group)
+);
+
 create table if not exists public.assessment_reports (
   id uuid primary key default gen_random_uuid(),
   cycle_id uuid not null references public.assessment_cycles(id) on delete cascade,
@@ -120,6 +151,8 @@ alter table public.assessment_frameworks enable row level security;
 alter table public.assessment_competencies enable row level security;
 alter table public.assessment_subjects enable row level security;
 alter table public.assessment_reviewers enable row level security;
+alter table public.assessment_self_assessments enable row level security;
+alter table public.assessment_nominations enable row level security;
 alter table public.assessment_responses enable row level security;
 alter table public.assessment_reports enable row level security;
 alter table public.assessment_audit_events enable row level security;
@@ -129,6 +162,10 @@ create index if not exists assessment_frameworks_org_id_idx on public.assessment
 create index if not exists assessment_subjects_cycle_id_idx on public.assessment_subjects(cycle_id);
 create index if not exists assessment_reviewers_cycle_id_idx on public.assessment_reviewers(cycle_id);
 create index if not exists assessment_reviewers_subject_id_idx on public.assessment_reviewers(subject_id);
+create index if not exists assessment_self_assessments_cycle_id_idx on public.assessment_self_assessments(cycle_id);
+create index if not exists assessment_self_assessments_subject_id_idx on public.assessment_self_assessments(subject_id);
+create index if not exists assessment_nominations_cycle_id_idx on public.assessment_nominations(cycle_id);
+create index if not exists assessment_nominations_subject_id_idx on public.assessment_nominations(subject_id);
 create unique index if not exists assessment_reviewers_token_hash_idx on public.assessment_reviewers(token_hash) where token_hash is not null;
 create index if not exists assessment_responses_reviewer_id_idx on public.assessment_responses(reviewer_id);
 create index if not exists assessment_reports_cycle_id_idx on public.assessment_reports(cycle_id);
@@ -308,6 +345,80 @@ create policy "hr can manage assessment reviewers"
       from public.assessment_cycles c
       join public.employees e on e.org_id = c.org_id
       where c.id = assessment_reviewers.cycle_id
+        and e.user_id = auth.uid()
+        and e.platform_role in ('hr_admin', 'super_admin')
+    )
+  );
+
+create policy "org members can read self assessments"
+  on public.assessment_self_assessments
+  for select
+  using (
+    exists (
+      select 1
+      from public.assessment_cycles c
+      join public.employees e on e.org_id = c.org_id
+      where c.id = assessment_self_assessments.cycle_id
+        and e.user_id = auth.uid()
+    )
+  );
+
+create policy "hr can manage self assessments"
+  on public.assessment_self_assessments
+  for all
+  using (
+    exists (
+      select 1
+      from public.assessment_cycles c
+      join public.employees e on e.org_id = c.org_id
+      where c.id = assessment_self_assessments.cycle_id
+        and e.user_id = auth.uid()
+        and e.platform_role in ('hr_admin', 'super_admin')
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.assessment_cycles c
+      join public.employees e on e.org_id = c.org_id
+      where c.id = assessment_self_assessments.cycle_id
+        and e.user_id = auth.uid()
+        and e.platform_role in ('hr_admin', 'super_admin')
+    )
+  );
+
+create policy "org members can read nominations"
+  on public.assessment_nominations
+  for select
+  using (
+    exists (
+      select 1
+      from public.assessment_cycles c
+      join public.employees e on e.org_id = c.org_id
+      where c.id = assessment_nominations.cycle_id
+        and e.user_id = auth.uid()
+    )
+  );
+
+create policy "hr can manage nominations"
+  on public.assessment_nominations
+  for all
+  using (
+    exists (
+      select 1
+      from public.assessment_cycles c
+      join public.employees e on e.org_id = c.org_id
+      where c.id = assessment_nominations.cycle_id
+        and e.user_id = auth.uid()
+        and e.platform_role in ('hr_admin', 'super_admin')
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.assessment_cycles c
+      join public.employees e on e.org_id = c.org_id
+      where c.id = assessment_nominations.cycle_id
         and e.user_id = auth.uid()
         and e.platform_role in ('hr_admin', 'super_admin')
     )

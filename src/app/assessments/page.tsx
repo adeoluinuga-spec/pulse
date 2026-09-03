@@ -53,6 +53,7 @@ import {
   supportsReviewChannel,
 } from "@/lib/assessmentReviewers";
 import { parseAssessmentParticipantCsv } from "@/lib/assessmentParticipants";
+import { buildNominationSummary, buildSelfAssessmentSummary } from "@/lib/assessmentParticipation";
 import { canReleaseAssessmentReport, releaseReadinessSummary } from "@/lib/assessmentRelease";
 import { buildReviewSubmissionSummary, validateReviewPayload } from "@/lib/reviewSubmission";
 
@@ -103,6 +104,10 @@ function scoreTone(score: number) {
 function average(values: number[]) {
   if (!values.length) return 0;
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value));
 }
 
 const assessmentFunctions: AssessmentFunction[] = ["all", "network", "customer_experience", "commercial", "technology", "operations", "hr", "finance"];
@@ -262,13 +267,16 @@ export default function AssessmentsPage() {
     score: selfRatings[question.competencyId] ?? 4,
     comment: selfComments[question.competencyId] ?? "",
   }));
-  const selfAnswered = selfResponses.filter((response) => response.comment.trim()).length;
-  const selfCompletion = demoQuestions.length ? Math.round((selfAnswered / demoQuestions.length) * 100) : 0;
-  const selfAverage = average(selfResponses.map((response) => response.score));
+  const selfAssessmentProgress = buildSelfAssessmentSummary(selfResponses);
+  const selfCompletion = selfAssessmentProgress.completion;
+  const selfAverage = selfAssessmentProgress.average;
   const selfVsOthersGap = Math.round(selfAverage * 20 - selectedScore);
   const selectedNominations = raterNominations.filter((nomination) => nomination.assigneeId === selectedAssessee.id);
   const approvedNominations = selectedNominations.filter((nomination) => nomination.status === "approved").length;
   const pendingNominations = selectedNominations.filter((nomination) => nomination.status === "pending").length;
+  const selectedNominationSummary = buildNominationSummary(
+    selectedNominations.map((nomination) => ({ reviewerGroup: nomination.group, status: nomination.status })),
+  );
   const nominationValidation = validateRaterNomination({
     employeeId: selectedAssessee.id,
     assigneeId: selectedAssessee.id,
@@ -277,6 +285,60 @@ export default function AssessmentsPage() {
       reviewerGroup: nomination.group,
     })),
     allowedGroups: reviewerGroups.map((group) => group.key),
+  });
+  const leaderProgress = assessmentSubjects.map((assessee) => {
+    const assigned = reviewerAssignments.filter((reviewer) => reviewer.assesseeId === assessee.id);
+    const submitted = assigned.filter((reviewer) => reviewer.status === "submitted").length;
+    const progress = completionForAssessee(assessee.id, reviewerAssignments);
+    const release = releaseReadinessSummary(assigned);
+    const result = results.find((entry) => entry.assesseeId === assessee.id);
+
+    return {
+      assessee,
+      assigned: assigned.length,
+      submitted,
+      progress,
+      blocked: !release.ready,
+      missingGroups: release.missingGroups,
+      score: result ? weightedScore(result, reviewerWeights) : 0,
+    };
+  });
+  const functionProgress = Object.values(
+    leaderProgress.reduce<Record<string, { name: string; leaders: number; submitted: number; assigned: number; progressTotal: number }>>((acc, entry) => {
+      const key = entry.assessee.functionName;
+      acc[key] ??= { name: key, leaders: 0, submitted: 0, assigned: 0, progressTotal: 0 };
+      acc[key].leaders += 1;
+      acc[key].submitted += entry.submitted;
+      acc[key].assigned += entry.assigned;
+      acc[key].progressTotal += entry.progress;
+      return acc;
+    }, {}),
+  ).map((entry) => ({ ...entry, progress: Math.round(entry.progressTotal / entry.leaders) }));
+  const regionProgress = Object.values(
+    leaderProgress.reduce<Record<string, { name: string; leaders: number; submitted: number; assigned: number; progressTotal: number }>>((acc, entry) => {
+      const key = entry.assessee.region;
+      acc[key] ??= { name: key, leaders: 0, submitted: 0, assigned: 0, progressTotal: 0 };
+      acc[key].leaders += 1;
+      acc[key].submitted += entry.submitted;
+      acc[key].assigned += entry.assigned;
+      acc[key].progressTotal += entry.progress;
+      return acc;
+    }, {}),
+  ).map((entry) => ({ ...entry, progress: Math.round(entry.progressTotal / entry.leaders) }));
+  const reviewerGroupProgress = reviewerGroups.map((group) => {
+    const assigned = reviewerAssignments.filter((reviewer) => reviewer.group === group.key);
+    const submitted = assigned.filter((reviewer) => reviewer.status === "submitted").length;
+    const inProgress = assigned.filter((reviewer) => reviewer.status === "in_progress").length;
+    const notStarted = assigned.filter((reviewer) => reviewer.status === "not_started").length;
+
+    return {
+      ...group,
+      assigned: assigned.length,
+      submitted,
+      inProgress,
+      notStarted,
+      progress: assigned.length ? Math.round((submitted / assigned.length) * 100) : 0,
+    };
   });
 
   async function handleDemoSubmit() {
@@ -410,12 +472,13 @@ export default function AssessmentsPage() {
       return;
     }
 
+    const nomineeEmailKey = nomineeEmail.trim().toLowerCase();
     const nextNomination: RaterNominationItem = {
-      id: `nomination-${Date.now()}`,
+      id: `nomination-${selectedAssessee.id}-${nomineeEmailKey}-${nomineeGroup}`,
       assigneeId: selectedAssessee.id,
-      reviewerId: nomineeEmail.trim().toLowerCase(),
+      reviewerId: nomineeEmailKey,
       name: nomineeName.trim(),
-      email: nomineeEmail.trim().toLowerCase(),
+      email: nomineeEmailKey,
       group: nomineeGroup,
       status: "pending",
     };
@@ -636,8 +699,131 @@ export default function AssessmentsPage() {
         </div>
 
         {activeTab === "command" && (
-          <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-5">
+          <div className="space-y-5">
+            <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Admin progress</p>
+                    <h2 className="mt-2 font-syne text-2xl font-black">Cycle completion dashboard</h2>
+                  </div>
+                  <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", readiness >= 75 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                    {readiness}% ready
+                  </span>
+                </div>
+                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  {leaderProgress.map((entry) => (
+                    <button
+                      type="button"
+                      key={entry.assessee.id}
+                      onClick={() => setSelectedAssesseeId(entry.assessee.id)}
+                      className={clsx(
+                        "rounded-[18px] border p-4 text-left transition",
+                        selectedAssessee.id === entry.assessee.id ? "border-pulse bg-pulse-soft" : "border-ink/8 bg-paper hover:border-pulse/40",
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black">{entry.assessee.name}</p>
+                          <p className="mt-1 truncate text-xs text-muted">{entry.assessee.functionName} / {entry.assessee.region}</p>
+                        </div>
+                        <span className={clsx("rounded-full px-2 py-1 text-xs font-black", entry.blocked ? "bg-amber-50 text-amber-700" : "bg-green-soft text-green")}>
+                          {entry.blocked ? "Blocked" : "Ready"}
+                        </span>
+                      </div>
+                      <div className="mt-4 flex items-center gap-3">
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-white">
+                          <div className="h-full rounded-full bg-pulse" style={{ width: `${clampPercent(entry.progress)}%` }} />
+                        </div>
+                        <span className="text-xs font-black text-muted">{entry.progress}%</span>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between text-xs font-bold text-muted">
+                        <span>{entry.submitted}/{entry.assigned} submitted</span>
+                        <span>Score {entry.score}</span>
+                      </div>
+                      {entry.missingGroups.length > 0 && (
+                        <p className="mt-2 truncate text-xs font-bold text-amber-700">Missing: {entry.missingGroups.join(", ").replaceAll("_", " ")}</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer groups</p>
+                    <h3 className="mt-2 text-xl font-black">Submission status</h3>
+                  </div>
+                  <Users className="text-pulse" size={20} />
+                </div>
+                <div className="mt-5 space-y-4">
+                  {reviewerGroupProgress.map((group) => (
+                    <div key={group.key} className={clsx("border-l-4 bg-paper p-4", groupTone[group.key])}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-black">{group.label}</p>
+                          <p className="mt-1 text-xs text-muted">
+                            {group.submitted} submitted / {group.inProgress} in progress / {group.notStarted} not started
+                          </p>
+                        </div>
+                        <span className="text-sm font-black">{group.progress}%</span>
+                      </div>
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+                        <div className="h-full rounded-full bg-ink" style={{ width: `${clampPercent(group.progress)}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-5 lg:grid-cols-2">
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Function view</p>
+                <h3 className="mt-2 text-xl font-black">Department progress</h3>
+                <div className="mt-5 space-y-3">
+                  {functionProgress.map((entry) => (
+                    <div key={entry.name} className="rounded-[18px] bg-paper p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black">{entry.name}</p>
+                          <p className="mt-1 text-xs text-muted">{entry.leaders} leader{entry.leaders === 1 ? "" : "s"} / {entry.submitted}/{entry.assigned} submitted</p>
+                        </div>
+                        <span className="text-sm font-black">{entry.progress}%</span>
+                      </div>
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+                        <div className="h-full rounded-full bg-green" style={{ width: `${clampPercent(entry.progress)}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Regional view</p>
+                <h3 className="mt-2 text-xl font-black">Coverage by region</h3>
+                <div className="mt-5 space-y-3">
+                  {regionProgress.map((entry) => (
+                    <div key={entry.name} className="rounded-[18px] bg-paper p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black">{entry.name}</p>
+                          <p className="mt-1 text-xs text-muted">{entry.leaders} leader{entry.leaders === 1 ? "" : "s"} / {entry.submitted}/{entry.assigned} submitted</p>
+                        </div>
+                        <span className="text-sm font-black">{entry.progress}%</span>
+                      </div>
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+                        <div className="h-full rounded-full bg-pulse" style={{ width: `${clampPercent(entry.progress)}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+              <div className="space-y-5">
               <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -693,9 +879,9 @@ export default function AssessmentsPage() {
                   })}
                 </div>
               </div>
-            </div>
+              </div>
 
-            <div className="space-y-5">
+              <div className="space-y-5">
               <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
@@ -807,6 +993,7 @@ export default function AssessmentsPage() {
                   <span className="font-black text-ink">{riskCount} portfolio risk notes</span> need HR calibration before reports are released.
                 </div>
               </div>
+            </div>
             </div>
           </div>
         )}
@@ -1378,8 +1565,10 @@ export default function AssessmentsPage() {
                     <p className="mt-2 text-3xl font-black">{pendingNominations}</p>
                   </div>
                 </div>
-                <div className={clsx("mt-5 rounded-2xl p-3 text-sm font-black", nominationValidation.valid ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
-                  {nominationValidation.valid ? "Nomination list passes current validation." : nominationValidation.errors[0]}
+                <div className={clsx("mt-5 rounded-2xl p-3 text-sm font-black", nominationValidation.valid && selectedNominationSummary.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                  {nominationValidation.valid && selectedNominationSummary.ready
+                    ? "Nomination list passes validation and has approved group coverage."
+                    : nominationValidation.errors[0] ?? `Approval gaps: ${selectedNominationSummary.missingGroups.join(", ").replaceAll("_", " ")}`}
                 </div>
               </div>
 

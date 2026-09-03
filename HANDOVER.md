@@ -331,7 +331,7 @@ This must stay enforced server-side.
 - [x] competency configuration workflow UI
 - [x] self-assessment completion UX
 - [x] nomination and approval UX
-- [ ] admin dashboard and progress views
+- [x] admin dashboard and progress views
 - [ ] reporting presentation layer
 - [ ] end-to-end testing and edge-case validation
 
