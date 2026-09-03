@@ -52,6 +52,7 @@ This is the working checklist for taking Pulse from the current prototype into a
 - [ ] Add calibration workflow for HR before report release.
 - [ ] Add individual 360 report generation.
 - [ ] Add cohort/portfolio reporting for HR and executives.
+- [x] Add 360 report presentation layer for leader summaries, scorecards, blind spots, and cohort views.
 - [ ] Add PDF export.
 - [ ] Add CSV/XLSX export.
 - [ ] Add audit trail for report release and reviewer access.

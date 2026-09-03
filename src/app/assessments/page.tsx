@@ -54,6 +54,7 @@ import {
 } from "@/lib/assessmentReviewers";
 import { parseAssessmentParticipantCsv } from "@/lib/assessmentParticipants";
 import { buildNominationSummary, buildSelfAssessmentSummary } from "@/lib/assessmentParticipation";
+import { buildAssessmentReportSummary } from "@/lib/assessmentReporting";
 import { canReleaseAssessmentReport, releaseReadinessSummary } from "@/lib/assessmentRelease";
 import { buildReviewSubmissionSummary, validateReviewPayload } from "@/lib/reviewSubmission";
 
@@ -340,6 +341,42 @@ export default function AssessmentsPage() {
       progress: assigned.length ? Math.round((submitted / assigned.length) * 100) : 0,
     };
   });
+  const selectedReportSummary = buildAssessmentReportSummary(
+    reviewerGroups.map((group) => ({
+      reviewer_group: group.key,
+      score: selectedResult.groupScores[group.key],
+      status: selectedAssesseeReviewers.some((reviewer) => reviewer.group === group.key && reviewer.status === "submitted") ? "submitted" : "pending",
+    })),
+    reviewerWeights,
+  );
+  const cohortReportSummaries = results.map((result) => {
+    const assessee = assessmentSubjects.find((entry) => entry.id === result.assesseeId);
+    const summary = buildAssessmentReportSummary(
+      reviewerGroups.map((group) => ({
+        reviewer_group: group.key,
+        score: result.groupScores[group.key],
+      })),
+      reviewerWeights,
+    );
+
+    return {
+      result,
+      assessee,
+      summary,
+    };
+  });
+  const reportReadyCount = leaderProgress.filter((entry) => !entry.blocked).length;
+  const cohortAverageScore = average(cohortReportSummaries.map((entry) => entry.summary.overallScore));
+  const strongestCompetency = selectedResult.competencyScores.reduce(
+    (best, item) => (item.score > best.score ? item : best),
+    selectedResult.competencyScores[0],
+  );
+  const weakestCompetency = selectedResult.competencyScores.reduce(
+    (lowest, item) => (item.score < lowest.score ? item : lowest),
+    selectedResult.competencyScores[0],
+  );
+  const strongestCompetencyName = telcoCompetencies.find((competency) => competency.id === strongestCompetency?.competencyId)?.name ?? "No competency";
+  const weakestCompetencyName = telcoCompetencies.find((competency) => competency.id === weakestCompetency?.competencyId)?.name ?? "No competency";
 
   async function handleDemoSubmit() {
     const payload = {
@@ -1778,46 +1815,13 @@ export default function AssessmentsPage() {
         )}
 
         {activeTab === "reports" && (
-          <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Leadership profile</p>
-              <h3 className="mt-2 font-syne text-2xl font-black">{selectedAssessee.name}</h3>
-              <p className="mt-2 text-sm text-muted">{selectedAssessee.portfolio}</p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl bg-ink p-4 text-white">
-                  <p className="text-xs font-bold text-white/50">Weighted score</p>
-                  <p className="mt-2 text-3xl font-black">{selectedScore}</p>
-                </div>
-                <div className="rounded-2xl bg-pulse-soft p-4 text-pulse">
-                  <p className="text-xs font-bold">Customer gap</p>
-                  <p className="mt-2 text-3xl font-black">{selectedResult.groupScores.customer - selectedResult.groupScores.direct_report}</p>
-                </div>
-                <div className="rounded-2xl bg-green-soft p-4 text-green">
-                  <p className="text-xs font-bold">Completion</p>
-                  <p className="mt-2 text-3xl font-black">{completionForAssessee(selectedAssessee.id, reviewerAssignments)}%</p>
-                </div>
-              </div>
-              <div className="mt-5 space-y-3">
-                <h4 className="text-sm font-black">Strengths</h4>
-                {selectedResult.strongestSignals.map((signal) => (
-                  <p key={signal} className="rounded-2xl bg-paper p-3 text-sm font-semibold text-muted">
-                    {signal}
-                  </p>
-                ))}
-                <h4 className="pt-2 text-sm font-black">Development plan</h4>
-                {selectedResult.developmentSignals.map((signal) => (
-                  <p key={signal} className="rounded-2xl bg-pulse-soft p-3 text-sm font-semibold text-pulse">
-                    {signal}
-                  </p>
-                ))}
-              </div>
-            </div>
-
+          <div className="space-y-5">
             <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Board-ready report</p>
-                  <h3 className="mt-2 text-xl font-black">Release controls</h3>
+                  <h2 className="mt-2 font-syne text-2xl font-black">{selectedAssessee.name}</h2>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{selectedAssessee.portfolio}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-ink/10 px-3 text-sm font-black">
@@ -1830,46 +1834,193 @@ export default function AssessmentsPage() {
                   </button>
                 </div>
               </div>
-              <div className="mt-5 space-y-4">
-                {reviewerGroups.map((group) => (
-                  <div key={group.key} className={clsx("border-l-4 bg-paper p-4", groupTone[group.key])}>
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-black">{group.label}</p>
-                        <p className="mt-1 text-xs text-muted">{group.description}</p>
-                      </div>
-                      <p className="text-2xl font-black">{selectedResult.groupScores[group.key]}</p>
+              <div className="mt-5 grid gap-3 md:grid-cols-4">
+                <div className="rounded-2xl bg-ink p-4 text-white">
+                  <p className="text-xs font-bold text-white/50">Overall score</p>
+                  <p className="mt-2 text-4xl font-black">{selectedReportSummary.overallScore}</p>
+                </div>
+                <div className="rounded-2xl bg-paper p-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Report status</p>
+                  <p className="mt-2 text-2xl font-black">{selectedReportSummary.ready && canReleaseSelectedReport ? "Ready" : "Blocked"}</p>
+                </div>
+                <div className="rounded-2xl bg-pulse-soft p-4 text-pulse">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em]">Customer gap</p>
+                  <p className="mt-2 text-2xl font-black">{selectedResult.groupScores.customer - selectedResult.groupScores.direct_report}</p>
+                </div>
+                <div className="rounded-2xl bg-green-soft p-4 text-green">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em]">Completion</p>
+                  <p className="mt-2 text-2xl font-black">{completionForAssessee(selectedAssessee.id, reviewerAssignments)}%</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+              <div className="space-y-5">
+                <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Executive summary</p>
+                  <h3 className="mt-2 text-xl font-black">Leadership narrative</h3>
+                  <div className="mt-5 grid gap-3">
+                    {selectedReportSummary.strengths.map((item) => (
+                      <p key={item} className="rounded-2xl bg-green-soft p-3 text-sm font-semibold leading-6 text-green">{item}</p>
+                    ))}
+                    {selectedReportSummary.developmentAreas.map((item) => (
+                      <p key={item} className="rounded-2xl bg-pulse-soft p-3 text-sm font-semibold leading-6 text-pulse">{item}</p>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Scorecard</p>
+                  <h3 className="mt-2 text-xl font-black">Competency profile</h3>
+                  <div className="mt-5 space-y-4">
+                    {selectedResult.competencyScores.map((item) => {
+                      const competency = telcoCompetencies.find((entry) => entry.id === item.competencyId);
+                      const variance = item.score - item.benchmark;
+                      return (
+                        <div key={item.competencyId} className="rounded-[18px] bg-paper p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-black">{competency?.name}</p>
+                              <p className="mt-1 text-xs text-muted">Benchmark {item.benchmark} / Weight {competencyWeights[item.competencyId] ?? 0}%</p>
+                            </div>
+                            <span className={clsx("rounded-full px-3 py-1 text-sm font-black", variance >= 0 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                              {item.score}
+                            </span>
+                          </div>
+                          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+                            <div className="h-full rounded-full bg-pulse" style={{ width: `${clampPercent(item.score)}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Blind spot analysis</p>
+                  <h3 className="mt-2 text-xl font-black">Signal comparison</h3>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-green-soft p-4 text-green">
+                      <p className="text-xs font-bold uppercase tracking-[0.14em]">Hidden strength</p>
+                      <p className="mt-2 text-lg font-black">{strongestCompetencyName}</p>
+                    </div>
+                    <div className="rounded-2xl bg-amber-50 p-4 text-amber-700">
+                      <p className="text-xs font-bold uppercase tracking-[0.14em]">Development risk</p>
+                      <p className="mt-2 text-lg font-black">{weakestCompetencyName}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div className="mt-5 rounded-2xl border border-ink/8 bg-paper p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-black">Release checklist</p>
-                  <button
-                    disabled={!canReleaseSelectedReport}
-                    className={clsx(
-                      "inline-flex min-h-10 items-center gap-2 rounded-2xl px-3 text-sm font-black transition",
-                      canReleaseSelectedReport ? "bg-ink text-white" : "cursor-not-allowed border border-ink/10 bg-white text-muted",
-                    )}
-                  >
-                    <FileText size={16} />
-                    {canReleaseSelectedReport ? "Release report" : "Release blocked"}
-                  </button>
+                  <div className="mt-4 space-y-3">
+                    {selectedResult.riskNotes.map((note) => (
+                      <p key={note} className="rounded-2xl bg-paper p-3 text-sm font-semibold leading-6 text-muted">{note}</p>
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {[
-                    { label: "All reviewer groups represented", ok: releaseSummary.missingGroups.length === 0 },
-                    { label: "All submissions complete", ok: releaseSummary.remaining === 0 },
-                    { label: "HR calibration completed", ok: selectedResult.riskNotes.length === 0 },
-                    { label: "Customer comments redacted", ok: true },
-                  ].map((item) => (
-                    <div key={item.label} className="flex items-center gap-2 text-sm font-semibold text-muted">
-                      <CheckCircle2 className={item.ok ? "text-green" : "text-muted/50"} size={16} />
-                      {item.label}
+
+                <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer lens</p>
+                  <h3 className="mt-2 text-xl font-black">Group scores</h3>
+                  <div className="mt-5 space-y-4">
+                    {reviewerGroups.map((group) => (
+                      <div key={group.key} className={clsx("border-l-4 bg-paper p-4", groupTone[group.key])}>
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-black">{group.label}</p>
+                            <p className="mt-1 text-xs text-muted">Weight {reviewerWeights[group.key]}%</p>
+                          </div>
+                          <p className="text-2xl font-black">{selectedReportSummary.groupScores[group.key] ?? selectedResult.groupScores[group.key]}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Release controls</p>
+                      <h3 className="mt-2 text-xl font-black">Approval checklist</h3>
                     </div>
-                  ))}
+                    <button
+                      disabled={!canReleaseSelectedReport}
+                      className={clsx(
+                        "inline-flex min-h-10 items-center gap-2 rounded-2xl px-3 text-sm font-black transition",
+                        canReleaseSelectedReport ? "bg-ink text-white" : "cursor-not-allowed border border-ink/10 bg-white text-muted",
+                      )}
+                    >
+                      <FileText size={16} />
+                      {canReleaseSelectedReport ? "Release" : "Blocked"}
+                    </button>
+                  </div>
+                  <div className="mt-4 grid gap-2">
+                    {[
+                      { label: "All reviewer groups represented", ok: releaseSummary.missingGroups.length === 0 },
+                      { label: "All submissions complete", ok: releaseSummary.remaining === 0 },
+                      { label: "HR calibration completed", ok: selectedResult.riskNotes.length === 0 },
+                      { label: "Customer comments redacted", ok: true },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-center gap-2 text-sm font-semibold text-muted">
+                        <CheckCircle2 className={item.ok ? "text-green" : "text-muted/50"} size={16} />
+                        {item.label}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {selectedReportSummary.notes.map((note) => (
+                      <p key={note} className="rounded-2xl bg-paper p-3 text-xs font-semibold leading-5 text-muted">{note}</p>
+                    ))}
+                  </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Cohort reporting</p>
+                  <h3 className="mt-2 text-xl font-black">Leadership portfolio view</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-right">
+                  <div className="rounded-2xl bg-paper px-3 py-2">
+                    <p className="text-xs font-bold text-muted">Average</p>
+                    <p className="text-lg font-black">{cohortAverageScore}</p>
+                  </div>
+                  <div className="rounded-2xl bg-green-soft px-3 py-2 text-green">
+                    <p className="text-xs font-bold">Ready</p>
+                    <p className="text-lg font-black">{reportReadyCount}/{leaderProgress.length}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 overflow-x-auto">
+                <table className="w-full min-w-[720px] text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-ink/8 text-xs font-black uppercase tracking-[0.14em] text-muted">
+                      <th className="py-3 pr-3">Leader</th>
+                      <th className="py-3 pr-3">Function</th>
+                      <th className="py-3 pr-3">Region</th>
+                      <th className="py-3 pr-3">Score</th>
+                      <th className="py-3 pr-3">Report status</th>
+                      <th className="py-3 pr-3">Development focus</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cohortReportSummaries.map((entry) => (
+                      <tr key={entry.result.assesseeId} className="border-b border-ink/8 last:border-0">
+                        <td className="py-4 pr-3 font-black">{entry.assessee?.name ?? "Unknown leader"}</td>
+                        <td className="py-4 pr-3 text-muted">{entry.assessee?.functionName ?? "Not set"}</td>
+                        <td className="py-4 pr-3 text-muted">{entry.assessee?.region ?? "Not set"}</td>
+                        <td className="py-4 pr-3 font-black">{entry.summary.overallScore}</td>
+                        <td className="py-4 pr-3">
+                          <span className={clsx("rounded-full px-2 py-1 text-xs font-black", entry.summary.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                            {entry.summary.ready ? "Ready" : "Incomplete"}
+                          </span>
+                        </td>
+                        <td className="py-4 pr-3 text-muted">{entry.result.developmentSignals[0]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

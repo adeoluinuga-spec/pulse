@@ -332,7 +332,7 @@ This must stay enforced server-side.
 - [x] self-assessment completion UX
 - [x] nomination and approval UX
 - [x] admin dashboard and progress views
-- [ ] reporting presentation layer
+- [x] reporting presentation layer
 - [ ] end-to-end testing and edge-case validation
 
 ---
