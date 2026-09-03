@@ -332,12 +332,14 @@ export function completionByGroup(group: ReviewerGroup, source = reviewers): num
   return Math.round((submitted / assigned.length) * 100);
 }
 
-export function assessmentReadiness(): number {
-  const submitted = reviewers.filter((reviewer) => reviewer.status === "submitted").length;
-  const completion = Math.round((submitted / reviewers.length) * 100);
+export function assessmentReadiness(sourceAssessees = assessees, sourceReviewers = reviewers): number {
+  if (!sourceReviewers.length || !sourceAssessees.length) return 0;
+
+  const submitted = sourceReviewers.filter((reviewer) => reviewer.status === "submitted").length;
+  const completion = Math.round((submitted / sourceReviewers.length) * 100);
   const coverage = reviewerGroups.filter((group) =>
-    assessees.every((assessee) =>
-      reviewers.some((reviewer) => reviewer.assesseeId === assessee.id && reviewer.group === group.key),
+    sourceAssessees.every((assessee) =>
+      sourceReviewers.some((reviewer) => reviewer.assesseeId === assessee.id && reviewer.group === group.key),
     ),
   ).length;
   return Math.round(completion * 0.7 + (coverage / reviewerGroups.length) * 30);

@@ -32,9 +32,18 @@ import {
   telcoCompetencies,
   weightedScore,
   type AssessmentLevel,
+  type Reviewer,
   type ReviewerGroup,
   type ReviewerStatus,
 } from "@/lib/assessments360";
+import {
+  aggregateReviewScores,
+  buildReviewerWorkflowSummary,
+  createSecureReviewerInvite,
+  normalizeAssessmentScope,
+  reviewerAssignmentIsValid,
+  supportsReviewChannel,
+} from "@/lib/assessmentReviewers";
 import { parseAssessmentParticipantCsv } from "@/lib/assessmentParticipants";
 import { canReleaseAssessmentReport, releaseReadinessSummary } from "@/lib/assessmentRelease";
 
@@ -104,6 +113,24 @@ export default function AssessmentsPage() {
   );
   const [participantNotice, setParticipantNotice] = useState("");
   const [assessmentSubjects, setAssessmentSubjects] = useState(assessees);
+  const [reviewerName, setReviewerName] = useState("");
+  const [reviewerEmail, setReviewerEmail] = useState("");
+  const [reviewerOrg, setReviewerOrg] = useState("");
+  const [reviewerGroupForm, setReviewerGroupForm] = useState<ReviewerGroup>("direct_report");
+  const [reviewerChannel, setReviewerChannel] = useState("email");
+  const [assessmentScope, setAssessmentScope] = useState("individual");
+  const [reviewerNotice, setReviewerNotice] = useState("");
+  const [inviteNotice, setInviteNotice] = useState("");
+  const [reviewerAssignments, setReviewerAssignments] = useState(reviewers);
+  const [reviewerInvites, setReviewerInvites] = useState(
+    reviewers.slice(0, 3).map((reviewer) =>
+      createSecureReviewerInvite(
+        { name: reviewer.name, email: reviewer.email },
+        reviewer.group === "customer" ? "customer_experience" : "individual",
+        reviewer.group === "customer" ? "whatsapp" : "email",
+      ),
+    ),
+  );
 
   const visibleAssessees = useMemo(
     () => assessmentSubjects.filter((assessee) => levelFilter === "all" || assessee.level === levelFilter),
@@ -111,15 +138,24 @@ export default function AssessmentsPage() {
   );
   const selectedAssessee = assessmentSubjects.find((assessee) => assessee.id === selectedAssesseeId) ?? assessmentSubjects[0] ?? assessees[0];
   const selectedResult = results.find((result) => result.assesseeId === selectedAssessee.id) ?? results[0];
-  const selectedAssesseeReviewers = reviewers.filter((reviewer) => reviewer.assesseeId === selectedAssessee.id);
+  const selectedAssesseeReviewers = reviewerAssignments.filter((reviewer) => reviewer.assesseeId === selectedAssessee.id);
   const selectedScore = weightedScore(selectedResult);
   const readiness = assessmentReadiness();
   const completion = average(assessmentSubjects.map((assessee) => completionForAssessee(assessee.id)));
   const portfolioScore = average(results.map((result) => weightedScore(result)));
   const riskCount = results.reduce((sum, result) => sum + result.riskNotes.length, 0);
-  const submittedCount = reviewers.filter((reviewer) => reviewer.status === "submitted").length;
+  const submittedCount = reviewerAssignments.filter((reviewer) => reviewer.status === "submitted").length;
+  const reviewerSummary = buildReviewerWorkflowSummary(selectedAssesseeReviewers);
   const releaseSummary = releaseReadinessSummary(selectedAssesseeReviewers);
   const canReleaseSelectedReport = canReleaseAssessmentReport(selectedAssesseeReviewers);
+  const normalizedScope = normalizeAssessmentScope(assessmentScope);
+  const whatsappEnabled = supportsReviewChannel(reviewerChannel);
+  const submittedReviewScores = [
+    { score: 80, weight: 30, scope: "individual", channel: "email" },
+    { score: 75, weight: 35, scope: "customer_experience", channel: "whatsapp" },
+    { score: 82, weight: 35, scope: "team", channel: "portal" },
+  ];
+  const liveReviewScore = aggregateReviewScores(submittedReviewScores);
 
   async function handleDemoSubmit() {
     setNotice("Demo review captured. In production this writes to the encrypted 360 response table.");
@@ -190,6 +226,51 @@ export default function AssessmentsPage() {
     setParticipantCsv("");
     setParticipantNotice(`${imported.length} participant${imported.length === 1 ? "" : "s"} imported into the assessment cycle.`);
     setTimeout(() => setParticipantNotice(""), 4000);
+  }
+
+  function handleAddReviewer() {
+    const candidate = {
+      reviewer_name: reviewerName,
+      reviewer_email: reviewerEmail,
+      reviewer_group: reviewerGroupForm,
+    };
+
+    if (!reviewerAssignmentIsValid(candidate)) {
+      setReviewerNotice("Please provide a reviewer name, valid email, and reviewer group.");
+      setTimeout(() => setReviewerNotice(""), 4000);
+      return;
+    }
+
+    const nextReviewer: Reviewer & { id: string; assesseeId: string; name: string; group: ReviewerGroup; email: string; status: ReviewerStatus } = {
+      id: `reviewer-${Date.now()}`,
+      assesseeId: selectedAssessee.id,
+      name: reviewerName.trim(),
+      group: reviewerGroupForm,
+      organisation: reviewerOrg.trim() || undefined,
+      email: reviewerEmail.trim(),
+      status: "not_started",
+    };
+
+    const invite = createSecureReviewerInvite(
+      { name: nextReviewer.name, email: nextReviewer.email },
+      assessmentScope,
+      reviewerChannel,
+    );
+
+    setReviewerAssignments((current) => [nextReviewer, ...current]);
+    setReviewerInvites((current) => [invite, ...current]);
+    setReviewerName("");
+    setReviewerEmail("");
+    setReviewerOrg("");
+    setReviewerGroupForm("direct_report");
+    setReviewerChannel("email");
+    setAssessmentScope("individual");
+    setReviewerNotice("Reviewer assigned and invite generated.");
+    setInviteNotice(`Secure link ready: ${invite.secureLink}`);
+    setTimeout(() => {
+      setReviewerNotice("");
+      setInviteNotice("");
+    }, 5000);
   }
 
   return (
@@ -509,10 +590,151 @@ export default function AssessmentsPage() {
               </div>
             </div>
 
+            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer workflow</p>
+                  <h3 className="mt-2 text-xl font-black">Assign reviewers for {selectedAssessee.name}</h3>
+                </div>
+                <div className="rounded-2xl bg-paper px-3 py-2 text-sm font-black text-muted">
+                  {reviewerSummary.coverage}% coverage
+                </div>
+              </div>
+
+              {reviewerNotice && <div className="mt-3 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{reviewerNotice}</div>}
+              {inviteNotice && <div className="mt-3 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse break-all">{inviteNotice}</div>}
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <label className="block text-sm font-black text-muted md:col-span-2">
+                  Assessment scope
+                  <select
+                    value={assessmentScope}
+                    onChange={(event) => setAssessmentScope(event.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                  >
+                    <option value="individual">Individual</option>
+                    <option value="team">Team</option>
+                    <option value="functional">Functional</option>
+                    <option value="customer_experience">Customer experience</option>
+                  </select>
+                  <span className="mt-1 block text-xs text-muted">
+                    Active scope: {normalizedScope.replace("_", " ")}
+                  </span>
+                </label>
+                <label className="block text-sm font-black text-muted">
+                  Reviewer name
+                  <input
+                    value={reviewerName}
+                    onChange={(event) => setReviewerName(event.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    placeholder="Jane Okafor"
+                  />
+                </label>
+                <label className="block text-sm font-black text-muted">
+                  Reviewer email
+                  <input
+                    value={reviewerEmail}
+                    onChange={(event) => setReviewerEmail(event.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    placeholder="jane@company.com"
+                  />
+                </label>
+                <label className="block text-sm font-black text-muted md:col-span-2">
+                  Organisation / stakeholder
+                  <input
+                    value={reviewerOrg}
+                    onChange={(event) => setReviewerOrg(event.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    placeholder="Operations, partner, function, or external account"
+                  />
+                </label>
+                <label className="block text-sm font-black text-muted md:col-span-2">
+                  Reviewer group
+                  <select
+                    value={reviewerGroupForm}
+                    onChange={(event) => setReviewerGroupForm(event.target.value as ReviewerGroup)}
+                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                  >
+                    {reviewerGroups.map((group) => (
+                      <option key={group.key} value={group.key}>
+                        {group.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm font-black text-muted md:col-span-2">
+                  Review channel
+                  <select
+                    value={reviewerChannel}
+                    onChange={(event) => setReviewerChannel(event.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                  >
+                    <option value="email">Email</option>
+                    <option value="sms">SMS</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="portal">Portal</option>
+                  </select>
+                  <span className="mt-1 block text-xs text-muted">
+                    {whatsappEnabled ? "WhatsApp is enabled for this review route." : "This channel is not supported for this review route."}
+                  </span>
+                </label>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleAddReviewer}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white"
+                >
+                  <Users size={16} />
+                  Add reviewer
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer invites</p>
+                <h3 className="mt-2 text-xl font-black">Secure links and response tracking</h3>
+                <div className="mt-4 space-y-3">
+                  {reviewerInvites.map((invite) => (
+                    <div key={invite.token} className="rounded-2xl border border-ink/8 bg-paper p-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-black">{invite.reviewerName}</p>
+                          <p className="text-xs text-muted">{invite.reviewerEmail}</p>
+                        </div>
+                        <span className="rounded-full bg-pulse-soft px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-pulse">
+                          {invite.channel}
+                        </span>
+                      </div>
+                      <p className="mt-2 break-all text-xs text-muted">{invite.secureLink}</p>
+                      <div className="mt-2 flex items-center justify-between text-[11px] text-muted">
+                        <span>Scope: {invite.scope}</span>
+                        <span>Status: {invite.status}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Live submission score</p>
+                <h3 className="mt-2 text-xl font-black">Submitted review impact</h3>
+                <div className="mt-4 flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-3xl font-black">{liveReviewScore}</p>
+                    <p className="mt-1 text-xs text-muted">Weighted by reviewer weight and customer impact</p>
+                  </div>
+                  <span className="rounded-2xl bg-green-soft px-3 py-2 text-xs font-black text-green">Submitted</span>
+                </div>
+              </div>
+            </div>
+
             <div className="grid gap-4 lg:grid-cols-2">
               {visibleAssessees.map((assessee) => {
                 const result = results.find((entry) => entry.assesseeId === assessee.id);
-                const assesseeReviewers = reviewers.filter((reviewer) => reviewer.assesseeId === assessee.id);
+                const assesseeReviewers = reviewerAssignments.filter((reviewer) => reviewer.assesseeId === assessee.id);
                 return (
                   <div key={assessee.id} className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
                     <div className="flex items-start justify-between gap-4">

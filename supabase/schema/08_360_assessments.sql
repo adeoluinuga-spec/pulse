@@ -2,7 +2,7 @@
 
 create table if not exists public.assessment_cycles (
   id uuid primary key default gen_random_uuid(),
-  org_id uuid not null references public.organizations(id) on delete cascade,
+  org_id uuid not null references public.organisations(id) on delete cascade,
   name text not null,
   client_context text,
   assessment_type text not null default '360',
