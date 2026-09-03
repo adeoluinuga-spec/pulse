@@ -13,6 +13,17 @@ function getAdminClient() {
   );
 }
 
+async function cycleBelongsToOrg(admin: ReturnType<typeof getAdminClient>, cycleId: string, orgId: string) {
+  const { data } = await admin
+    .from("assessment_cycles")
+    .select("id")
+    .eq("id", cycleId)
+    .eq("org_id", orgId)
+    .maybeSingle();
+
+  return Boolean(data);
+}
+
 export async function GET(request: NextRequest) {
   const cycleId = request.nextUrl.searchParams.get("cycleId");
   const subjectId = request.nextUrl.searchParams.get("subjectId");
@@ -54,6 +65,11 @@ export async function GET(request: NextRequest) {
   const orgId = (employee as { org_id?: string } | null)?.org_id;
   if (!orgId) {
     return NextResponse.json({ reports: [] }, { status: 200 });
+  }
+
+  const hasCycleAccess = await cycleBelongsToOrg(admin, cycleId, orgId);
+  if (!hasCycleAccess) {
+    return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
   }
 
   let query = admin
@@ -122,6 +138,22 @@ export async function POST(request: NextRequest) {
 
   if (!body.cycleId || !body.subjectId) {
     return NextResponse.json({ error: "cycleId and subjectId are required" }, { status: 400 });
+  }
+
+  const hasCycleAccess = await cycleBelongsToOrg(admin, body.cycleId, orgId);
+  if (!hasCycleAccess) {
+    return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
+  }
+
+  const { data: subject } = await admin
+    .from("assessment_subjects")
+    .select("id")
+    .eq("id", body.subjectId)
+    .eq("cycle_id", body.cycleId)
+    .maybeSingle();
+
+  if (!subject) {
+    return NextResponse.json({ error: "Subject not found" }, { status: 404 });
   }
 
   const reviewerScores = (body.reviewerScores ?? []).map((entry) => ({
