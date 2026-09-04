@@ -1,12 +1,12 @@
-const { createClient } = require('@supabase/supabase-js');
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  { auth: { autoRefreshToken: false, persistSession: false } },
-);
-
 (async () => {
+  const { createClient } = await import('@supabase/supabase-js');
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+
   const orgId = 'ac0a9bf7-9342-428c-bca1-d846f62da717';
   const email = 'adeolu@stuartdavidson.org';
 
