@@ -33,7 +33,7 @@ function stage(key: AssessmentWorkflowStage["key"], label: string, ready: boolea
 }
 
 export function validateAssessmentWorkflow(input: AssessmentWorkflowInput): AssessmentWorkflowValidation {
-  const requiredGroups = input.requiredGroups ?? ["direct_report", "subordinate", "colleague", "customer"];
+  const requiredGroups = input.requiredGroups ?? ["line_manager", "direct_report", "colleague", "customer"];
   const subjects = input.subjects ?? [];
   const reviewers = input.reviewers ?? [];
   const nominations = input.nominations ?? [];

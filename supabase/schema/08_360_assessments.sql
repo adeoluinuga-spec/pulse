@@ -1,4 +1,12 @@
 -- 360 assessment schema for multi-rater leadership assessments.
+--
+-- DOCUMENTATION ONLY. This file records the current shape of the schema; it is
+-- not the thing that gets applied. Schema changes go in a new timestamped file
+-- under supabase/migrations/ and are reflected here afterwards.
+--
+-- Reflects, as applied:
+--   20260903_000001_assessment_schema.sql
+--   20260904_000001_assessment_response_contract.sql
 
 create table if not exists public.assessment_cycles (
   id uuid primary key default gen_random_uuid(),
@@ -10,7 +18,7 @@ create table if not exists public.assessment_cycles (
   levels text[] not null default array['director', 'assistant_director'],
   starts_on date,
   closes_on date,
-  reviewer_weights jsonb not null default '{"direct_report":30,"subordinate":25,"colleague":25,"customer":20}'::jsonb,
+  reviewer_weights jsonb not null default '{"self":0,"line_manager":30,"colleague":25,"direct_report":25,"customer":20}'::jsonb,
   competency_model jsonb not null default '[]'::jsonb,
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -23,9 +31,10 @@ create table if not exists public.assessment_frameworks (
   name text not null,
   levels text[] not null default array['director', 'assistant_director'],
   business_functions text[] not null default array['all'],
-  default_groups text[] not null default array['direct_report', 'subordinate', 'colleague', 'customer'],
+  default_groups text[] not null default array['self', 'line_manager', 'colleague', 'direct_report', 'customer'],
   competencies jsonb not null default '[]'::jsonb,
   self_assessment_enabled boolean not null default false,
+  framework_version integer not null default 1,
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -34,12 +43,38 @@ create table if not exists public.assessment_frameworks (
 create table if not exists public.assessment_competencies (
   id uuid primary key default gen_random_uuid(),
   cycle_id uuid not null references public.assessment_cycles(id) on delete cascade,
+  framework_id uuid references public.assessment_frameworks(id) on delete set null,
+  framework_version integer,
   name text not null,
   description text,
   weight numeric(5,2) not null default 0,
   sort_order integer not null default 0,
   telco_signals text[] not null default '{}',
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Referenced by the composite FK on assessment_items, which pins an item's
+  -- competency to the item's own cycle.
+  constraint assessment_competencies_id_cycle_key unique (id, cycle_id)
+);
+
+-- ~4 behavioural statements per competency (item_type = 'scale'), plus a small
+-- number of standalone open-text items on the cycle (item_type = 'text',
+-- competency_id null).
+create table if not exists public.assessment_items (
+  id uuid primary key default gen_random_uuid(),
+  cycle_id uuid not null references public.assessment_cycles(id) on delete cascade,
+  competency_id uuid,
+  item_type text not null check (item_type in ('scale', 'text')),
+  body text not null,
+  display_order integer not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint assessment_items_scale_needs_competency
+    check (item_type <> 'scale' or competency_id is not null),
+  constraint assessment_items_competency_same_cycle
+    foreign key (competency_id, cycle_id)
+    references public.assessment_competencies(id, cycle_id)
+    on delete cascade
 );
 
 create table if not exists public.assessment_subjects (
@@ -63,7 +98,10 @@ create table if not exists public.assessment_reviewers (
   reviewer_employee_id uuid references public.employees(id) on delete set null,
   reviewer_name text not null,
   reviewer_email text not null,
-  reviewer_group text not null check (reviewer_group in ('direct_report', 'subordinate', 'colleague', 'customer')),
+  -- direct_report = a person who reports TO the subject.
+  -- line_manager  = the subject's own manager. (These two were named the wrong
+  -- way round before 20260904_000001.)
+  reviewer_group text not null check (reviewer_group in ('self', 'line_manager', 'colleague', 'direct_report', 'customer')),
   organisation text,
   token_hash text,
   token_expires_at timestamptz,
@@ -73,21 +111,41 @@ create table if not exists public.assessment_reviewers (
   opened_at timestamptz,
   status text not null default 'not_started' check (status in ('not_started', 'in_progress', 'submitted')),
   submitted_at timestamptz,
+  last_saved_at timestamptz,
   created_at timestamptz not null default now(),
   unique (subject_id, reviewer_email, reviewer_group)
 );
 
+-- One row per (reviewer, item). competency_id and item_type are denormalised
+-- from the item by trigger — item_type because the CHECK below cannot join to
+-- assessment_items, competency_id so per-competency rollups stay cheap.
 create table if not exists public.assessment_responses (
   id uuid primary key default gen_random_uuid(),
   cycle_id uuid not null references public.assessment_cycles(id) on delete cascade,
   subject_id uuid not null references public.assessment_subjects(id) on delete cascade,
   reviewer_id uuid not null references public.assessment_reviewers(id) on delete cascade,
-  competency_id uuid not null references public.assessment_competencies(id) on delete cascade,
-  rating numeric(3,1) check (rating >= 1 and rating <= 5),
+  item_id uuid not null references public.assessment_items(id) on delete cascade,
+  competency_id uuid references public.assessment_competencies(id) on delete cascade,
+  item_type text not null,
+  rating numeric(3,1),
+  not_observed boolean not null default false,
   comment text,
   submitted_at timestamptz,
   created_at timestamptz not null default now(),
-  unique (reviewer_id, competency_id)
+  updated_at timestamptz not null default now(),
+  constraint assessment_responses_reviewer_item_key unique (reviewer_id, item_id),
+  -- A scale item is either rated 1..5, or explicitly not observed — never both,
+  -- never neither. A text item carries neither.
+  constraint assessment_responses_rating_contract check (
+    case item_type
+      when 'scale' then
+           (not_observed = false and rating is not null and rating >= 1 and rating <= 5)
+        or (not_observed = true  and rating is null)
+      when 'text' then
+        rating is null and not_observed = false
+      else false
+    end
+  )
 );
 
 create table if not exists public.assessment_self_assessments (
@@ -113,7 +171,7 @@ create table if not exists public.assessment_nominations (
   reviewer_employee_id uuid references public.employees(id) on delete set null,
   reviewer_name text not null,
   reviewer_email text not null,
-  reviewer_group text not null check (reviewer_group in ('direct_report', 'subordinate', 'colleague', 'customer')),
+  reviewer_group text not null check (reviewer_group in ('self', 'line_manager', 'colleague', 'direct_report', 'customer')),
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -146,9 +204,14 @@ create table if not exists public.assessment_audit_events (
   created_at timestamptz not null default now()
 );
 
+-- assessment_self_assessments predates 20260904_000001. Self-assessment now
+-- flows through assessment_reviewers/assessment_responses with
+-- reviewer_group = 'self'; the table is retained but unused.
+
 alter table public.assessment_cycles enable row level security;
 alter table public.assessment_frameworks enable row level security;
 alter table public.assessment_competencies enable row level security;
+alter table public.assessment_items enable row level security;
 alter table public.assessment_subjects enable row level security;
 alter table public.assessment_reviewers enable row level security;
 alter table public.assessment_self_assessments enable row level security;
@@ -167,7 +230,16 @@ create index if not exists assessment_self_assessments_subject_id_idx on public.
 create index if not exists assessment_nominations_cycle_id_idx on public.assessment_nominations(cycle_id);
 create index if not exists assessment_nominations_subject_id_idx on public.assessment_nominations(subject_id);
 create unique index if not exists assessment_reviewers_token_hash_idx on public.assessment_reviewers(token_hash) where token_hash is not null;
+create index if not exists assessment_items_cycle_id_idx on public.assessment_items(cycle_id);
+create index if not exists assessment_items_competency_id_idx on public.assessment_items(competency_id);
+create index if not exists assessment_items_active_order_idx
+  on public.assessment_items(cycle_id, display_order) where is_active;
 create index if not exists assessment_responses_reviewer_id_idx on public.assessment_responses(reviewer_id);
+create index if not exists assessment_responses_item_id_idx on public.assessment_responses(item_id);
+create index if not exists assessment_responses_competency_id_idx
+  on public.assessment_responses(competency_id) where competency_id is not null;
+create index if not exists assessment_responses_scoring_idx
+  on public.assessment_responses(subject_id, competency_id) where not_observed = false and rating is not null;
 create index if not exists assessment_reports_cycle_id_idx on public.assessment_reports(cycle_id);
 create index if not exists assessment_audit_events_cycle_id_idx on public.assessment_audit_events(cycle_id);
 
@@ -271,6 +343,43 @@ create policy "hr can manage assessment competencies"
       from public.assessment_cycles c
       join public.employees e on e.org_id = c.org_id
       where c.id = assessment_competencies.cycle_id
+        and e.user_id = auth.uid()
+        and e.platform_role in ('hr_admin', 'super_admin')
+    )
+  );
+
+create policy "org members can read assessment items"
+  on public.assessment_items
+  for select
+  using (
+    exists (
+      select 1
+      from public.assessment_cycles c
+      join public.employees e on e.org_id = c.org_id
+      where c.id = assessment_items.cycle_id
+        and e.user_id = auth.uid()
+    )
+  );
+
+create policy "hr can manage assessment items"
+  on public.assessment_items
+  for all
+  using (
+    exists (
+      select 1
+      from public.assessment_cycles c
+      join public.employees e on e.org_id = c.org_id
+      where c.id = assessment_items.cycle_id
+        and e.user_id = auth.uid()
+        and e.platform_role in ('hr_admin', 'super_admin')
+    )
+  )
+  with check (
+    exists (
+      select 1
+      from public.assessment_cycles c
+      join public.employees e on e.org_id = c.org_id
+      where c.id = assessment_items.cycle_id
         and e.user_id = auth.uid()
         and e.platform_role in ('hr_admin', 'super_admin')
     )
@@ -511,6 +620,123 @@ create policy "hr can read assessment audit events"
         and e.platform_role in ('hr_admin', 'super_admin')
     )
   );
+
+-- ── Triggers ───────────────────────────────────────────────────────────────
+
+-- Bump the framework version whenever the instrument is edited, so a cycle's
+-- competencies can record which version they were drawn from.
+create or replace function public.assessment_frameworks_bump_version()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.name                    is distinct from old.name
+     or new.levels               is distinct from old.levels
+     or new.business_functions   is distinct from old.business_functions
+     or new.default_groups       is distinct from old.default_groups
+     or new.competencies         is distinct from old.competencies
+     or new.self_assessment_enabled is distinct from old.self_assessment_enabled
+  then
+    new.framework_version := old.framework_version + 1;
+    new.updated_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists assessment_frameworks_bump_version_trg on public.assessment_frameworks;
+create trigger assessment_frameworks_bump_version_trg
+  before update on public.assessment_frameworks
+  for each row execute function public.assessment_frameworks_bump_version();
+
+-- Keep competency_id, item_type and cycle_id true to the item at all times.
+create or replace function public.assessment_responses_sync_item()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_competency_id uuid;
+  v_item_type text;
+  v_cycle_id uuid;
+  v_found boolean;
+begin
+  select i.competency_id, i.item_type, i.cycle_id, true
+    into v_competency_id, v_item_type, v_cycle_id, v_found
+  from public.assessment_items i
+  where i.id = new.item_id;
+
+  if not coalesce(v_found, false) then
+    raise exception 'assessment_responses.item_id % does not exist', new.item_id
+      using errcode = 'foreign_key_violation';
+  end if;
+
+  new.competency_id := v_competency_id;
+  new.item_type     := v_item_type;
+  new.cycle_id      := v_cycle_id;
+  new.updated_at    := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists assessment_responses_sync_item_trg on public.assessment_responses;
+create trigger assessment_responses_sync_item_trg
+  before insert or update on public.assessment_responses
+  for each row execute function public.assessment_responses_sync_item();
+
+-- Drafts stay writable while not_started/in_progress and freeze on submit.
+create or replace function public.assessment_responses_block_when_submitted()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_reviewer_id uuid;
+  v_status text;
+begin
+  if tg_op = 'DELETE' then
+    v_reviewer_id := old.reviewer_id;
+  else
+    v_reviewer_id := new.reviewer_id;
+  end if;
+
+  select status into v_status
+  from public.assessment_reviewers
+  where id = v_reviewer_id;
+
+  if v_status = 'submitted' then
+    raise exception 'reviewer % has already submitted; responses are frozen', v_reviewer_id
+      using errcode = 'check_violation';
+  end if;
+
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists assessment_responses_freeze_trg on public.assessment_responses;
+create trigger assessment_responses_freeze_trg
+  before insert or update or delete on public.assessment_responses
+  for each row execute function public.assessment_responses_block_when_submitted();
+
+create or replace function public.assessment_reviewers_touch_draft()
+returns trigger
+language plpgsql
+as $$
+begin
+  update public.assessment_reviewers
+     set last_saved_at = now(),
+         status = case when status = 'not_started' then 'in_progress' else status end
+   where id = new.reviewer_id
+     and status <> 'submitted';
+  return null;
+end;
+$$;
+
+drop trigger if exists assessment_responses_touch_draft_trg on public.assessment_responses;
+create trigger assessment_responses_touch_draft_trg
+  after insert or update on public.assessment_responses
+  for each row execute function public.assessment_reviewers_touch_draft();
 
 create or replace view public.assessment_cycle_dashboard as
 select

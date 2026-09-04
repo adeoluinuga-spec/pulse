@@ -2,7 +2,7 @@ export type ReviewStatus = "not_started" | "in_progress" | "submitted";
 
 export function canReleaseAssessmentReport(
   reviewers: Array<{ status?: ReviewStatus | string; reviewer_group?: string; group?: string }>,
-  requiredGroups: string[] = ["direct_report", "subordinate", "colleague", "customer"],
+  requiredGroups: string[] = ["line_manager", "direct_report", "colleague", "customer"],
 ): boolean {
   if (!reviewers.length) return false;
 
@@ -17,7 +17,7 @@ export function canReleaseAssessmentReport(
 export function releaseReadinessSummary(
   reviewers: Array<{ status?: ReviewStatus | string; reviewer_group?: string; group?: string }>,
 ): { ready: boolean; missingGroups: string[]; remaining: number } {
-  const requiredGroups = ["direct_report", "subordinate", "colleague", "customer"];
+  const requiredGroups = ["line_manager", "direct_report", "colleague", "customer"];
   const missingGroups = requiredGroups.filter(
     (group) => !reviewers.some((reviewer) => (reviewer.reviewer_group ?? reviewer.group) === group),
   );

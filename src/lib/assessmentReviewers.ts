@@ -85,7 +85,7 @@ export function aggregateReviewScores(
 export function buildReviewerWorkflowSummary(
   reviewers: Array<{ status?: string; reviewer_group?: string; group?: string }>,
 ): ReviewerWorkflowSummary {
-  const requiredGroups = ["direct_report", "subordinate", "colleague", "customer"] as const;
+  const requiredGroups = ["line_manager", "direct_report", "colleague", "customer"] as const;
   const submitted = reviewers.filter((reviewer) => reviewer.status === "submitted").length;
   const pending = reviewers.filter((reviewer) => reviewer.status !== "submitted").length;
   const reviewerGroups = reviewers
@@ -116,6 +116,6 @@ export function reviewerAssignmentIsValid(
     reviewer.reviewer_name?.trim() &&
       reviewer.reviewer_email?.trim() &&
       reviewer.reviewer_group &&
-      ["direct_report", "subordinate", "colleague", "customer"].includes(reviewer.reviewer_group),
+      ["self", "line_manager", "direct_report", "colleague", "customer"].includes(reviewer.reviewer_group),
   );
 }

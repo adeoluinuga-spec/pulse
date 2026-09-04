@@ -1,5 +1,5 @@
 export type AssessmentLevel = "director" | "assistant_director";
-export type AssessmentGroup = "direct_report" | "subordinate" | "colleague" | "customer";
+export type AssessmentGroup = "self" | "line_manager" | "direct_report" | "colleague" | "customer";
 export type AssessmentFunction = "network" | "customer_experience" | "commercial" | "technology" | "operations" | "hr" | "finance" | "all";
 
 export type CompetencyDefinition = {
@@ -27,9 +27,9 @@ export type RaterNomination = {
 export type AssessmentFramework = {
   orgId: string;
   name: string;
-  levels: Array<AssessmentLevel | "all">;
+  levels: Array<AssessmentLevel | "all" | string>;
   businessFunctions: AssessmentFunction[];
-  defaultGroups: AssessmentGroup[];
+  defaultGroups: Array<AssessmentGroup | string>;
   competencies: CompetencyDefinition[];
   selfAssessmentEnabled: boolean;
   ready: boolean;
@@ -59,7 +59,7 @@ export function normalizeAssessmentFramework(input: {
 }): AssessmentFramework {
   const validLevels = ["director", "assistant_director", "all"] as const;
   const validFunctions = ["network", "customer_experience", "commercial", "technology", "operations", "hr", "finance", "all"] as const;
-  const validGroups = ["direct_report", "subordinate", "colleague", "customer"] as const;
+  const validGroups = ["self", "line_manager", "direct_report", "colleague", "customer"] as const;
   const validCompetencyGroups = ["leadership", "enterprise", "functional"] as const;
 
   const levels = (input.levels ?? ["director", "assistant_director"]).reduce<Array<AssessmentLevel | "all">>((acc, level) => {
@@ -78,7 +78,7 @@ export function normalizeAssessmentFramework(input: {
     return acc;
   }, []);
 
-  const defaultGroups = (input.defaultGroups ?? ["direct_report", "subordinate", "colleague", "customer"]).reduce<AssessmentGroup[]>((acc, item) => {
+  const defaultGroups = (input.defaultGroups ?? ["line_manager", "direct_report", "colleague", "customer"]).reduce<AssessmentGroup[]>((acc, item) => {
     const normalized = String(item ?? "").trim().toLowerCase();
     if (normalized && validGroups.includes(normalized as (typeof validGroups)[number])) {
       acc.push(normalized as AssessmentGroup);
@@ -115,7 +115,7 @@ export function normalizeAssessmentFramework(input: {
     name: input.name ?? "Assessment framework",
     levels: levels.length ? levels : ["director", "assistant_director"],
     businessFunctions: businessFunctions.length ? businessFunctions : ["all"],
-    defaultGroups: defaultGroups.length ? defaultGroups : ["direct_report", "subordinate", "colleague", "customer"],
+    defaultGroups: defaultGroups.length ? defaultGroups : ["line_manager", "direct_report", "colleague", "customer"],
     competencies,
     selfAssessmentEnabled,
     ready: competencies.length > 0,
@@ -204,7 +204,7 @@ export function validateRaterNomination(input: {
 
 export function buildRaterCoverage(
   raters: Array<{ reviewerGroup?: string; status?: string }>,
-  requiredGroups: string[] = ["direct_report", "subordinate", "colleague", "customer"],
+  requiredGroups: string[] = ["line_manager", "direct_report", "colleague", "customer"],
 ): RaterCoverageSummary {
   const total = raters.length;
   const submitted = raters.filter((rater) => rater.status === "submitted").length;

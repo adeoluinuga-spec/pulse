@@ -81,6 +81,7 @@ type ApiCycle = {
 type ApiSubject = {
   id: string;
   name: string;
+  email?: string | null;
   level?: AssessmentLevel;
   function_name?: string | null;
   region?: string | null;
@@ -120,6 +121,16 @@ type ApiReport = {
   risk_notes?: string[];
 };
 
+type OrgEmployeeOption = {
+  id: string;
+  name: string;
+  email: string;
+  role?: string | null;
+  department?: string | null;
+  team?: string | null;
+  cadre?: string | null;
+};
+
 const tabs: Array<{ key: TabKey; label: string; icon: typeof BarChart3 }> = [
   { key: "command", label: "Command", icon: BarChart3 },
   { key: "participants", label: "Participants", icon: Users },
@@ -145,15 +156,17 @@ const inviteStatusMeta: Record<InviteStatus, { label: string; className: string 
 };
 
 const groupTone: Record<ReviewerGroup, string> = {
-  direct_report: "border-l-pulse",
-  subordinate: "border-l-green",
+  self: "border-l-ink/30",
+  line_manager: "border-l-pulse",
+  direct_report: "border-l-green",
   colleague: "border-l-blue-500",
   customer: "border-l-violet-500",
 };
 
 const defaultReviewerWeights: Record<ReviewerGroup, number> = {
-  direct_report: 30,
-  subordinate: 25,
+  self: 0,
+  line_manager: 30,
+  direct_report: 25,
   colleague: 25,
   customer: 20,
 };
@@ -180,8 +193,9 @@ const emptyAssessee: Assessee = {
 const emptyResult: AssesseeResult = {
   assesseeId: "",
   groupScores: {
+    self: 0,
+    line_manager: 0,
     direct_report: 0,
-    subordinate: 0,
     colleague: 0,
     customer: 0,
   },
@@ -247,6 +261,7 @@ function mapApiSubject(subject: ApiSubject) {
     id: subject.id,
     name: subject.name,
     initials: initialsFor(subject.name),
+    email: subject.email ?? undefined,
     level: subject.level ?? "assistant_director",
     functionName: subject.function_name || "Not specified",
     region: subject.region || "Not specified",
@@ -288,8 +303,8 @@ function mapApiReport(report: ApiReport) {
   return {
     assesseeId: report.subject_id,
     groupScores: {
+      line_manager: report.group_scores?.line_manager ?? 0,
       direct_report: report.group_scores?.direct_report ?? 0,
-      subordinate: report.group_scores?.subordinate ?? 0,
       colleague: report.group_scores?.colleague ?? 0,
       customer: report.group_scores?.customer ?? 0,
     },
@@ -343,12 +358,14 @@ export default function AssessmentsPage() {
   const [reviewerWeights, setReviewerWeights] = useState(defaultReviewerWeights);
   const [participantCsv, setParticipantCsv] = useState("");
   const [participantNotice, setParticipantNotice] = useState("");
+  const [orgEmployeeOptions, setOrgEmployeeOptions] = useState<OrgEmployeeOption[]>([]);
+  const [selectedOrgEmployeeId, setSelectedOrgEmployeeId] = useState("");
   const [assessmentSubjects, setAssessmentSubjects] = useState<Assessee[]>([]);
   const [assessmentResults, setAssessmentResults] = useState<AssesseeResult[]>([]);
   const [reviewerName, setReviewerName] = useState("");
   const [reviewerEmail, setReviewerEmail] = useState("");
   const [reviewerOrg, setReviewerOrg] = useState("");
-  const [reviewerGroupForm, setReviewerGroupForm] = useState<ReviewerGroup>("direct_report");
+  const [reviewerGroupForm, setReviewerGroupForm] = useState<ReviewerGroup>("line_manager");
   const [reviewerChannel, setReviewerChannel] = useState("email");
   const [assessmentScope, setAssessmentScope] = useState("individual");
   const [reviewerNotice, setReviewerNotice] = useState("");
@@ -392,6 +409,8 @@ export default function AssessmentsPage() {
         const supabase = getSupabase();
         const { data: authUserData } = await supabase.auth.getUser();
         const authUser = authUserData?.user;
+        let orgId: string | null = null;
+
         if (authUser) {
           const { data: employeeRow } = await supabase
             .from("employees")
@@ -399,11 +418,13 @@ export default function AssessmentsPage() {
             .eq("user_id", authUser.id)
             .maybeSingle();
 
-          if (employeeRow?.org_id) {
+          orgId = employeeRow?.org_id ?? null;
+
+          if (orgId) {
             const { data: orgRow } = await supabase
               .from("organisations")
               .select("assessment_level_labels")
-              .eq("id", employeeRow.org_id)
+              .eq("id", orgId)
               .maybeSingle();
 
             const labels = Array.isArray((orgRow as { assessment_level_labels?: Array<string | null> } | null)?.assessment_level_labels)
@@ -414,6 +435,30 @@ export default function AssessmentsPage() {
             setAssessmentLevelLabels(normalized);
             setAssessmentLevelLabelDrafts(normalized);
           }
+        }
+
+        const { data: orgEmployees } = orgId
+          ? await supabase
+              .from("employees")
+              .select("id, name, email, role, department, team, cadre")
+              .eq("org_id", orgId)
+              .order("name", { ascending: true })
+          : { data: [] };
+
+        if (orgId) {
+          setOrgEmployeeOptions(
+            (orgEmployees ?? []).map((employee) => ({
+              id: employee.id,
+              name: employee.name ?? "",
+              email: employee.email ?? "",
+              role: employee.role,
+              department: employee.department,
+              team: employee.team,
+              cadre: employee.cadre,
+            })),
+          );
+        } else {
+          setOrgEmployeeOptions([]);
         }
 
         const cyclesResponse = await fetch("/api/assessments/cycles", { cache: "no-store" });
@@ -549,6 +594,13 @@ export default function AssessmentsPage() {
   );
   const selectedAssessee = assessmentSubjects.find((assessee) => assessee.id === selectedAssesseeId) ?? assessmentSubjects[0] ?? emptyAssessee;
   const selectedResult = assessmentResults.find((result) => result.assesseeId === selectedAssessee.id) ?? emptyResult;
+  const availableOrgEmployees = useMemo(
+    () =>
+      orgEmployeeOptions.filter(
+        (employee) => !assessmentSubjects.some((subject) => (subject.email ?? "").toLowerCase() === employee.email.toLowerCase()),
+      ),
+    [orgEmployeeOptions, assessmentSubjects],
+  );
   const hasLiveCycle = Boolean(activeCycle.id);
   const hasSelectedAssessee = Boolean(selectedAssessee.id);
   const assessmentQuestionItems = configuredCompetencies
@@ -990,6 +1042,66 @@ export default function AssessmentsPage() {
     );
   }
 
+  async function handleAddExistingEmployee(employeeId: string) {
+    if (!canManageAssessments) {
+      setParticipantNotice("Only HR admins and super admins can add assessment participants.");
+      setTimeout(() => setParticipantNotice(""), 3500);
+      return;
+    }
+
+    const employee = orgEmployeeOptions.find((entry) => entry.id === employeeId);
+    if (!employee || !employee.name || !employee.email) {
+      setParticipantNotice("Select a valid employee from the organisation roster.");
+      setTimeout(() => setParticipantNotice(""), 3500);
+      return;
+    }
+
+    if (!hasLiveCycle) {
+      setParticipantNotice("Create a live assessment cycle before selecting participants.");
+      setTimeout(() => setParticipantNotice(""), 4000);
+      return;
+    }
+
+    const duplicate = assessmentSubjects.some((subject) => (subject.email ?? "").toLowerCase() === employee.email.toLowerCase());
+    if (duplicate) {
+      setParticipantNotice(`${employee.name} is already included in this assessment cycle.`);
+      setTimeout(() => setParticipantNotice(""), 3500);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/assessments/subjects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cycleId: activeCycle.id,
+          name: employee.name,
+          email: employee.email,
+          level: (employee.cadre ?? "").toLowerCase().includes("director") ? "director" : "assistant_director",
+          functionName: employee.department || employee.team || "Not specified",
+          region: "",
+          portfolio: employee.role || employee.team || employee.department || "",
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error ?? "Unable to add employee to the assessment cycle");
+      }
+
+      const saved = mapApiSubject(result.subject);
+      setAssessmentSubjects((current) => [saved, ...current]);
+      setSelectedAssesseeId(saved.id);
+      setSelectedOrgEmployeeId("");
+      setParticipantNotice(`${saved.name} added to the assessment cycle.`);
+      setTimeout(() => setParticipantNotice(""), 3500);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to add employee";
+      setParticipantNotice(message);
+      setTimeout(() => setParticipantNotice(""), 4000);
+    }
+  }
+
   async function handleImportParticipants() {
     if (!canManageAssessments) {
       setParticipantNotice("Only HR admins and super admins can import assessment participants.");
@@ -1107,7 +1219,7 @@ export default function AssessmentsPage() {
       setReviewerName("");
       setReviewerEmail("");
       setReviewerOrg("");
-      setReviewerGroupForm("direct_report");
+      setReviewerGroupForm("line_manager");
       setReviewerChannel("email");
       setAssessmentScope("individual");
       setReviewerNotice("Reviewer assigned and invite generated.");
@@ -1224,7 +1336,7 @@ export default function AssessmentsPage() {
                 Directorate 360 assessment command center
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted sm:text-base">
-                Multi-rater assessment for {levelLabel("director", assessmentLevelLabels)} and {levelLabel("assistant_director", assessmentLevelLabels)} across direct reports, subordinates, colleagues, and customers.
+                Multi-rater assessment for {levelLabel("director", assessmentLevelLabels)} and {levelLabel("assistant_director", assessmentLevelLabels)} across direct reports, direct_reports, colleagues, and customers.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1621,35 +1733,92 @@ export default function AssessmentsPage() {
         {activeTab === "participants" && (
           <div className="space-y-5">
             <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Participant import</p>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Participants</p>
               <h3 className="mt-2 text-xl font-black">Add leaders to the assessment cycle</h3>
               <p className="mt-2 text-sm leading-6 text-muted">
-                Upload a CSV with the columns name, email, level, function_name, region, and portfolio. The platform will prepare subjects for the reviewer matrix.
+                Start by selecting people already in your Pulse organisation. CSV import remains available for external or bulk onboarding.
               </p>
               {participantNotice && <div className="mt-3 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{participantNotice}</div>}
-              <div className="mt-4 space-y-3">
-                <textarea
-                  value={participantCsv}
-                  onChange={(event) => setParticipantCsv(event.target.value)}
-                  className="min-h-32 w-full resize-y rounded-2xl border border-ink/8 bg-paper p-3 text-sm outline-none transition placeholder:text-muted focus:border-pulse/50"
-                  placeholder="name,email,level,function_name,region,portfolio"
-                />
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={handleImportParticipants}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white"
-                  >
-                    <Users size={16} />
-                    Import participants
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setParticipantCsv("name,email,level,function_name,region,portfolio\n")}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black text-ink"
-                  >
-                    Add CSV header
-                  </button>
+
+              <div className="mt-4 space-y-4">
+                <div className="rounded-2xl border border-ink/8 bg-paper p-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <label className="flex-1 text-sm font-black text-muted">
+                      Existing Pulse employees
+                      <select
+                        value={selectedOrgEmployeeId}
+                        onChange={(event) => setSelectedOrgEmployeeId(event.target.value)}
+                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      >
+                        <option value="">Select an employee</option>
+                        {availableOrgEmployees.map((employee) => (
+                          <option key={employee.id} value={employee.id}>
+                            {employee.name} ({employee.email})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleAddExistingEmployee(selectedOrgEmployeeId)}
+                      disabled={!selectedOrgEmployeeId}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Users size={16} />
+                      Add to cycle
+                    </button>
+                  </div>
+
+                  {availableOrgEmployees.length === 0 ? (
+                    <p className="mt-3 text-sm text-muted">
+                      {orgEmployeeOptions.length ? "All organisation employees are already in this cycle." : "No existing employees are available yet for this organisation."}
+                    </p>
+                  ) : (
+                    <div className="mt-3 max-h-48 space-y-2 overflow-auto">
+                      {availableOrgEmployees.slice(0, 12).map((employee) => (
+                        <div key={employee.id} className="flex items-center justify-between gap-3 rounded-2xl border border-ink/8 bg-white p-2.5">
+                          <div>
+                            <p className="text-sm font-black text-ink">{employee.name}</p>
+                            <p className="text-xs text-muted">{employee.email}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAddExistingEmployee(employee.id)}
+                            className="rounded-xl border border-ink/10 bg-paper px-2.5 py-1.5 text-xs font-black text-ink"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-dashed border-ink/10 bg-paper p-3">
+                  <p className="text-sm font-black text-ink">Or import via CSV</p>
+                  <textarea
+                    value={participantCsv}
+                    onChange={(event) => setParticipantCsv(event.target.value)}
+                    className="mt-3 min-h-24 w-full resize-y rounded-2xl border border-ink/8 bg-white p-3 text-sm outline-none transition placeholder:text-muted focus:border-pulse/50"
+                    placeholder="name,email,level,function_name,region,portfolio"
+                  />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleImportParticipants}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white"
+                    >
+                      <Users size={16} />
+                      Import participants
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setParticipantCsv("name,email,level,function_name,region,portfolio\n")}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black text-ink"
+                    >
+                      Add CSV header
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2543,7 +2712,7 @@ export default function AssessmentsPage() {
                 </div>
                 <div className="rounded-2xl bg-pulse-soft p-4 text-pulse">
                   <p className="text-xs font-bold uppercase tracking-[0.14em]">Customer gap</p>
-                  <p className="mt-2 text-2xl font-black">{selectedResult.groupScores.customer - selectedResult.groupScores.direct_report}</p>
+                  <p className="mt-2 text-2xl font-black">{selectedResult.groupScores.customer - selectedResult.groupScores.line_manager}</p>
                 </div>
                 <div className="rounded-2xl bg-green-soft p-4 text-green">
                   <p className="text-xs font-bold uppercase tracking-[0.14em]">Completion</p>

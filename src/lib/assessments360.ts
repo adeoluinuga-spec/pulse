@@ -1,5 +1,5 @@
 export type AssessmentLevel = "director" | "assistant_director";
-export type ReviewerGroup = "direct_report" | "subordinate" | "colleague" | "customer";
+export type ReviewerGroup = "self" | "line_manager" | "direct_report" | "colleague" | "customer";
 export type AssessmentCycleStatus = "setup" | "collecting" | "calibration" | "closed";
 export type ReviewerStatus = "not_started" | "in_progress" | "submitted";
 
@@ -22,6 +22,7 @@ export interface Assessee {
   id: string;
   name: string;
   initials: string;
+  email?: string;
   level: AssessmentLevel;
   functionName: string;
   region: string;
@@ -77,16 +78,22 @@ export const reviewerGroups: Array<{
   description: string;
 }> = [
   {
-    key: "direct_report",
-    label: "Direct Report",
-    shortLabel: "Direct",
-    description: "Line manager or supervising executive feedback.",
+    key: "self",
+    label: "Self",
+    shortLabel: "Self",
+    description: "The participant's own assessment, used for gap analysis and excluded from the others-weighted score.",
   },
   {
-    key: "subordinate",
-    label: "Subordinate",
-    shortLabel: "Subordinate",
-    description: "Team members and employees led by the assessee.",
+    key: "line_manager",
+    label: "Line Manager",
+    shortLabel: "Manager",
+    description: "The participant's own manager or supervising executive.",
+  },
+  {
+    key: "direct_report",
+    label: "Direct Report",
+    shortLabel: "Report",
+    description: "Team members and employees who report to the participant.",
   },
   {
     key: "colleague",
@@ -102,9 +109,14 @@ export const reviewerGroups: Array<{
   },
 ];
 
+// Self is weighted 0: it flows through the same responses pipeline so that
+// self-versus-others gap analysis is possible, but it must not pull the
+// others-weighted score toward the participant's own view. Mirrors the
+// assessment_cycles.reviewer_weights default.
 export const defaultReviewerWeights: Record<ReviewerGroup, number> = {
-  direct_report: 30,
-  subordinate: 25,
+  self: 0,
+  line_manager: 30,
+  direct_report: 25,
   colleague: 25,
   customer: 20,
 };
@@ -204,10 +216,14 @@ export function assessmentReadiness(sourceAssessees: Assessee[] = [], sourceRevi
 
   const submitted = sourceReviewers.filter((reviewer) => reviewer.status === "submitted").length;
   const completion = Math.round((submitted / sourceReviewers.length) * 100);
-  const coverage = reviewerGroups.filter((group) =>
+  // Coverage is measured across the four required rater groups. Self is
+  // deliberately excluded, matching requiredGroups everywhere else — a missing
+  // self-assessment should not read as missing 360 coverage.
+  const coveredGroups = reviewerGroups.filter((group) => group.key !== "self");
+  const coverage = coveredGroups.filter((group) =>
     sourceAssessees.every((assessee) =>
       sourceReviewers.some((reviewer) => reviewer.assesseeId === assessee.id && reviewer.group === group.key),
     ),
   ).length;
-  return Math.round(completion * 0.7 + (coverage / reviewerGroups.length) * 30);
+  return Math.round(completion * 0.7 + (coverage / coveredGroups.length) * 30);
 }

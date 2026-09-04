@@ -6,14 +6,14 @@ import { buildAssessmentReportSummary, calculateWeightedAssessmentScore } from "
 test("calculates weighted assessment score from submitted review groups", () => {
   const score = calculateWeightedAssessmentScore(
     [
-      { reviewer_group: "direct_report", score: 81 },
-      { reviewer_group: "subordinate", score: 76 },
+      { reviewer_group: "line_manager", score: 81 },
+      { reviewer_group: "direct_report", score: 76 },
       { reviewer_group: "colleague", score: 79 },
       { reviewer_group: "customer", score: 88 },
     ],
     {
-      direct_report: 30,
-      subordinate: 25,
+      line_manager: 30,
+      direct_report: 25,
       colleague: 25,
       customer: 20,
     },
@@ -25,14 +25,14 @@ test("calculates weighted assessment score from submitted review groups", () => 
 test("builds a release-ready report summary with strengths and development areas", () => {
   const report = buildAssessmentReportSummary(
     [
-      { reviewer_group: "direct_report", score: 84 },
-      { reviewer_group: "subordinate", score: 78 },
+      { reviewer_group: "line_manager", score: 84 },
+      { reviewer_group: "direct_report", score: 78 },
       { reviewer_group: "colleague", score: 81 },
       { reviewer_group: "customer", score: 87 },
     ],
     {
-      direct_report: 30,
-      subordinate: 25,
+      line_manager: 30,
+      direct_report: 25,
       colleague: 25,
       customer: 20,
     },

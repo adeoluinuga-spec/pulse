@@ -167,8 +167,8 @@ export async function POST(request: NextRequest) {
   }
 
   const summary = buildAssessmentReportSummary(reviewerScores, body.weights ?? {
-    direct_report: 30,
-    subordinate: 25,
+    line_manager: 30,
+    direct_report: 25,
     colleague: 25,
     customer: 20,
   });

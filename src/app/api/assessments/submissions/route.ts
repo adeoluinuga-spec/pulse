@@ -15,8 +15,9 @@ type ReviewerRow = {
   token_expires_at: string | null;
 };
 
-type CompetencyRow = {
+type ItemRow = {
   id: string;
+  item_type: string;
 };
 
 function getAdminClient() {
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
 
   const token = payload.token!.trim();
   const responses = payload.responses!;
+  const isDraft = payload.mode === "draft";
   const submittedAt = new Date().toISOString();
   const summary = buildReviewSubmissionSummary(responses);
 
@@ -55,8 +57,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       submission: {
         persisted: false,
-        status: "submitted",
-        submittedAt,
+        status: isDraft ? "in_progress" : "submitted",
+        submittedAt: isDraft ? null : submittedAt,
         summary,
       },
     });
@@ -101,66 +103,92 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "This reviewer has already submitted" }, { status: 409 });
   }
 
-  const { data: competencies, error: competenciesError } = await admin
-    .from("assessment_competencies")
-    .select("id")
+  const { data: items, error: itemsError } = await admin
+    .from("assessment_items")
+    .select("id, item_type")
     .eq("cycle_id", reviewer.cycle_id)
-    .returns<CompetencyRow[]>();
+    .eq("is_active", true)
+    .returns<ItemRow[]>();
 
-  if (competenciesError) {
-    return NextResponse.json({ error: competenciesError.message }, { status: 500 });
+  if (itemsError) {
+    return NextResponse.json({ error: itemsError.message }, { status: 500 });
   }
 
-  const validCompetencyIds = new Set((competencies ?? []).map((competency) => competency.id));
-  const invalidResponse = responses.find((response) => !validCompetencyIds.has(response.competencyId!));
+  const itemsById = new Map((items ?? []).map((item) => [item.id, item]));
 
-  if (invalidResponse) {
+  const unknownItem = responses.find((response) => !itemsById.has(response.itemId!));
+  if (unknownItem) {
     return NextResponse.json(
-      { error: "Review response includes a competency outside this assessment cycle" },
+      { error: "Review response includes an item outside this assessment cycle" },
       { status: 400 },
     );
   }
 
-  const responseRows = responses.map((response) => ({
-    cycle_id: reviewer.cycle_id,
-    subject_id: reviewer.subject_id,
-    reviewer_id: reviewer.id,
-    competency_id: response.competencyId!,
-    rating: response.score,
-    comment: response.comment.trim(),
-    submitted_at: submittedAt,
-  }));
+  // The client declares itemType; the cycle's own items are authoritative, so a
+  // mismatch means the payload was built against a stale instrument.
+  const mismatchedItem = responses.find(
+    (response) => itemsById.get(response.itemId!)!.item_type !== response.itemType,
+  );
+  if (mismatchedItem) {
+    return NextResponse.json(
+      { error: "Review response item type does not match the assessment item" },
+      { status: 400 },
+    );
+  }
+
+  const responseRows = responses.map((response) => {
+    const isScale = itemsById.get(response.itemId!)!.item_type === "scale";
+    const notObserved = isScale && response.notObserved === true;
+
+    return {
+      cycle_id: reviewer.cycle_id,
+      subject_id: reviewer.subject_id,
+      reviewer_id: reviewer.id,
+      item_id: response.itemId!,
+      rating: !isScale || notObserved ? null : response.score,
+      not_observed: notObserved,
+      comment: response.comment?.trim() || null,
+      submitted_at: isDraft ? null : submittedAt,
+    };
+  });
 
   const { error: responseError } = await admin
     .from("assessment_responses")
-    .upsert(responseRows, { onConflict: "reviewer_id,competency_id" });
+    .upsert(responseRows, { onConflict: "reviewer_id,item_id" });
 
   if (responseError) {
     return NextResponse.json({ error: responseError.message }, { status: 500 });
   }
 
-  const { error: updateError } = await admin
-    .from("assessment_reviewers")
-    .update({
-      status: "submitted",
-      invite_status: "submitted",
-      submitted_at: submittedAt,
-    })
-    .eq("id", reviewer.id);
+  // A draft leaves the reviewer writable. The assessment_responses_touch_draft
+  // trigger has already advanced not_started -> in_progress and stamped
+  // last_saved_at, so there is nothing further to update here.
+  if (!isDraft) {
+    const { error: updateError } = await admin
+      .from("assessment_reviewers")
+      .update({
+        status: "submitted",
+        invite_status: "submitted",
+        submitted_at: submittedAt,
+      })
+      .eq("id", reviewer.id);
 
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
   }
 
   await admin.from("assessment_audit_events").insert({
     cycle_id: reviewer.cycle_id,
     subject_id: reviewer.subject_id,
     reviewer_id: reviewer.id,
-    action: "review_submitted",
+    action: isDraft ? "review_draft_saved" : "review_submitted",
     metadata: {
       ip,
       userAgent,
       responseCount: responses.length,
+      scoredCount: summary.scored,
+      notObservedCount: summary.notObserved,
       averageScore: summary.average,
     },
   });
@@ -168,8 +196,8 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     submission: {
       persisted: true,
-      status: "submitted",
-      submittedAt,
+      status: isDraft ? "in_progress" : "submitted",
+      submittedAt: isDraft ? null : submittedAt,
       summary,
     },
   });

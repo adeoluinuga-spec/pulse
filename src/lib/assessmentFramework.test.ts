@@ -15,7 +15,7 @@ test("builds a configurable organisation competency framework by level and funct
     name: "Telco Leadership Capability",
     levels: ["director", "assistant_director"],
     businessFunctions: ["network", "customer_experience"],
-    defaultGroups: ["direct_report", "subordinate", "colleague", "customer"],
+    defaultGroups: ["line_manager", "direct_report", "colleague", "customer"],
     competencies: [
       { id: "leadership", name: "Leadership", group: "leadership", level: "director", function: "all" },
       { id: "service_quality", name: "Service Quality", group: "functional", level: "all", function: "customer_experience" },
@@ -43,21 +43,21 @@ test("validates rater nominations and detects invalid or duplicate entries", () 
     employeeId: "emp-1",
     assigneeId: "assignee-1",
     nominations: [
-      { reviewerId: "r1", reviewerGroup: "direct_report" },
+      { reviewerId: "r1", reviewerGroup: "line_manager" },
       { reviewerId: "r2", reviewerGroup: "colleague" },
     ],
-    allowedGroups: ["direct_report", "colleague"],
+    allowedGroups: ["line_manager", "colleague"],
   });
 
   const invalid = validateRaterNomination({
     employeeId: "emp-1",
     assigneeId: "assignee-1",
     nominations: [
-      { reviewerId: "dup", reviewerGroup: "direct_report" },
+      { reviewerId: "dup", reviewerGroup: "line_manager" },
       { reviewerId: "dup", reviewerGroup: "colleague" },
       { reviewerId: "x", reviewerGroup: "unknown_group" },
     ],
-    allowedGroups: ["direct_report", "colleague"],
+    allowedGroups: ["line_manager", "colleague"],
   });
 
   assert.equal(valid.valid, true);
@@ -68,12 +68,12 @@ test("validates rater nominations and detects invalid or duplicate entries", () 
 
 test("builds rater coverage summary with missing groups and exact counts", () => {
   const coverage = buildRaterCoverage([
-    { reviewerGroup: "direct_report", status: "submitted" },
+    { reviewerGroup: "line_manager", status: "submitted" },
     { reviewerGroup: "colleague", status: "submitted" },
   ]);
 
   assert.equal(coverage.ready, false);
-  assert.ok(coverage.missingGroups.includes("subordinate"));
+  assert.ok(coverage.missingGroups.includes("direct_report"));
   assert.equal(coverage.submitted, 2);
   assert.equal(coverage.total, 2);
 });
@@ -83,13 +83,13 @@ test("normalises framework values and defaults unsafe input", () => {
     orgId: "org-1",
     levels: ["director", "unknown"],
     businessFunctions: ["network", "customer_experience"],
-    defaultGroups: ["direct_report", "random"],
+    defaultGroups: ["line_manager", "random"],
     selfAssessmentEnabled: "yes",
   });
 
   assert.equal(framework.levels.includes("director"), true);
   assert.equal(framework.levels.includes("unknown"), false);
-  assert.equal(framework.defaultGroups.includes("direct_report"), true);
+  assert.equal(framework.defaultGroups.includes("line_manager"), true);
   assert.equal(framework.defaultGroups.includes("random"), false);
   assert.equal(framework.selfAssessmentEnabled, true);
 });

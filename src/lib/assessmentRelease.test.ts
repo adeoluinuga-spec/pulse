@@ -5,8 +5,8 @@ import { canReleaseAssessmentReport, releaseReadinessSummary } from "./assessmen
 
 test("reports can release only when all reviewer groups are present and submitted", () => {
   const reviewers = [
+    { reviewer_group: "line_manager", status: "submitted" },
     { reviewer_group: "direct_report", status: "submitted" },
-    { reviewer_group: "subordinate", status: "submitted" },
     { reviewer_group: "colleague", status: "submitted" },
     { reviewer_group: "customer", status: "submitted" },
   ];
@@ -21,8 +21,8 @@ test("reports can release only when all reviewer groups are present and submitte
 
 test("reports remain blocked while reviewer groups are incomplete or pending", () => {
   const reviewers = [
+    { reviewer_group: "line_manager", status: "submitted" },
     { reviewer_group: "direct_report", status: "submitted" },
-    { reviewer_group: "subordinate", status: "submitted" },
     { reviewer_group: "colleague", status: "in_progress" },
   ];
 
@@ -34,8 +34,8 @@ test("reports remain blocked while reviewer groups are incomplete or pending", (
 
 test("accepts in-memory reviewer group names from the assessment workbench", () => {
   const reviewers = [
+    { group: "line_manager", status: "submitted" },
     { group: "direct_report", status: "submitted" },
-    { group: "subordinate", status: "submitted" },
     { group: "colleague", status: "submitted" },
     { group: "customer", status: "submitted" },
   ];

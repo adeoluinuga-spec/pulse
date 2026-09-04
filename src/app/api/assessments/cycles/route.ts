@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
       starts_on: body.startsOn ?? null,
       closes_on: body.closesOn ?? null,
       reviewer_weights: body.reviewerWeights ?? {
-        direct_report: 30,
-        subordinate: 25,
+        line_manager: 30,
+        direct_report: 25,
         colleague: 25,
         customer: 20,
       },

@@ -11,8 +11,8 @@ import {
 
 test("builds reviewer workflow summary and readiness", () => {
   const summary = buildReviewerWorkflowSummary([
+    { reviewer_group: "line_manager", status: "submitted" },
     { reviewer_group: "direct_report", status: "submitted" },
-    { reviewer_group: "subordinate", status: "submitted" },
     { reviewer_group: "colleague", status: "submitted" },
     { reviewer_group: "customer", status: "submitted" },
   ]);
@@ -27,7 +27,7 @@ test("validates complete reviewer assignments and blocks invalid group values", 
     reviewerAssignmentIsValid({
       reviewer_name: "Amina Lawal",
       reviewer_email: "amina@example.com",
-      reviewer_group: "direct_report",
+      reviewer_group: "line_manager",
     }),
     true,
   );

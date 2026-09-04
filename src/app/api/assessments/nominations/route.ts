@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
         reviewerGroup: body.reviewerGroup ?? "colleague",
       },
     ],
-    allowedGroups: ["direct_report", "subordinate", "colleague", "customer"],
+    allowedGroups: ["line_manager", "direct_report", "colleague", "customer"],
   });
 
   if (!validation.valid) {

@@ -33,11 +33,11 @@ test("rejects incomplete self-assessment submissions", () => {
 
 test("builds nomination readiness using approved coverage and missing groups", () => {
   const summary = buildNominationSummary([
-    { reviewerGroup: "direct_report", status: "approved" },
+    { reviewerGroup: "line_manager", status: "approved" },
     { reviewerGroup: "colleague", status: "approved" },
   ]);
 
   assert.equal(summary.ready, false);
-  assert.ok(summary.missingGroups.includes("subordinate"));
+  assert.ok(summary.missingGroups.includes("direct_report"));
   assert.equal(summary.approved, 2);
 });

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { validateAssessmentWorkflow } from "./assessmentWorkflowValidation.ts";
 
-const requiredGroups = ["direct_report", "subordinate", "colleague", "customer"];
+const requiredGroups = ["line_manager", "direct_report", "colleague", "customer"];
 
 test("validates a complete 360 workflow from setup to report release", () => {
   const subjects = [{ id: "leader-1", name: "Amina Lawal" }];
@@ -29,9 +29,9 @@ test("surfaces edge-case blockers across setup, nominations, self, reviews, and 
     frameworkReady: false,
     competencyCount: 0,
     subjects: [{ id: "leader-1", name: "Amina Lawal" }],
-    nominations: [{ subjectId: "leader-1", reviewerGroup: "direct_report", status: "approved" }],
+    nominations: [{ subjectId: "leader-1", reviewerGroup: "line_manager", status: "approved" }],
     selfAssessments: [{ subjectId: "leader-1", status: "draft", completion: 40 }],
-    reviewers: [{ subjectId: "leader-1", reviewerGroup: "direct_report", status: "submitted" }],
+    reviewers: [{ subjectId: "leader-1", reviewerGroup: "line_manager", status: "submitted" }],
     reports: [{ subjectId: "leader-1", ready: false }],
   });
 

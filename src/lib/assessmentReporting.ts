@@ -17,8 +17,8 @@ export type AssessmentReportSummary = {
 export function calculateWeightedAssessmentScore(
   reviewers: ReviewerGroupScore[],
   weights: Record<string, number> = {
-    direct_report: 30,
-    subordinate: 25,
+    line_manager: 30,
+    direct_report: 25,
     colleague: 25,
     customer: 20,
   },
@@ -42,13 +42,13 @@ export function calculateWeightedAssessmentScore(
 export function buildAssessmentReportSummary(
   reviewers: ReviewerGroupScore[],
   weights: Record<string, number> = {
-    direct_report: 30,
-    subordinate: 25,
+    line_manager: 30,
+    direct_report: 25,
     colleague: 25,
     customer: 20,
   },
 ): AssessmentReportSummary {
-  const requiredGroups = ["direct_report", "subordinate", "colleague", "customer"] as const;
+  const requiredGroups = ["line_manager", "direct_report", "colleague", "customer"] as const;
   const missingGroups = requiredGroups.filter(
     (group) => !reviewers.some((reviewer) => reviewer.reviewer_group === group),
   );

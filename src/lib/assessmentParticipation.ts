@@ -84,7 +84,7 @@ export function validateSelfAssessmentSubmission(payload: SelfAssessmentSubmissi
 
 export function buildNominationSummary(
   nominations: Nomination[],
-  requiredGroups: string[] = ["direct_report", "subordinate", "colleague", "customer"],
+  requiredGroups: string[] = ["line_manager", "direct_report", "colleague", "customer"],
 ): NominationSummary {
   const total = nominations.length;
   const approved = nominations.filter((nomination) => nomination.status === "approved").length;
