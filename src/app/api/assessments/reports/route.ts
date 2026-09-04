@@ -3,7 +3,8 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
-import { buildAssessmentReportSummary } from "@/lib/assessmentReporting";
+import { buildReportPayload } from "@/lib/assessmentReporting";
+import { scoreCohortFromDatabase, scoreSubjectFromDatabase } from "@/lib/assessmentScoringService";
 
 function getAdminClient() {
   return createClient(
@@ -72,6 +73,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
   }
 
+  // ?cohort=1 aggregates live scores by level, function, region and portfolio.
+  // Segments of fewer than three subjects are suppressed, on the same reasoning
+  // as thin rater categories.
+  if (request.nextUrl.searchParams.get("cohort") === "1") {
+    try {
+      const { segments } = await scoreCohortFromDatabase(admin, cycleId);
+      return NextResponse.json({ segments });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Failed to aggregate cohort" },
+        { status: 500 },
+      );
+    }
+  }
+
   let query = admin
     .from("assessment_reports")
     .select("id, cycle_id, subject_id, weighted_score, group_scores, competency_scores, strengths, development_areas, risk_notes, released_at, generated_at")
@@ -124,16 +140,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Scores are computed from assessment_responses. Any scores in the request
+  // body are ignored: a caller must not be able to assert what a subject's
+  // feedback said, and the previous implementation wrote whatever it was handed.
   const body = (await request.json()) as {
     cycleId?: string;
     subjectId?: string;
-    reviewerScores?: Array<{ reviewer_group?: string; score?: number; status?: string }>;
     weights?: Record<string, number>;
     release?: boolean;
-    competencyScores?: Array<{ competencyId?: string; score?: number; label?: string }>;
-    strengths?: string[];
-    developmentAreas?: string[];
-    riskNotes?: string[];
+    suppressionMode?: "suppress" | "merge";
   };
 
   if (!body.cycleId || !body.subjectId) {
@@ -156,40 +171,48 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Subject not found" }, { status: 404 });
   }
 
-  const reviewerScores = (body.reviewerScores ?? []).map((entry) => ({
-    reviewer_group: entry.reviewer_group ?? "colleague",
-    score: Number(entry.score ?? 0),
-    status: entry.status ?? "submitted",
-  }));
-
-  if (!reviewerScores.length) {
-    return NextResponse.json({ error: "At least one reviewer score is required" }, { status: 400 });
+  let scores;
+  let config;
+  try {
+    ({ scores, config } = await scoreSubjectFromDatabase(admin, body.cycleId, body.subjectId, {
+      weights: body.weights,
+      suppressionMode: body.suppressionMode ?? "suppress",
+    }));
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to score subject" },
+      { status: 500 },
+    );
   }
 
-  const summary = buildAssessmentReportSummary(reviewerScores, body.weights ?? {
-    line_manager: 30,
-    direct_report: 25,
-    colleague: 25,
-    customer: 20,
-  });
+  // Enforced here, not merely reported. A subject who cannot clear the minimum-N
+  // rule gets no report row at all, rather than a thin one that looks releasable.
+  if (scores.insufficientData) {
+    return NextResponse.json(
+      {
+        error: "Not enough responses to report on this subject",
+        release: scores.release,
+        reasons: scores.release.reasons,
+      },
+      { status: 422 },
+    );
+  }
 
-  const payload = {
-    cycle_id: body.cycleId,
-    subject_id: body.subjectId,
-    weighted_score: summary.overallScore,
-    group_scores: Object.fromEntries(
-      reviewerScores.map((entry) => [entry.reviewer_group, entry.score]),
-    ),
-    competency_scores: (body.competencyScores ?? []).map((entry) => ({
-      competencyId: entry.competencyId ?? "unknown",
-      score: Number(entry.score ?? 0),
-      label: entry.label ?? "competency",
-    })),
-    strengths: body.strengths ?? summary.strengths,
-    development_areas: body.developmentAreas ?? summary.developmentAreas,
-    risk_notes: body.riskNotes ?? summary.notes,
-    released_at: body.release && summary.ready ? new Date().toISOString() : null,
-  };
+  // An explicit release request that fails the rule is refused outright rather
+  // than quietly downgraded to a draft write.
+  if (body.release && !scores.release.ready) {
+    return NextResponse.json(
+      { error: "This report cannot be released yet", release: scores.release, reasons: scores.release.reasons },
+      { status: 409 },
+    );
+  }
+
+  const payload = buildReportPayload(
+    body.cycleId,
+    scores,
+    config.competencyNames,
+    Boolean(body.release),
+  );
 
   const { data, error } = await admin
     .from("assessment_reports")
@@ -201,5 +224,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ report: data, summary }, { status: 201 });
+  return NextResponse.json({ report: data, scores }, { status: 201 });
 }
