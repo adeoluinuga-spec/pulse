@@ -102,209 +102,69 @@ export const reviewerGroups: Array<{
   },
 ];
 
-export const telcoCompetencies: Competency[] = [
-  {
-    id: "network_execution",
-    name: "Network And Service Execution",
-    description: "Delivers reliable network, product, and service outcomes at executive scale.",
-    weight: 18,
-    telcoSignals: ["Uptime discipline", "Incident response", "Quality of service", "SLA ownership"],
-  },
-  {
-    id: "commercial_judgement",
-    name: "Commercial Judgement",
-    description: "Balances subscriber growth, profitability, risk, and long-term market position.",
-    weight: 16,
-    telcoSignals: ["ARPU focus", "Churn reduction", "Channel performance", "Revenue protection"],
-  },
-  {
-    id: "customer_stewardship",
-    name: "Customer And Stakeholder Stewardship",
-    description: "Builds trust with customers, enterprise clients, partners, and regulators.",
-    weight: 16,
-    telcoSignals: ["Complaint resolution", "Enterprise relationships", "Regulatory sensitivity", "Brand trust"],
-  },
-  {
-    id: "people_leadership",
-    name: "People Leadership",
-    description: "Creates clarity, accountability, coaching rhythm, and succession depth.",
-    weight: 18,
-    telcoSignals: ["Talent bench", "Performance conversations", "Delegation", "Psychological safety"],
-  },
-  {
-    id: "change_transformation",
-    name: "Change And Transformation",
-    description: "Leads transformation across digital, network, commercial, and operating teams.",
-    weight: 14,
-    telcoSignals: ["Digital adoption", "Process redesign", "Change adoption", "Execution cadence"],
-  },
-  {
-    id: "governance_integrity",
-    name: "Governance And Integrity",
-    description: "Makes transparent, compliant, and accountable decisions under pressure.",
-    weight: 18,
-    telcoSignals: ["Compliance", "Procurement discipline", "Data privacy", "Ethical judgement"],
-  },
-];
-
-export const assessmentQuestions: ReviewQuestion[] = telcoCompetencies.flatMap((competency) => [
-  {
-    id: `${competency.id}_rating`,
-    competencyId: competency.id,
-    kind: "rating",
-    prompt: `Rate this leader on ${competency.name.toLowerCase()}.`,
-  },
-  {
-    id: `${competency.id}_comment`,
-    competencyId: competency.id,
-    kind: "comment",
-    prompt: `What evidence best supports your rating for ${competency.name.toLowerCase()}?`,
-  },
-]);
-
-export const active360Cycle: AssessmentCycle = {
-  id: "telco-directors-2026",
-  name: "Directorate 360 Leadership Assessment",
-  clientName: "Telco Leadership Group",
-  status: "collecting",
-  startDate: "2026-09-03",
-  closeDate: "2026-09-24",
-  levels: ["director", "assistant_director"],
-  reviewerWeights: {
-    direct_report: 30,
-    subordinate: 25,
-    colleague: 25,
-    customer: 20,
-  },
+export const defaultReviewerWeights: Record<ReviewerGroup, number> = {
+  direct_report: 30,
+  subordinate: 25,
+  colleague: 25,
+  customer: 20,
 };
 
-export const assessees: Assessee[] = [
-  {
-    id: "ad-001",
-    name: "Amina Lawal",
-    initials: "AL",
-    level: "director",
-    functionName: "Network Operations",
-    region: "North Central",
-    portfolio: "Radio access network, field operations, outage governance",
-    tenureYears: 9,
-  },
-  {
-    id: "ad-002",
-    name: "Chinedu Okoye",
-    initials: "CO",
-    level: "director",
-    functionName: "Enterprise Business",
-    region: "National",
-    portfolio: "B2B growth, key accounts, solution delivery",
-    tenureYears: 7,
-  },
-  {
-    id: "ad-003",
-    name: "Mariam Bello",
-    initials: "MB",
-    level: "assistant_director",
-    functionName: "Customer Experience",
-    region: "South West",
-    portfolio: "Contact centers, service recovery, digital care",
-    tenureYears: 5,
-  },
-  {
-    id: "ad-004",
-    name: "Tunde Adeyemi",
-    initials: "TA",
-    level: "assistant_director",
-    functionName: "Digital Products",
-    region: "National",
-    portfolio: "Self-care app, value added services, product analytics",
-    tenureYears: 4,
-  },
-];
+export const telcoCompetencies: Competency[] = [];
+export const assessmentQuestions: ReviewQuestion[] = [];
+export const assessees: Assessee[] = [];
+export const reviewers: Reviewer[] = [];
+export const results: AssesseeResult[] = [];
 
-export const reviewers: Reviewer[] = [
-  { id: "r-001", assesseeId: "ad-001", name: "Group CTO", group: "direct_report", email: "cto@exampletelco.com", status: "submitted", submittedAt: "2026-09-03" },
-  { id: "r-002", assesseeId: "ad-001", name: "Regional Field Lead", group: "subordinate", email: "fieldlead@exampletelco.com", status: "submitted", submittedAt: "2026-09-03" },
-  { id: "r-003", assesseeId: "ad-001", name: "Commercial Planning Director", group: "colleague", email: "planning@exampletelco.com", status: "in_progress" },
-  { id: "r-004", assesseeId: "ad-001", name: "Tower Partner Executive", group: "customer", organisation: "TowerCo Partner", email: "partner@towerco.example", status: "not_started" },
-  { id: "r-005", assesseeId: "ad-002", name: "Chief Commercial Officer", group: "direct_report", email: "cco@exampletelco.com", status: "submitted", submittedAt: "2026-09-03" },
-  { id: "r-006", assesseeId: "ad-002", name: "Enterprise Sales Manager", group: "subordinate", email: "enterprise@exampletelco.com", status: "submitted", submittedAt: "2026-09-03" },
-  { id: "r-007", assesseeId: "ad-002", name: "Finance Business Partner", group: "colleague", email: "finance@exampletelco.com", status: "submitted", submittedAt: "2026-09-04" },
-  { id: "r-008", assesseeId: "ad-002", name: "Banking Sector Client", group: "customer", organisation: "Tier 1 Bank", email: "itdirector@bank.example", status: "in_progress" },
-  { id: "r-009", assesseeId: "ad-003", name: "Customer Operations Director", group: "direct_report", email: "custops@exampletelco.com", status: "submitted", submittedAt: "2026-09-03" },
-  { id: "r-010", assesseeId: "ad-003", name: "Digital Care Lead", group: "subordinate", email: "digitalcare@exampletelco.com", status: "in_progress" },
-  { id: "r-011", assesseeId: "ad-003", name: "Brand Communications Lead", group: "colleague", email: "brand@exampletelco.com", status: "submitted", submittedAt: "2026-09-04" },
-  { id: "r-012", assesseeId: "ad-003", name: "Enterprise Customer", group: "customer", organisation: "Public Sector Account", email: "customer@gov.example", status: "not_started" },
-  { id: "r-013", assesseeId: "ad-004", name: "Chief Digital Officer", group: "direct_report", email: "cdo@exampletelco.com", status: "submitted", submittedAt: "2026-09-03" },
-  { id: "r-014", assesseeId: "ad-004", name: "Product Analytics Lead", group: "subordinate", email: "analytics@exampletelco.com", status: "submitted", submittedAt: "2026-09-03" },
-  { id: "r-015", assesseeId: "ad-004", name: "Network Product Lead", group: "colleague", email: "networkproduct@exampletelco.com", status: "not_started" },
-  { id: "r-016", assesseeId: "ad-004", name: "Fintech Partner", group: "customer", organisation: "Payments Partner", email: "ops@fintech.example", status: "submitted", submittedAt: "2026-09-04" },
-];
+export const active360Cycle: AssessmentCycle = {
+  id: "",
+  name: "No active 360 cycle",
+  clientName: "Current organisation",
+  status: "setup",
+  startDate: "",
+  closeDate: "",
+  levels: ["director", "assistant_director"],
+  reviewerWeights: defaultReviewerWeights,
+};
 
-export const results: AssesseeResult[] = [
-  {
-    assesseeId: "ad-001",
-    groupScores: { direct_report: 86, subordinate: 78, colleague: 74, customer: 69 },
-    competencyScores: [
-      { competencyId: "network_execution", score: 91, benchmark: 82 },
-      { competencyId: "commercial_judgement", score: 76, benchmark: 78 },
-      { competencyId: "customer_stewardship", score: 70, benchmark: 80 },
-      { competencyId: "people_leadership", score: 79, benchmark: 81 },
-      { competencyId: "change_transformation", score: 75, benchmark: 77 },
-      { competencyId: "governance_integrity", score: 84, benchmark: 83 },
-    ],
-    strongestSignals: ["Incident command is decisive and respected", "Network outage governance is clear"],
-    developmentSignals: ["External partner communication needs more proactive cadence", "Commercial trade-offs should be explained earlier"],
-    riskNotes: ["Customer reviewers are below internal reviewers by 11 points"],
-  },
-  {
-    assesseeId: "ad-002",
-    groupScores: { direct_report: 89, subordinate: 84, colleague: 82, customer: 86 },
-    competencyScores: [
-      { competencyId: "network_execution", score: 77, benchmark: 82 },
-      { competencyId: "commercial_judgement", score: 92, benchmark: 78 },
-      { competencyId: "customer_stewardship", score: 88, benchmark: 80 },
-      { competencyId: "people_leadership", score: 81, benchmark: 81 },
-      { competencyId: "change_transformation", score: 84, benchmark: 77 },
-      { competencyId: "governance_integrity", score: 86, benchmark: 83 },
-    ],
-    strongestSignals: ["Enterprise customers describe high trust", "Commercial priorities are translated into action"],
-    developmentSignals: ["Could deepen technical fluency during complex solution escalations"],
-    riskNotes: [],
-  },
-  {
-    assesseeId: "ad-003",
-    groupScores: { direct_report: 80, subordinate: 73, colleague: 79, customer: 65 },
-    competencyScores: [
-      { competencyId: "network_execution", score: 68, benchmark: 82 },
-      { competencyId: "commercial_judgement", score: 74, benchmark: 78 },
-      { competencyId: "customer_stewardship", score: 82, benchmark: 80 },
-      { competencyId: "people_leadership", score: 76, benchmark: 81 },
-      { competencyId: "change_transformation", score: 71, benchmark: 77 },
-      { competencyId: "governance_integrity", score: 78, benchmark: 83 },
-    ],
-    strongestSignals: ["Service recovery tone is empathetic", "Cross-functional partners value responsiveness"],
-    developmentSignals: ["Needs stronger operating metrics in service recovery reviews", "Customer closings need clearer ownership"],
-    riskNotes: ["Customer score is below launch benchmark"],
-  },
-  {
-    assesseeId: "ad-004",
-    groupScores: { direct_report: 77, subordinate: 81, colleague: 72, customer: 83 },
-    competencyScores: [
-      { competencyId: "network_execution", score: 72, benchmark: 82 },
-      { competencyId: "commercial_judgement", score: 79, benchmark: 78 },
-      { competencyId: "customer_stewardship", score: 80, benchmark: 80 },
-      { competencyId: "people_leadership", score: 83, benchmark: 81 },
-      { competencyId: "change_transformation", score: 87, benchmark: 77 },
-      { competencyId: "governance_integrity", score: 75, benchmark: 83 },
-    ],
-    strongestSignals: ["Digital adoption initiatives are gaining trust", "Subordinates cite strong coaching rhythm"],
-    developmentSignals: ["Peer alignment before launches needs more discipline", "Governance evidence should be documented earlier"],
-    riskNotes: ["Colleague score is the lowest group signal"],
-  },
-];
+export const defaultAssessmentLevelLabels = ["Director", "Assistant Director"] as const;
 
-export function levelLabel(level: AssessmentLevel): string {
-  return level === "director" ? "Director" : "Assistant Director";
+export function normalizeAssessmentLevelLabels(labels?: Array<string | null | undefined> | null): string[] {
+  const values = Array.isArray(labels) ? labels : [];
+  return values
+    .map((label, index) => {
+      const value = String(label ?? "").trim();
+      return value || defaultAssessmentLevelLabels[index] || `Level ${index + 1}`;
+    })
+    .slice(0, 2)
+    .concat(["", ""])
+    .slice(0, 2);
+}
+
+export function resolveAssessmentLevelLabel(level: AssessmentLevel | string | null, labels?: Array<string | null | undefined> | null): string {
+  const normalized = String(level ?? "").trim().toLowerCase();
+  const overrides = normalizeAssessmentLevelLabels(labels);
+  const order: Record<string, number> = {
+    director: 0,
+    assistant_director: 1,
+    level_1: 0,
+    level_2: 1,
+    manager: 0,
+    senior_manager: 1,
+  };
+
+  const matchIndex = order[normalized] ?? -1;
+  if (matchIndex >= 0 && overrides[matchIndex]) return overrides[matchIndex];
+
+  if (normalized === "assistant_director") return overrides[1] || "Assistant Director";
+  if (normalized === "director") return overrides[0] || "Director";
+  if (normalized === "senior_manager") return overrides[1] || "Senior Manager";
+  if (normalized === "manager") return overrides[0] || "Manager";
+
+  return overrides[0] || "Level 1";
+}
+
+export function levelLabel(level: AssessmentLevel | string, labels?: Array<string | null | undefined> | null): string {
+  return resolveAssessmentLevelLabel(level, labels);
 }
 
 export function statusLabel(status: AssessmentCycleStatus): string {
@@ -314,29 +174,32 @@ export function statusLabel(status: AssessmentCycleStatus): string {
   return "Closed";
 }
 
-export function weightedScore(result: AssesseeResult, weights = active360Cycle.reviewerWeights): number {
+export function weightedScore(result: AssesseeResult, weights = defaultReviewerWeights): number {
+  const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+  if (!totalWeight) return 0;
+
   const total = Object.entries(weights).reduce(
-    (sum, [group, weight]) => sum + result.groupScores[group as ReviewerGroup] * weight,
+    (sum, [group, weight]) => sum + (result.groupScores[group as ReviewerGroup] ?? 0) * weight,
     0,
   );
-  return Math.round(total / 100);
+  return Math.round(total / totalWeight);
 }
 
-export function completionForAssessee(assesseeId: string, source = reviewers): number {
+export function completionForAssessee(assesseeId: string, source: Reviewer[] = []): number {
   const assigned = source.filter((reviewer) => reviewer.assesseeId === assesseeId);
   if (!assigned.length) return 0;
   const submitted = assigned.filter((reviewer) => reviewer.status === "submitted").length;
   return Math.round((submitted / assigned.length) * 100);
 }
 
-export function completionByGroup(group: ReviewerGroup, source = reviewers): number {
+export function completionByGroup(group: ReviewerGroup, source: Reviewer[] = []): number {
   const assigned = source.filter((reviewer) => reviewer.group === group);
   if (!assigned.length) return 0;
   const submitted = assigned.filter((reviewer) => reviewer.status === "submitted").length;
   return Math.round((submitted / assigned.length) * 100);
 }
 
-export function assessmentReadiness(sourceAssessees = assessees, sourceReviewers = reviewers): number {
+export function assessmentReadiness(sourceAssessees: Assessee[] = [], sourceReviewers: Reviewer[] = []): number {
   if (!sourceReviewers.length || !sourceAssessees.length) return 0;
 
   const submitted = sourceReviewers.filter((reviewer) => reviewer.status === "submitted").length;

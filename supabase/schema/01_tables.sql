@@ -11,6 +11,7 @@ create table if not exists organisations (
   logo_url text,
   currency text default 'NGN',
   appraisal_cadence text default 'quarterly',
+  assessment_level_labels jsonb default '["Director", "Assistant Director"]',
   current_cycle text,
   cycle_start_date date,
   cycle_end_date date,

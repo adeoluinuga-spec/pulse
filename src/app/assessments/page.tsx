@@ -23,24 +23,22 @@ import {
   Users,
 } from "lucide-react";
 import {
-  active360Cycle,
-  assessmentQuestions,
   assessmentReadiness,
-  assessees,
   completionByGroup,
   completionForAssessee,
   levelLabel,
-  results,
   reviewerGroups,
-  reviewers,
-  telcoCompetencies,
   weightedScore,
+  type Assessee,
+  type AssesseeResult,
+  type AssessmentCycle,
   type AssessmentLevel,
   type Reviewer,
   type ReviewerGroup,
   type ReviewerStatus,
 } from "@/lib/assessments360";
 import { useUser } from "@/context/UserContext";
+import { getSupabase } from "@/lib/supabase";
 import { canManageAssessmentWorkspace, canViewAssessmentWorkspace } from "@/lib/tenant";
 import {
   buildAssessmentFramework,
@@ -153,9 +151,48 @@ const groupTone: Record<ReviewerGroup, string> = {
   customer: "border-l-violet-500",
 };
 
-const demoQuestions = assessmentQuestions.filter((question) => question.kind === "rating");
+const defaultReviewerWeights: Record<ReviewerGroup, number> = {
+  direct_report: 30,
+  subordinate: 25,
+  colleague: 25,
+  customer: 20,
+};
+const emptyCycle: AssessmentCycle = {
+  id: "",
+  name: "No active 360 cycle",
+  clientName: "Current organisation",
+  status: "setup",
+  startDate: "",
+  closeDate: "",
+  levels: ["director", "assistant_director"],
+  reviewerWeights: defaultReviewerWeights,
+};
+const emptyAssessee: Assessee = {
+  id: "",
+  name: "No leader selected",
+  initials: "NA",
+  level: "assistant_director",
+  functionName: "Not set",
+  region: "Not set",
+  portfolio: "Create or load a live assessment cycle, then import participants.",
+  tenureYears: 0,
+};
+const emptyResult: AssesseeResult = {
+  assesseeId: "",
+  groupScores: {
+    direct_report: 0,
+    subordinate: 0,
+    colleague: 0,
+    customer: 0,
+  },
+  competencyScores: [],
+  strongestSignals: [],
+  developmentSignals: [],
+  riskNotes: [],
+};
 
 function formatDate(value: string) {
+  if (!value) return "Not set";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
@@ -193,13 +230,13 @@ function mapApiCycle(cycle: ApiCycle) {
   return {
     id: cycle.id,
     name: cycle.name,
-    clientName: cycle.client_context || active360Cycle.clientName,
-    status: (cycle.status ?? "setup") as typeof active360Cycle.status,
-    startDate: cycle.starts_on ?? active360Cycle.startDate,
-    closeDate: cycle.closes_on ?? active360Cycle.closeDate,
-    levels: cycle.levels?.length ? cycle.levels : active360Cycle.levels,
+    clientName: cycle.client_context || "Current organisation",
+    status: (cycle.status ?? "setup") as AssessmentCycle["status"],
+    startDate: cycle.starts_on ?? "",
+    closeDate: cycle.closes_on ?? "",
+    levels: cycle.levels?.length ? cycle.levels : emptyCycle.levels,
     reviewerWeights: {
-      ...active360Cycle.reviewerWeights,
+      ...defaultReviewerWeights,
       ...(cycle.reviewer_weights ?? {}),
     },
   };
@@ -285,30 +322,29 @@ export default function AssessmentsPage() {
   const canViewAssessments = canViewAssessmentWorkspace(user.platformRole);
   const canManageAssessments = canManageAssessmentWorkspace(user.platformRole);
   const [activeTab, setActiveTab] = useState<TabKey>("command");
-  const [activeCycle, setActiveCycle] = useState(active360Cycle);
+  const [activeCycle, setActiveCycle] = useState(emptyCycle);
   const [isHydratingAssessmentData, setIsHydratingAssessmentData] = useState(true);
   const [dataSourceNotice, setDataSourceNotice] = useState("Loading assessment records...");
   const [nowTimestamp] = useState(() => Date.now());
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
-  const [selectedAssesseeId, setSelectedAssesseeId] = useState(assessees[0]?.id ?? "");
+  const [selectedAssesseeId, setSelectedAssesseeId] = useState("");
   const [reviewerGroup, setReviewerGroup] = useState<ReviewerGroup>("colleague");
-  const [ratings, setRatings] = useState<Record<string, number>>(
-    () => Object.fromEntries(telcoCompetencies.map((competency) => [competency.id, 4])) as Record<string, number>,
-  );
+  const [ratings, setRatings] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
-  const [cycleName, setCycleName] = useState(active360Cycle.name);
-  const [cycleClient, setCycleClient] = useState(active360Cycle.clientName);
-  const [cycleStartsOn, setCycleStartsOn] = useState(active360Cycle.startDate);
-  const [cycleClosesOn, setCycleClosesOn] = useState(active360Cycle.closeDate);
+  const [cycleName, setCycleName] = useState("");
+  const [cycleClient, setCycleClient] = useState("");
+  const [cycleStartsOn, setCycleStartsOn] = useState("");
+  const [cycleClosesOn, setCycleClosesOn] = useState("");
   const [cycleNotice, setCycleNotice] = useState("");
-  const [reviewerWeights, setReviewerWeights] = useState(active360Cycle.reviewerWeights);
-  const [participantCsv, setParticipantCsv] = useState(
-    "name,email,level,function_name,region,portfolio\nAmina Lawal,amina.lawal@example.com,director,Network Operations,North Central,Radio access network and field operations",
-  );
+  const [assessmentLevelLabels, setAssessmentLevelLabels] = useState<string[]>(["Director", "Assistant Director"]);
+  const [assessmentLevelLabelDrafts, setAssessmentLevelLabelDrafts] = useState<string[]>(["Director", "Assistant Director"]);
+  const [orgLevelLabelNotice, setOrgLevelLabelNotice] = useState("");
+  const [reviewerWeights, setReviewerWeights] = useState(defaultReviewerWeights);
+  const [participantCsv, setParticipantCsv] = useState("");
   const [participantNotice, setParticipantNotice] = useState("");
-  const [assessmentSubjects, setAssessmentSubjects] = useState(assessees);
-  const [assessmentResults, setAssessmentResults] = useState(results);
+  const [assessmentSubjects, setAssessmentSubjects] = useState<Assessee[]>([]);
+  const [assessmentResults, setAssessmentResults] = useState<AssesseeResult[]>([]);
   const [reviewerName, setReviewerName] = useState("");
   const [reviewerEmail, setReviewerEmail] = useState("");
   const [reviewerOrg, setReviewerOrg] = useState("");
@@ -317,23 +353,13 @@ export default function AssessmentsPage() {
   const [assessmentScope, setAssessmentScope] = useState("individual");
   const [reviewerNotice, setReviewerNotice] = useState("");
   const [inviteNotice, setInviteNotice] = useState("");
-  const [reviewerAssignments, setReviewerAssignments] = useState(reviewers);
-  const [reviewerInvites, setReviewerInvites] = useState(
-    reviewers.slice(0, 3).map((reviewer) =>
-      createSecureReviewerInvite(
-        { name: reviewer.name, email: reviewer.email },
-        reviewer.group === "customer" ? "customer_experience" : "individual",
-        reviewer.group === "customer" ? "whatsapp" : "email",
-      ),
-    ),
-  );
-  const [submissionToken, setSubmissionToken] = useState("reviewer-token-123");
-  const [submissionScores, setSubmissionScores] = useState<Record<string, number>>(
-    () => Object.fromEntries(demoQuestions.map((question) => [question.competencyId, 4])) as Record<string, number>,
-  );
+  const [reviewerAssignments, setReviewerAssignments] = useState<Reviewer[]>([]);
+  const [reviewerInvites, setReviewerInvites] = useState<ReturnType<typeof createSecureReviewerInvite>[]>([]);
+  const [submissionToken, setSubmissionToken] = useState("");
+  const [submissionScores, setSubmissionScores] = useState<Record<string, number>>({});
   const [submissionComments, setSubmissionComments] = useState<Record<string, string>>({});
   const [submissionNotice, setSubmissionNotice] = useState("");
-  const [frameworkName, setFrameworkName] = useState("Telco Leadership Capability Framework");
+  const [frameworkName, setFrameworkName] = useState("360 Leadership Capability Framework");
   const [frameworkFunction, setFrameworkFunction] = useState<AssessmentFunction>("all");
   const [selfAssessmentEnabled, setSelfAssessmentEnabled] = useState(true);
   const [selfAssessmentRequired, setSelfAssessmentRequired] = useState(true);
@@ -344,23 +370,9 @@ export default function AssessmentsPage() {
   const [competencyDraftGroup, setCompetencyDraftGroup] = useState<CompetencyDefinition["group"]>("leadership");
   const [competencyDraftLevel, setCompetencyDraftLevel] = useState<AssessmentLevel | "all">("all");
   const [competencyDraftFunction, setCompetencyDraftFunction] = useState<AssessmentFunction>("all");
-  const [configuredCompetencies, setConfiguredCompetencies] = useState<CompetencyDefinition[]>(
-    telcoCompetencies.map((competency) => ({
-      id: competency.id,
-      name: competency.name,
-      group: "enterprise",
-      level: "all",
-      function: "all",
-      description: competency.description,
-      active: true,
-    })),
-  );
-  const [competencyWeights, setCompetencyWeights] = useState<Record<string, number>>(
-    () => Object.fromEntries(telcoCompetencies.map((competency) => [competency.id, competency.weight])) as Record<string, number>,
-  );
-  const [selfRatings, setSelfRatings] = useState<Record<string, number>>(
-    () => Object.fromEntries(demoQuestions.map((question) => [question.competencyId, 4])) as Record<string, number>,
-  );
+  const [configuredCompetencies, setConfiguredCompetencies] = useState<CompetencyDefinition[]>([]);
+  const [competencyWeights, setCompetencyWeights] = useState<Record<string, number>>({});
+  const [selfRatings, setSelfRatings] = useState<Record<string, number>>({});
   const [selfComments, setSelfComments] = useState<Record<string, string>>({});
   const [selfSubmitted, setSelfSubmitted] = useState(false);
   const [selfNotice, setSelfNotice] = useState("");
@@ -368,17 +380,7 @@ export default function AssessmentsPage() {
   const [nomineeEmail, setNomineeEmail] = useState("");
   const [nomineeGroup, setNomineeGroup] = useState<ReviewerGroup>("colleague");
   const [nominationNotice, setNominationNotice] = useState("");
-  const [raterNominations, setRaterNominations] = useState<RaterNominationItem[]>(
-    reviewers.slice(0, 4).map((reviewer) => ({
-      id: `nomination-${reviewer.id}`,
-      assigneeId: reviewer.assesseeId,
-      reviewerId: reviewer.email,
-      name: reviewer.name,
-      email: reviewer.email,
-      group: reviewer.group,
-      status: reviewer.status === "submitted" ? "approved" : "pending",
-    })),
-  );
+  const [raterNominations, setRaterNominations] = useState<RaterNominationItem[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -387,6 +389,33 @@ export default function AssessmentsPage() {
       setIsHydratingAssessmentData(true);
 
       try {
+        const supabase = getSupabase();
+        const { data: authUserData } = await supabase.auth.getUser();
+        const authUser = authUserData?.user;
+        if (authUser) {
+          const { data: employeeRow } = await supabase
+            .from("employees")
+            .select("org_id")
+            .eq("user_id", authUser.id)
+            .maybeSingle();
+
+          if (employeeRow?.org_id) {
+            const { data: orgRow } = await supabase
+              .from("organisations")
+              .select("assessment_level_labels")
+              .eq("id", employeeRow.org_id)
+              .maybeSingle();
+
+            const labels = Array.isArray((orgRow as { assessment_level_labels?: Array<string | null> } | null)?.assessment_level_labels)
+              ? ((orgRow as { assessment_level_labels?: Array<string | null> }).assessment_level_labels ?? []).map((item) => String(item ?? "").trim())
+              : [];
+
+            const normalized = labels.length ? labels : ["Director", "Assistant Director"];
+            setAssessmentLevelLabels(normalized);
+            setAssessmentLevelLabelDrafts(normalized);
+          }
+        }
+
         const cyclesResponse = await fetch("/api/assessments/cycles", { cache: "no-store" });
         const cyclesPayload = await cyclesResponse.json();
 
@@ -397,7 +426,14 @@ export default function AssessmentsPage() {
         const cycle = (cyclesPayload?.cycles ?? [])[0] as ApiCycle | undefined;
         if (!cycle) {
           if (!cancelled) {
-            setDataSourceNotice("Demo assessment data active. Create a cycle to switch this workbench to live Supabase records.");
+            setActiveCycle(emptyCycle);
+            setAssessmentSubjects([]);
+            setAssessmentResults([]);
+            setReviewerAssignments([]);
+            setReviewerInvites([]);
+            setRaterNominations([]);
+            setSelectedAssesseeId("");
+            setDataSourceNotice("No live 360 assessment cycle found for this organisation yet.");
             setIsHydratingAssessmentData(false);
           }
           return;
@@ -447,7 +483,7 @@ export default function AssessmentsPage() {
       } catch (error) {
         if (!cancelled) {
           const message = error instanceof Error ? error.message : "Unable to hydrate assessment data";
-          setDataSourceNotice(`${message}. Demo assessment data is still available for walkthrough.`);
+          setDataSourceNotice(`${message}. No fallback records are shown for client tenants.`);
         }
       } finally {
         if (!cancelled) setIsHydratingAssessmentData(false);
@@ -461,12 +497,68 @@ export default function AssessmentsPage() {
     };
   }, []);
 
+  async function handleSaveAssessmentLevelNames() {
+    if (!user?.email) {
+      setOrgLevelLabelNotice("Sign in again to save organization labels.");
+      return;
+    }
+
+    try {
+      const supabase = getSupabase();
+      const { data: authUserData } = await supabase.auth.getUser();
+      const authUser = authUserData?.user;
+      if (!authUser) {
+        setOrgLevelLabelNotice("Unable to find your login session.");
+        return;
+      }
+
+      const { data: employeeRow } = await supabase
+        .from("employees")
+        .select("org_id")
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+
+      if (!employeeRow?.org_id) {
+        setOrgLevelLabelNotice("This account is not linked to an organisation yet.");
+        return;
+      }
+
+      const nextLabels = assessmentLevelLabelDrafts.map((label, index) => {
+        const value = String(label ?? "").trim();
+        if (!value) return index === 0 ? "Level 1" : "Level 2";
+        return value;
+      });
+
+      const { error } = await supabase
+        .from("organisations")
+        .update({ assessment_level_labels: nextLabels })
+        .eq("id", employeeRow.org_id);
+
+      if (error) throw error;
+      setAssessmentLevelLabels(nextLabels);
+      setOrgLevelLabelNotice("Assessment level names saved for this organisation.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not save assessment labels.";
+      setOrgLevelLabelNotice(message);
+    }
+  }
+
   const visibleAssessees = useMemo(
     () => assessmentSubjects.filter((assessee) => levelFilter === "all" || assessee.level === levelFilter),
     [assessmentSubjects, levelFilter],
   );
-  const selectedAssessee = assessmentSubjects.find((assessee) => assessee.id === selectedAssesseeId) ?? assessmentSubjects[0] ?? assessees[0];
-  const selectedResult = assessmentResults.find((result) => result.assesseeId === selectedAssessee.id) ?? assessmentResults[0] ?? results[0];
+  const selectedAssessee = assessmentSubjects.find((assessee) => assessee.id === selectedAssesseeId) ?? assessmentSubjects[0] ?? emptyAssessee;
+  const selectedResult = assessmentResults.find((result) => result.assesseeId === selectedAssessee.id) ?? emptyResult;
+  const hasLiveCycle = Boolean(activeCycle.id);
+  const hasSelectedAssessee = Boolean(selectedAssessee.id);
+  const assessmentQuestionItems = configuredCompetencies
+    .filter((competency) => competency.active)
+    .map((competency) => ({
+      id: `${competency.id}_rating`,
+      competencyId: competency.id,
+      prompt: `Rate this leader on ${competency.name.toLowerCase()}.`,
+    }));
+  const competencyNameById = new Map(configuredCompetencies.map((competency) => [competency.id, competency.name]));
   const selectedAssesseeReviewers = reviewerAssignments.filter((reviewer) => reviewer.assesseeId === selectedAssessee.id);
   const selectedScore = weightedScore(selectedResult, reviewerWeights);
   const readiness = assessmentReadiness(assessmentSubjects, reviewerAssignments);
@@ -514,7 +606,7 @@ export default function AssessmentsPage() {
   ];
   const liveReviewScore = aggregateReviewScores(submittedReviewScores);
   const reviewSubmissionSummary = buildReviewSubmissionSummary(
-    demoQuestions.map((question) => ({
+    assessmentQuestionItems.map((question) => ({
       score: submissionScores[question.competencyId] ?? 4,
       comment: submissionComments[question.competencyId] ?? "Quality evidence provided",
     })),
@@ -536,7 +628,7 @@ export default function AssessmentsPage() {
   const raterCoverage = buildRaterCoverage(reviewerAssignments.map((reviewer) => ({ reviewerGroup: reviewer.group, status: reviewer.status })));
   const reviewerWeightTotal = Object.values(reviewerWeights).reduce((sum, weight) => sum + weight, 0);
   const competencyWeightTotal = Object.values(competencyWeights).reduce((sum, weight) => sum + weight, 0);
-  const selfResponses = demoQuestions.map((question) => ({
+  const selfResponses = assessmentQuestionItems.map((question) => ({
     competencyId: question.competencyId,
     score: selfRatings[question.competencyId] ?? 4,
     comment: selfComments[question.competencyId] ?? "",
@@ -640,21 +732,19 @@ export default function AssessmentsPage() {
   });
   const reportReadyCount = leaderProgress.filter((entry) => !entry.blocked).length;
   const cohortAverageScore = average(cohortReportSummaries.map((entry) => entry.summary.overallScore));
-  const strongestCompetency = selectedResult.competencyScores.reduce(
-    (best, item) => (item.score > best.score ? item : best),
-    selectedResult.competencyScores[0],
-  );
-  const weakestCompetency = selectedResult.competencyScores.reduce(
-    (lowest, item) => (item.score < lowest.score ? item : lowest),
-    selectedResult.competencyScores[0],
-  );
-  const strongestCompetencyName = telcoCompetencies.find((competency) => competency.id === strongestCompetency?.competencyId)?.name ?? "No competency";
-  const weakestCompetencyName = telcoCompetencies.find((competency) => competency.id === weakestCompetency?.competencyId)?.name ?? "No competency";
+  const strongestCompetency = selectedResult.competencyScores.length
+    ? selectedResult.competencyScores.reduce((best, item) => (item.score > best.score ? item : best))
+    : undefined;
+  const weakestCompetency = selectedResult.competencyScores.length
+    ? selectedResult.competencyScores.reduce((lowest, item) => (item.score < lowest.score ? item : lowest))
+    : undefined;
+  const strongestCompetencyName = strongestCompetency ? competencyNameById.get(strongestCompetency.competencyId) ?? strongestCompetency.competencyId : "No competency";
+  const weakestCompetencyName = weakestCompetency ? competencyNameById.get(weakestCompetency.competencyId) ?? weakestCompetency.competencyId : "No competency";
 
-  async function handleDemoSubmit() {
+  async function handleReviewSubmit() {
     const payload = {
       token: submissionToken,
-      responses: demoQuestions.map((question) => ({
+      responses: assessmentQuestionItems.map((question) => ({
         competencyId: question.competencyId,
         score: submissionScores[question.competencyId] ?? 4,
         comment: submissionComments[question.competencyId] ?? "Evidence provided",
@@ -679,7 +769,7 @@ export default function AssessmentsPage() {
         throw new Error(result?.error ?? "Unable to submit review");
       }
 
-      setNotice(result?.submission?.persisted ? "Review captured and persisted." : "Demo review captured through the submission endpoint.");
+      setNotice(result?.submission?.persisted ? "Review captured and persisted." : "Review accepted by the submission endpoint.");
       setSubmissionNotice(`Review submitted successfully. Average score: ${result?.submission?.summary?.average ?? reviewSubmissionSummary.average}/5`);
       window.setTimeout(() => {
         setNotice("");
@@ -788,9 +878,8 @@ export default function AssessmentsPage() {
       return;
     }
 
-    if (activeCycle.id === active360Cycle.id) {
-      setSelfSubmitted(true);
-      setSelfNotice("Demo self-assessment captured for HR review.");
+    if (!hasLiveCycle || !hasSelectedAssessee) {
+      setSelfNotice("Create a live assessment cycle and select a participant before submitting self-assessment.");
       setTimeout(() => setSelfNotice(""), 3500);
       return;
     }
@@ -856,12 +945,8 @@ export default function AssessmentsPage() {
       return;
     }
 
-    if (activeCycle.id === active360Cycle.id) {
-      setRaterNominations((current) => [nextNomination, ...current]);
-      setNomineeName("");
-      setNomineeEmail("");
-      setNomineeGroup("colleague");
-      setNominationNotice("Demo rater nomination added for approval.");
+    if (!hasLiveCycle || !hasSelectedAssessee) {
+      setNominationNotice("Create a live assessment cycle and select a participant before adding nominations.");
       setTimeout(() => setNominationNotice(""), 3500);
       return;
     }
@@ -919,12 +1004,8 @@ export default function AssessmentsPage() {
       return;
     }
 
-    if (activeCycle.id === active360Cycle.id) {
-      const imported = buildLocalParticipants();
-      setAssessmentSubjects((current) => [...imported, ...current]);
-      setSelectedAssesseeId(imported[0]?.id ?? selectedAssesseeId);
-      setParticipantCsv("");
-      setParticipantNotice(`${imported.length} demo participant${imported.length === 1 ? "" : "s"} imported. Create a cycle to persist participants.`);
+    if (!hasLiveCycle) {
+      setParticipantNotice("Create a live assessment cycle before importing participants.");
       setTimeout(() => setParticipantNotice(""), 4000);
       return;
     }
@@ -965,23 +1046,6 @@ export default function AssessmentsPage() {
     }
   }
 
-  function buildLocalParticipants() {
-    const parsed = parseAssessmentParticipantCsv(participantCsv);
-    return parsed.map((row, index) => {
-      const level: AssessmentLevel = row.level === "director" ? "director" : "assistant_director";
-      return {
-        id: `imported-${Date.now()}-${index}`,
-        name: row.name,
-        initials: initialsFor(row.name),
-        level,
-        functionName: row.functionName || "New function",
-        region: row.region || "Not specified",
-        portfolio: row.portfolio || "Review participant",
-        tenureYears: 1,
-      };
-    });
-  }
-
   async function handleAddReviewer() {
     const candidate = {
       reviewer_name: reviewerName,
@@ -1011,21 +1075,9 @@ export default function AssessmentsPage() {
       reviewerChannel,
     );
 
-    if (activeCycle.id === active360Cycle.id) {
-      setReviewerAssignments((current) => [nextReviewer, ...current]);
-      setReviewerInvites((current) => [invite, ...current]);
-      setReviewerName("");
-      setReviewerEmail("");
-      setReviewerOrg("");
-      setReviewerGroupForm("direct_report");
-      setReviewerChannel("email");
-      setAssessmentScope("individual");
-      setReviewerNotice("Demo reviewer assigned and invite generated.");
-      setInviteNotice(`Secure link ready: ${invite.secureLink}`);
-      setTimeout(() => {
-        setReviewerNotice("");
-        setInviteNotice("");
-      }, 5000);
+    if (!hasLiveCycle || !hasSelectedAssessee) {
+      setReviewerNotice("Create a live assessment cycle and select a participant before assigning reviewers.");
+      setTimeout(() => setReviewerNotice(""), 4000);
       return;
     }
 
@@ -1072,18 +1124,8 @@ export default function AssessmentsPage() {
   }
 
   async function handleIssueInvite(reviewer: Reviewer) {
-    const localInvite = createSecureReviewerInvite(
-      { name: reviewer.name, email: reviewer.email },
-      reviewer.assessmentScope ?? (reviewer.group === "customer" ? "customer_experience" : "individual"),
-      reviewer.inviteChannel ?? (reviewer.group === "customer" ? "whatsapp" : "email"),
-    );
-
-    if (activeCycle.id === active360Cycle.id) {
-      setReviewerInvites((current) => [{ ...localInvite, reviewerId: reviewer.id }, ...current]);
-      setReviewerAssignments((current) =>
-        current.map((entry) => entry.id === reviewer.id ? { ...entry, inviteStatus: "sent", tokenExpiresAt: localInvite.expiresAt } : entry),
-      );
-      setInviteNotice(`Demo invite ready: ${localInvite.secureLink}`);
+    if (!hasLiveCycle) {
+      setInviteNotice("Create a live assessment cycle before issuing reviewer invites.");
       setTimeout(() => setInviteNotice(""), 5000);
       return;
     }
@@ -1172,7 +1214,7 @@ export default function AssessmentsPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full bg-pulse-soft px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-pulse">
                   <ShieldCheck size={14} />
-                  Telco 360
+                  360 assessment
                 </span>
                 <span className="rounded-full bg-ink px-3 py-1 text-xs font-bold text-white">
                   {activeCycle.clientName}
@@ -1182,7 +1224,7 @@ export default function AssessmentsPage() {
                 Directorate 360 assessment command center
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted sm:text-base">
-                Multi-rater assessment for Directors and Assistant Directors across direct reports, subordinates, colleagues, and customers.
+                Multi-rater assessment for {levelLabel("director", assessmentLevelLabels)} and {levelLabel("assistant_director", assessmentLevelLabels)} across direct reports, subordinates, colleagues, and customers.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1199,7 +1241,7 @@ export default function AssessmentsPage() {
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {[
-              ["Assessees", assessmentSubjects.length.toString(), "Directors and Assistant Directors"],
+              ["Assessees", assessmentSubjects.length.toString(), `${levelLabel("director", assessmentLevelLabels)} and ${levelLabel("assistant_director", assessmentLevelLabels)}`],
               ["Completion", `${completion}%`, `${submittedCount}/${reviewerAssignments.length} reviewers submitted`],
               ["Portfolio score", `${portfolioScore}`, "Weighted by reviewer group"],
               ["Readiness", `${readiness}%`, "Coverage, response rate, report quality"],
@@ -1236,8 +1278,8 @@ export default function AssessmentsPage() {
           <div className="flex flex-col gap-2 rounded-[18px] border border-ink/8 bg-paper px-4 py-3 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
             <span>{dataSourceNotice}</span>
             <span className="inline-flex items-center gap-2 font-black text-ink">
-              <span className={clsx("h-2.5 w-2.5 rounded-full", isHydratingAssessmentData ? "bg-amber-500" : activeCycle.id === active360Cycle.id ? "bg-blue-500" : "bg-green")} />
-              {isHydratingAssessmentData ? "Syncing" : activeCycle.id === active360Cycle.id ? "Demo fallback" : "Live data"}
+              <span className={clsx("h-2.5 w-2.5 rounded-full", isHydratingAssessmentData ? "bg-amber-500" : hasLiveCycle ? "bg-green" : "bg-amber-500")} />
+              {isHydratingAssessmentData ? "Syncing" : hasLiveCycle ? "Live data" : "No live cycle"}
             </span>
           </div>
         </div>
@@ -1431,18 +1473,18 @@ export default function AssessmentsPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Competency heatmap</p>
-                    <h3 className="mt-1 text-lg font-black">Telco leadership signals</h3>
+                    <h3 className="mt-1 text-lg font-black">Leadership signals</h3>
                   </div>
                   <Target className="text-pulse" size={20} />
                 </div>
                 <div className="mt-5 space-y-4">
                   {selectedResult.competencyScores.map((item) => {
-                    const competency = telcoCompetencies.find((entry) => entry.id === item.competencyId);
+                    const competencyName = competencyNameById.get(item.competencyId) ?? item.competencyId;
                     const delta = item.score - item.benchmark;
                     return (
                       <div key={item.competencyId}>
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-black">{competency?.name}</p>
+                          <p className="text-sm font-black">{competencyName}</p>
                           <p className={clsx("text-sm font-black", delta >= 0 ? "text-green" : "text-pulse")}>
                             {item.score} / {delta >= 0 ? "+" : ""}
                             {delta}
@@ -1518,7 +1560,7 @@ export default function AssessmentsPage() {
                       value={cycleClient}
                       onChange={(event) => setCycleClient(event.target.value)}
                       className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
-                      placeholder="Telco Leadership Group"
+                      placeholder="Organisation name"
                     />
                   </label>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -1603,10 +1645,10 @@ export default function AssessmentsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setParticipantCsv("name,email,level,function_name,region,portfolio\nAmina Lawal,amina.lawal@example.com,director,Network Operations,North Central,Radio access network and field operations")}
+                    onClick={() => setParticipantCsv("name,email,level,function_name,region,portfolio\n")}
                     className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black text-ink"
                   >
-                    Use sample CSV
+                    Add CSV header
                   </button>
                 </div>
               </div>
@@ -1904,6 +1946,40 @@ export default function AssessmentsPage() {
                       className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                     />
                   </label>
+                  <div className="rounded-2xl border border-ink/8 bg-paper p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-muted">Assessment level naming</p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <label className="block text-sm font-black text-muted">
+                        Level 1 label
+                        <input
+                          value={assessmentLevelLabelDrafts[0] ?? ""}
+                          onChange={(event) => setAssessmentLevelLabelDrafts((current) => [event.target.value, current[1] ?? ""]) }
+                          className="mt-1 w-full rounded-2xl border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                          placeholder="Director"
+                        />
+                      </label>
+                      <label className="block text-sm font-black text-muted">
+                        Level 2 label
+                        <input
+                          value={assessmentLevelLabelDrafts[1] ?? ""}
+                          onChange={(event) => setAssessmentLevelLabelDrafts((current) => [current[0] ?? "", event.target.value]) }
+                          className="mt-1 w-full rounded-2xl border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                          placeholder="Assistant Director"
+                        />
+                      </label>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-xs text-muted">Leave blank to fall back to Level 1 / Level 2.</p>
+                      <button
+                        type="button"
+                        onClick={handleSaveAssessmentLevelNames}
+                        className="inline-flex min-h-10 items-center justify-center rounded-2xl bg-ink px-3 text-xs font-black text-white"
+                      >
+                        Save labels
+                      </button>
+                    </div>
+                    {orgLevelLabelNotice && <div className="mt-3 rounded-2xl bg-green-soft p-2 text-xs font-black text-green">{orgLevelLabelNotice}</div>}
+                  </div>
                   <label className="block text-sm font-black text-muted">
                     Business function
                     <select
@@ -2128,13 +2204,13 @@ export default function AssessmentsPage() {
                 <h3 className="mt-2 text-xl font-black">Self versus 360 view</h3>
                 <div className="mt-5 space-y-3">
                   {selectedResult.competencyScores.slice(0, 4).map((item) => {
-                    const competency = telcoCompetencies.find((entry) => entry.id === item.competencyId);
+                    const competencyName = competencyNameById.get(item.competencyId) ?? item.competencyId;
                     const selfScore = (selfRatings[item.competencyId] ?? 4) * 20;
                     const gap = Math.round(selfScore - item.score);
                     return (
                       <div key={item.competencyId} className="rounded-2xl bg-paper p-3">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-black">{competency?.name}</p>
+                          <p className="text-sm font-black">{competencyName}</p>
                           <span className={clsx("rounded-full px-2 py-1 text-xs font-black", gap >= 0 ? "bg-pulse-soft text-pulse" : "bg-amber-50 text-amber-700")}>
                             {gap >= 0 ? "+" : ""}{gap}
                           </span>
@@ -2167,8 +2243,8 @@ export default function AssessmentsPage() {
               </div>
               {selfNotice && <div className="mt-4 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse">{selfNotice}</div>}
               <div className="mt-5 space-y-5">
-                {demoQuestions.map((question) => {
-                  const competency = telcoCompetencies.find((item) => item.id === question.competencyId);
+                {assessmentQuestionItems.map((question) => {
+                  const competency = configuredCompetencies.find((item) => item.id === question.competencyId);
                   return (
                     <div key={question.id} className="rounded-[18px] border border-ink/8 bg-paper p-4">
                       <div className="flex items-start justify-between gap-3">
@@ -2367,11 +2443,11 @@ export default function AssessmentsPage() {
                   <h3 className="mt-2 text-xl font-black">{reviewerGroupLabel(reviewerGroup)} reviewer</h3>
                 </div>
                 <button
-                  onClick={handleDemoSubmit}
+                  onClick={handleReviewSubmit}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white"
                 >
                   <Send size={16} />
-                  Submit demo
+                  Submit review
                 </button>
               </div>
               <div className="mt-4 rounded-[18px] border border-ink/8 bg-paper p-4">
@@ -2392,8 +2468,8 @@ export default function AssessmentsPage() {
               {notice && <div className="mt-4 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{notice}</div>}
               {submissionNotice && <div className="mt-4 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse">{submissionNotice}</div>}
               <div className="mt-5 space-y-5">
-                {demoQuestions.map((question) => {
-                  const competency = telcoCompetencies.find((item) => item.id === question.competencyId);
+                {assessmentQuestionItems.map((question) => {
+                  const competency = configuredCompetencies.find((item) => item.id === question.competencyId);
                   return (
                     <div key={question.id} className="rounded-[18px] border border-ink/8 bg-paper p-4">
                       <div className="flex items-start justify-between gap-3">
@@ -2496,13 +2572,13 @@ export default function AssessmentsPage() {
                   <h3 className="mt-2 text-xl font-black">Competency profile</h3>
                   <div className="mt-5 space-y-4">
                     {selectedResult.competencyScores.map((item) => {
-                      const competency = telcoCompetencies.find((entry) => entry.id === item.competencyId);
+                      const competencyName = competencyNameById.get(item.competencyId) ?? item.competencyId;
                       const variance = item.score - item.benchmark;
                       return (
                         <div key={item.competencyId} className="rounded-[18px] bg-paper p-4">
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-black">{competency?.name}</p>
+                              <p className="truncate text-sm font-black">{competencyName}</p>
                               <p className="mt-1 text-xs text-muted">Benchmark {item.benchmark} / Weight {competencyWeights[item.competencyId] ?? 0}%</p>
                             </div>
                             <span className={clsx("rounded-full px-3 py-1 text-sm font-black", variance >= 0 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>

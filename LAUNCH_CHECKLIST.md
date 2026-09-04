@@ -33,7 +33,7 @@ This is the working checklist for taking Pulse from the current prototype into a
 
 ## 2. 360 Assessment Product
 
-- [x] Replace demo-only assessment workbench reads/writes with Supabase-backed cycle, participant, reviewer, nomination, self-assessment, and report APIs, retaining demo fallback when no live cycle exists.
+- [x] Replace demo-only assessment workbench reads/writes with Supabase-backed cycle, participant, reviewer, nomination, self-assessment, and report APIs, with no seeded fallback records in client tenants.
 - [x] Create HR assessment cycle setup flow.
 - [x] Add participant import for Directors and Assistant Directors.
 - [x] Add reviewer assignment matrix for direct reports, subordinates, colleagues, and customers.
