@@ -1496,9 +1496,13 @@ function AddEmployeePanel({ orgId, employees, onClose, onAdded }: {
 function TeamsSetup({ employees }: { employees: EmployeeRow[] }) {
   const teams = Array.from(employees.reduce((map, e) => {
     const key = e.team?.trim(); if (!key) return map;
-    map.set(key, { name: key, department: e.department ?? "No department", count: (map.get(key)?.count ?? 0) + 1 });
+    const current = map.get(key) ?? { name: key, department: e.department ?? "No department", members: [] as EmployeeRow[] };
+    map.set(key, { ...current, members: [...current.members, e] });
     return map;
-  }, new Map<string, { name: string; department: string; count: number }>())).map(([, v]) => v);
+  }, new Map<string, { name: string; department: string; members: EmployeeRow[] }>())).map(([, v]) => v);
+  const [selectedTeamName, setSelectedTeamName] = useState("");
+  const selectedTeam = teams.find((team) => team.name === selectedTeamName) ?? teams[0] ?? null;
+
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="border-b border-border px-4 py-3">
@@ -1506,14 +1510,51 @@ function TeamsSetup({ employees }: { employees: EmployeeRow[] }) {
         <p className="mt-1 text-xs text-muted">Teams are derived from employee department and team fields.</p>
       </div>
       {teams.length ? (
-        <div className="grid gap-3 p-4 md:grid-cols-2">
-          {teams.map((t) => (
-            <div key={t.name} className="rounded-lg border border-border bg-paper p-3">
-              <p className="text-sm font-black text-ink">{t.name}</p>
-              <p className="mt-1 text-xs text-muted">{t.department}</p>
-              <p className="mt-4 font-syne text-2xl font-bold text-pulse">{t.count}</p>
+        <div className="space-y-4 p-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            {teams.map((t) => {
+              const selected = selectedTeam?.name === t.name;
+              return (
+                <button
+                  key={t.name}
+                  type="button"
+                  onClick={() => setSelectedTeamName(t.name)}
+                  className={clsx(
+                    "rounded-lg border p-3 text-left transition hover:border-pulse/50 hover:bg-pulse-soft/40 focus:outline-none focus:ring-2 focus:ring-pulse/25",
+                    selected ? "border-pulse bg-pulse-soft" : "border-border bg-paper",
+                  )}
+                >
+                  <p className="text-sm font-black text-ink">{t.name}</p>
+                  <p className="mt-1 text-xs text-muted">{t.department}</p>
+                  <p className="mt-4 font-syne text-2xl font-bold text-pulse">{t.members.length}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedTeam && (
+            <div className="rounded-lg border border-border bg-paper">
+              <div className="border-b border-border px-4 py-3">
+                <p className="text-sm font-black text-ink">{selectedTeam.name}</p>
+                <p className="mt-1 text-xs text-muted">
+                  {selectedTeam.members.length} employee{selectedTeam.members.length === 1 ? "" : "s"} in {selectedTeam.department}
+                </p>
+              </div>
+              <div className="divide-y divide-border">
+                {selectedTeam.members.map((employee) => (
+                  <div key={employee.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-ink">{employee.name}</p>
+                      <p className="mt-1 truncate text-xs text-muted">{employee.email}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-card px-3 py-1 text-xs font-black text-muted">
+                      {employee.role || employee.platform_role || "Role not set"}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+          )}
         </div>
       ) : (
         <div className="grid min-h-44 place-items-center px-4 py-8 text-center">
