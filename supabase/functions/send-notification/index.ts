@@ -166,6 +166,21 @@ function buildEmail(payload: NotificationPayload): { subject: string; html: stri
         ),
       };
 
+    case "assessment_reminder":
+      return {
+        subject: `Reminder: ${data.subjectName ?? "your assessment"} needs feedback — Pulse`,
+        html: wrap(
+          "Assessment reminder",
+          `Your feedback for ${data.subjectName ?? "this subject"} is due soon`,
+          `${h2("Feedback reminder")}
+          ${p(`Hi ${name},`)}
+          ${p(`This is a reminder that your feedback for <strong>${data.subjectName ?? "this assessment"}</strong> is still outstanding.`)}
+          ${p("Your responses help shape the final 360 view and should be completed as soon as possible.")}
+          ${p(`The assessment closes on <strong>${data.expiresAt ?? "the current cycle"}</strong>.`)}
+          ${btn("Open assessment →", data.assessmentUrl ?? `${url}/review/contact`)}`
+        ),
+      };
+
     case "welcome":
       return {
         subject: "Welcome to Pulse 👋",

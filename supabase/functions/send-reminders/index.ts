@@ -3,8 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-// Shared secret so only pg_cron (or our own server) can trigger the reminder blast.
 const PULSE_EDGE_SECRET = Deno.env.get("PULSE_EDGE_SECRET") ?? "";
+const REMINDER_DAYS = [3, 7, 10, 12];
 
 serve(async (req) => {
   if (!PULSE_EDGE_SECRET || req.headers.get("x-pulse-secret") !== PULSE_EDGE_SECRET) {
@@ -13,42 +13,49 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     });
   }
+
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const now = Date.now();
+  const { data: reviewerRows, error: reviewerError } = await admin
+    .from("assessment_reviewers")
+    .select("id, reviewer_email, reviewer_name, created_at, token_expires_at, status, subject_id")
+    .neq("status", "submitted")
+    .not("token_expires_at", "is", null)
+    .gt("token_expires_at", new Date().toISOString());
 
-  // All employees who submitted a report in the last 7 days
-  const { data: recentReports } = await admin
-    .from("reports")
-    .select("employee_id")
-    .gte("submitted_at", sevenDaysAgo);
-
-  const recentIds = new Set((recentReports ?? []).map((r: { employee_id: string }) => r.employee_id));
-
-  // All active employees
-  const { data: allEmployees, error } = await admin
-    .from("employees")
-    .select("id, name, email")
-    .not("email", "is", null);
-
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  if (reviewerError) {
+    return new Response(JSON.stringify({ error: reviewerError.message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  // Filter to those who haven't submitted
-  const dueEmployees = (allEmployees ?? []).filter(
-    (e: { id: string }) => !recentIds.has(e.id)
-  );
+  const subjectIds = Array.from(new Set((reviewerRows ?? []).map((row) => row.subject_id).filter(Boolean))) as string[];
+  let subjectMap = new Map<string, string>();
 
-  const results: Array<{ email: string; status: string }> = [];
+  if (subjectIds.length > 0) {
+    const { data: subjects } = await admin
+      .from("assessment_subjects")
+      .select("id, name")
+      .in("id", subjectIds);
 
-  for (const emp of dueEmployees as Array<{ id: string; name: string; email: string }>) {
-    // Send email via send-notification
+    subjectMap = new Map((subjects ?? []).map((subject) => [subject.id, subject.name]));
+  }
+
+  const results: Array<{ email: string; status: string; subject: string; daysSinceIssue: number }> = [];
+
+  for (const row of reviewerRows ?? []) {
+    const createdAt = row.created_at ? new Date(row.created_at).getTime() : null;
+    if (!createdAt) continue;
+
+    const elapsedDays = Math.round((now - createdAt) / (1000 * 60 * 60 * 24));
+    if (!REMINDER_DAYS.includes(elapsedDays)) continue;
+
+    const subjectName = subjectMap.get(row.subject_id) ?? "this assessment";
+    const expiresAt = row.token_expires_at ? new Date(row.token_expires_at).toLocaleString() : "the current cycle";
     const emailRes = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
       method: "POST",
       headers: {
@@ -57,26 +64,27 @@ serve(async (req) => {
         "x-pulse-secret": PULSE_EDGE_SECRET,
       },
       body: JSON.stringify({
-        type: "report_due",
-        recipientEmail: emp.email,
-        recipientName: emp.name,
+        type: "assessment_reminder",
+        recipientEmail: row.reviewer_email,
+        recipientName: row.reviewer_name || "there",
+        data: {
+          subjectName,
+          expiresAt,
+          assessmentUrl: `${Deno.env.get("APP_URL") ?? "https://usepulse.app"}/review/contact`,
+        },
       }),
     });
 
-    // Insert in-app notification record
-    await admin.from("notifications").insert({
-      employee_id: emp.id,
-      title: "Your weekly report is due",
-      body: "Your weekly check-in is due today by 5PM. It takes about 5 minutes.",
-      type: "report_due",
-      action_url: "/reports/submit",
+    results.push({
+      email: row.reviewer_email,
+      status: emailRes.ok ? "sent" : "error",
+      subject: subjectName,
+      daysSinceIssue: elapsedDays,
     });
-
-    results.push({ email: emp.email, status: emailRes.ok ? "sent" : "error" });
   }
 
   return new Response(
     JSON.stringify({ reminded: results.length, results }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
+    { status: 200, headers: { "Content-Type": "application/json" } },
   );
 });

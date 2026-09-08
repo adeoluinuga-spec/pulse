@@ -10,6 +10,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isStandalone =
     pathname.startsWith("/onboarding") ||
     pathname.startsWith("/welcome") ||
+    pathname.startsWith("/review") ||
     pathname === "/admin";
   const isImmersivePortal = pathname === "/hr" || pathname === "/executive";
 

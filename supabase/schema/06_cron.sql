@@ -12,17 +12,17 @@ create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
 -- 2. Remove any previous job (safe to run even if it doesn't exist):
-select cron.unschedule('weekly-report-reminder')
-where exists (select 1 from cron.job where jobname = 'weekly-report-reminder');
+select cron.unschedule('assessment-reminder-dispatch')
+where exists (select 1 from cron.job where jobname = 'assessment-reminder-dispatch');
 
--- 3. Weekly report reminder — every Friday at 9AM WAT (8AM UTC).
---    Calls the send-reminders Edge Function, which emails all employees
---    who haven't submitted a report in the last 7 days.
+-- 3. Assessment reminder dispatcher — daily at 8AM UTC (9AM WAT).
+--    It checks every open 360 review assignment and sends reminders at the
+--    configured intervals: 3, 7, 10 and 12 days after issue.
 --    Both headers are set so the call authenticates with the new-style
 --    sb_secret key at the functions gateway.
 select cron.schedule(
-  'weekly-report-reminder',
-  '0 8 * * 5',  -- Every Friday at 8AM UTC (9AM WAT)
+  'assessment-reminder-dispatch',
+  '0 8 * * *',  -- Every day at 8AM UTC (9AM WAT)
   $$
     select net.http_post(
       url     := 'https://yluskblohjdioqmeczsd.supabase.co/functions/v1/send-reminders',
@@ -41,4 +41,4 @@ select cron.schedule(
 -- select * from cron.job;
 
 -- To remove it:
--- select cron.unschedule('weekly-report-reminder');
+-- select cron.unschedule('assessment-reminder-dispatch');

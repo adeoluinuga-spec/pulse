@@ -42,11 +42,12 @@ test("validates complete reviewer assignments and blocks invalid group values", 
   );
 });
 
-test("supports configurable assessment scopes and external review channels", () => {
+test("supports configurable assessment scopes and enforces email for reviewer delivery", () => {
   assert.equal(normalizeAssessmentScope("customer_experience"), "customer_experience");
   assert.equal(normalizeAssessmentScope("team"), "team");
   assert.equal(normalizeAssessmentScope("random"), "individual");
-  assert.equal(supportsReviewChannel("whatsapp"), true);
+  assert.equal(supportsReviewChannel("email"), true);
+  assert.equal(supportsReviewChannel("whatsapp"), false);
   assert.equal(supportsReviewChannel("telegram"), false);
 });
 

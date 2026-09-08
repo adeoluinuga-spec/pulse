@@ -13,6 +13,11 @@ export interface ReviewerInvite {
   status: "draft" | "sent" | "opened" | "submitted" | "expired";
 }
 
+export function normalizeReviewChannel(channel?: string): ReviewChannel {
+  const normalized = (channel ?? "email").trim().toLowerCase();
+  return normalized === "email" ? "email" : "email";
+}
+
 export type ReviewerWorkflowSummary = {
   total: number;
   submitted: number;
@@ -34,7 +39,7 @@ export function normalizeAssessmentScope(scope?: string): AssessmentScope {
 }
 
 export function supportsReviewChannel(channel: string): boolean {
-  return ["email", "sms", "whatsapp", "portal"].includes((channel ?? "").trim().toLowerCase());
+  return (channel ?? "").trim().toLowerCase() === "email";
 }
 
 export function createSecureReviewerInvite(
@@ -43,7 +48,7 @@ export function createSecureReviewerInvite(
   channel: string = "email",
   baseUrl: string = "https://pulse.local/review",
 ): ReviewerInvite {
-  const validChannel = supportsReviewChannel(channel) ? (channel.trim().toLowerCase() as ReviewChannel) : "email";
+  const validChannel = normalizeReviewChannel(channel);
   const validScope = normalizeAssessmentScope(scope);
   const token = `${reviewer.name.trim().toLowerCase().replace(/\s+/g, "-")}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -55,7 +60,7 @@ export function createSecureReviewerInvite(
     scope: validScope,
     secureLink: `${baseUrl}/${token}?channel=${validChannel}&scope=${validScope}`,
     expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
-    status: "sent",
+    status: "draft",
   };
 }
 

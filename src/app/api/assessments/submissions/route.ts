@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 import { DEV_AUTH_BYPASS } from "@/lib/devAuth";
+import { cycleSubmissionClosed } from "@/lib/assessmentRetention";
+import { buildReviewInstrument } from "@/lib/reviewInstrument";
 import { buildReviewSubmissionSummary, getReviewPayloadErrors, type ReviewSubmissionPayload } from "@/lib/reviewSubmission";
 
 export const dynamic = "force-dynamic";
@@ -12,12 +14,43 @@ type ReviewerRow = {
   cycle_id: string;
   subject_id: string;
   status: string;
+  reviewer_group: string;
   token_expires_at: string | null;
+  submitted_at?: string | null;
+  last_saved_at?: string | null;
 };
 
 type ItemRow = {
   id: string;
+  competency_id: string | null;
   item_type: string;
+  body: string;
+  display_order: number | null;
+};
+
+type CompetencyRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  sort_order: number | null;
+};
+
+type SubjectRow = {
+  name: string;
+};
+
+type CycleRow = {
+  status: string | null;
+  closes_on: string | null;
+};
+
+type ResponseRow = {
+  item_id: string;
+  item_type: string;
+  rating: number | null;
+  not_observed: boolean;
+  comment: string | null;
+  updated_at: string | null;
 };
 
 function getAdminClient() {
@@ -39,8 +72,166 @@ function clientMetadata(request: NextRequest) {
   };
 }
 
-export async function POST(request: NextRequest) {
+async function findReviewerByToken(token: string, admin = getAdminClient()) {
+  const tokenHash = hashToken(token);
+  const { data, error } = await admin
+    .from("assessment_reviewers")
+    .select("id, cycle_id, subject_id, status, reviewer_group, token_expires_at, submitted_at, last_saved_at")
+    .eq("token_hash", tokenHash)
+    .maybeSingle<ReviewerRow>();
+
+  return { reviewer: data, error };
+}
+
+export async function GET(request: NextRequest) {
+  const token = request.nextUrl.searchParams.get("token")?.trim();
+
+  if (!token) {
+    return NextResponse.json({
+      status: "invalid",
+      message: "This assessment link is missing its access token. Please contact HR for a fresh link.",
+      contactPath: "/review/contact",
+    }, { status: 400 });
+  }
+
+  if (DEV_AUTH_BYPASS) {
+    return NextResponse.json({
+      status: "invalid",
+      message: "Public review links need a real reviewer token. Please open the secure link sent by HR.",
+      contactPath: "/review/contact",
+    }, { status: 404 });
+  }
+
+  const admin = getAdminClient();
+  const { reviewer, error } = await findReviewerByToken(token, admin);
+
+  if (error) {
+    return NextResponse.json({
+      status: "invalid",
+      message: "We could not load this assessment link. Please contact HR for help.",
+      contactPath: "/review/contact",
+    }, { status: 500 });
+  }
+
+  if (!reviewer) {
+    return NextResponse.json({
+      status: "invalid",
+      message: "This assessment link is no longer active. Please contact HR if you still need to complete this review.",
+      contactPath: "/review/contact",
+    }, { status: 404 });
+  }
+
+  const expired = Boolean(reviewer.token_expires_at && new Date(reviewer.token_expires_at).getTime() < Date.now());
+
+  const { data: subject, error: subjectError } = await admin
+    .from("assessment_subjects")
+    .select("name")
+    .eq("id", reviewer.subject_id)
+    .maybeSingle<SubjectRow>();
+
+  if (subjectError || !subject) {
+    return NextResponse.json({
+      status: "invalid",
+      message: "We could not find the leader attached to this review. Please contact HR for help.",
+      contactPath: "/review/contact",
+    }, { status: subjectError ? 500 : 404 });
+  }
+
+  if (reviewer.status === "submitted") {
+    return NextResponse.json({
+      status: "submitted",
+      subject: { name: subject.name },
+      relationshipType: reviewer.reviewer_group,
+      expiresAt: reviewer.token_expires_at,
+      submittedAt: reviewer.submitted_at ?? null,
+      message: "Thank you. This assessment has already been submitted and the link is now closed.",
+      contactPath: "/review/contact",
+    });
+  }
+
+  if (expired) {
+    await admin
+      .from("assessment_reviewers")
+      .update({ invite_status: "expired" })
+      .eq("id", reviewer.id);
+
+    return NextResponse.json({
+      status: "expired",
+      subject: { name: subject.name },
+      relationshipType: reviewer.reviewer_group,
+      expiresAt: reviewer.token_expires_at,
+      message: "This assessment link has expired. Please contact HR if you need a new link.",
+      contactPath: "/review/contact",
+    }, { status: 410 });
+  }
+
+  const [competenciesResult, itemsResult, responsesResult] = await Promise.all([
+    admin
+      .from("assessment_competencies")
+      .select("id, name, description, sort_order")
+      .eq("cycle_id", reviewer.cycle_id)
+      .order("sort_order", { ascending: true })
+      .returns<CompetencyRow[]>(),
+    admin
+      .from("assessment_items")
+      .select("id, competency_id, item_type, body, display_order")
+      .eq("cycle_id", reviewer.cycle_id)
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+      .returns<ItemRow[]>(),
+    admin
+      .from("assessment_responses")
+      .select("item_id, item_type, rating, not_observed, comment, updated_at")
+      .eq("reviewer_id", reviewer.id)
+      .order("updated_at", { ascending: false })
+      .returns<ResponseRow[]>(),
+  ]);
+
+  if (competenciesResult.error || itemsResult.error || responsesResult.error) {
+    return NextResponse.json({
+      status: "invalid",
+      message: "We could not load this assessment. Please refresh or contact HR for help.",
+      contactPath: "/review/contact",
+    }, { status: 500 });
+  }
+
+  if (reviewer.status === "not_started") {
+    await admin
+      .from("assessment_reviewers")
+      .update({ invite_status: "opened", opened_at: new Date().toISOString() })
+      .eq("id", reviewer.id);
+  }
+
+  const safeItems = (itemsResult.data ?? [])
+    .filter((item) => item.item_type === "scale" || item.item_type === "text")
+    .map((item) => ({ ...item, item_type: item.item_type as "scale" | "text" }));
+
+  return NextResponse.json({
+    status: "ready",
+    subject: { name: subject.name },
+    relationshipType: reviewer.reviewer_group,
+    expiresAt: reviewer.token_expires_at,
+    lastSavedAt: reviewer.last_saved_at ?? null,
+    instrument: buildReviewInstrument(competenciesResult.data ?? [], safeItems),
+    draft: {
+      responses: (responsesResult.data ?? []).map((response) => ({
+        itemId: response.item_id,
+        itemType: response.item_type,
+        score: response.rating,
+        notObserved: response.not_observed,
+        comment: response.comment ?? "",
+        updatedAt: response.updated_at,
+      })),
+    },
+    contactPath: "/review/contact",
+  });
+}
+
+async function handleSubmission(request: NextRequest, modeOverride?: "draft" | "submit") {
   const payload = (await request.json()) as ReviewSubmissionPayload;
+  if (modeOverride) {
+    payload.mode = modeOverride;
+  }
   const errors = getReviewPayloadErrors(payload);
 
   if (errors.length) {
@@ -65,14 +256,9 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = getAdminClient();
-  const tokenHash = hashToken(token);
   const { ip, userAgent } = clientMetadata(request);
 
-  const { data: reviewer, error: reviewerError } = await admin
-    .from("assessment_reviewers")
-    .select("id, cycle_id, subject_id, status, token_expires_at")
-    .eq("token_hash", tokenHash)
-    .maybeSingle<ReviewerRow>();
+  const { reviewer, error: reviewerError } = await findReviewerByToken(token, admin);
 
   if (reviewerError) {
     return NextResponse.json({ error: reviewerError.message }, { status: 500 });
@@ -101,6 +287,29 @@ export async function POST(request: NextRequest) {
 
   if (reviewer.status === "submitted") {
     return NextResponse.json({ error: "This reviewer has already submitted" }, { status: 409 });
+  }
+
+  const { data: cycle, error: cycleError } = await admin
+    .from("assessment_cycles")
+    .select("status, closes_on")
+    .eq("id", reviewer.cycle_id)
+    .maybeSingle<CycleRow>();
+
+  if (cycleError) {
+    return NextResponse.json({ error: cycleError.message }, { status: 500 });
+  }
+
+  const closeMessage = cycleSubmissionClosed({ status: cycle?.status, closesOn: cycle?.closes_on });
+  if (closeMessage) {
+    await admin.from("assessment_audit_events").insert({
+      cycle_id: reviewer.cycle_id,
+      subject_id: reviewer.subject_id,
+      reviewer_id: reviewer.id,
+      action: "review_submission_rejected_cycle_closed",
+      metadata: { ip, userAgent, message: closeMessage, mode: payload.mode ?? "submit" },
+    });
+
+    return NextResponse.json({ error: closeMessage }, { status: 410 });
   }
 
   const { data: items, error: itemsError } = await admin
@@ -162,8 +371,21 @@ export async function POST(request: NextRequest) {
 
   // A draft leaves the reviewer writable. The assessment_responses_touch_draft
   // trigger has already advanced not_started -> in_progress and stamped
-  // last_saved_at, so there is nothing further to update here.
-  if (!isDraft) {
+  // last_saved_at. We also update explicitly so autosave stays honest if a
+  // deployed database is lagging behind the latest trigger migration.
+  if (isDraft) {
+    const { error: draftTouchError } = await admin
+      .from("assessment_reviewers")
+      .update({
+        status: reviewer.status === "not_started" ? "in_progress" : reviewer.status,
+        last_saved_at: submittedAt,
+      })
+      .eq("id", reviewer.id);
+
+    if (draftTouchError) {
+      return NextResponse.json({ error: draftTouchError.message }, { status: 500 });
+    }
+  } else {
     const { error: updateError } = await admin
       .from("assessment_reviewers")
       .update({
@@ -198,7 +420,16 @@ export async function POST(request: NextRequest) {
       persisted: true,
       status: isDraft ? "in_progress" : "submitted",
       submittedAt: isDraft ? null : submittedAt,
+      lastSavedAt: isDraft ? submittedAt : null,
       summary,
     },
   });
+}
+
+export async function PATCH(request: NextRequest) {
+  return handleSubmission(request, "draft");
+}
+
+export async function POST(request: NextRequest) {
+  return handleSubmission(request, "submit");
 }
