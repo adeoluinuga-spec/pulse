@@ -1,5 +1,12 @@
 # Pulse — 360 Capability Gap Report
 
+> ### ⚠️ SUPERSEDED — historical record only
+>
+> This was the audit taken **before any of the 360 build began**. Its verdict ("cannot run this engagement, 60-75 developer-days") described the platform on 2026-09-04 and is **no longer accurate**. Most of what it lists as ABSENT has since been built: the response contract, items and unable-to-observe, drafts, the scoring service with n<3 suppression, the rater queue, the review page, verbatim synthesis, the four access tiers, PDFs, and export.
+>
+> Keep it for the reasoning and the requirement matrix. **Do not use it to judge current state.**
+> For that, read **`OPERATOR_ROADMAP.md`** (current) and **`REHEARSAL_REPORT.md`** (verified test evidence).
+
 **Audit date:** 2026-09-04
 **Scope of question:** can Pulse, as it stands today, deliver a 360-degree feedback assessment for 71 senior managers × 8 raters (≈568 assessments) across multiple Nigerian locations?
 **Method:** read-only inspection of schema → API surface → front end → scoring/reporting → jobs. No code was written or changed.

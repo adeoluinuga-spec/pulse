@@ -7,6 +7,21 @@
 
 ---
 
+> ### ⚠️ Status update — 2026-09-05, later the same day
+>
+> **The single failure in this report has been fixed and re-verified.** Read the report with these corrections in mind:
+>
+> - **§1 and §3 — the PDF rendering fabricated scores: FIXED.** `createMockSubjectScores` and `createMockLabels` were deleted outright. `loadPdfReportData` now calls `scoreSubjectFromDatabase` for every subject. Re-verified against a seeded cycle: 8 real competencies, 24 suppression cells computed from actual rater counts (`colleague n=2`, `direct_report n=2`, `customer n=1`), every one `mean: null`, zero placeholder strings.
+> - **§5 — "Individual PDF: NO — theatre": now YES.** Suppression in the PDF is computed, not hard-coded.
+> - **§7 blocker 1: closed.** The rehearsal suite went **34/35 → 35/35**.
+> - Also fixed since: the deferred `prior_cycle_id` column (migration `20260905_000001`), and the error-swallow at `assessmentPdfData.ts:70` that was hiding its absence.
+>
+> **Still open and still true:** everything in §7 items 2–8 — email delivery and AI synthesis have never been exercised live, `send-reminders` has no cycle filter, the thin-peer "overall" caveat, and the unrotated database password.
+>
+> For the current end-to-end operator view, see **`OPERATOR_ROADMAP.md`**.
+
+---
+
 ## 1. Verdict
 
 **47 of 48 automated checks passed. One failure, and it is a launch blocker.**

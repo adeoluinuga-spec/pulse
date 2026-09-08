@@ -3,6 +3,12 @@
 **Date:** 2026-09-05 · **Against:** `main` @ `a3574f7` plus uncommitted working tree · **Live DB:** `yluskblohjdioqmeczsd` (eu-west-1)
 **Method:** every claim below is traced from a file:line or a live-database query. No code or migrations were written.
 
+> ### ⚠️ Status update — Phase 2 completed
+>
+> Four of the defects below are **fixed and verified**: **D1** (PDF fabricated scores), **D2** and **D3** (`prior_cycle_id` missing, and the error-swallow hiding it), and **D10** (schema doc drift). The Phase 1 sweep for message-matched error suppression found exactly one instance and it is gone.
+>
+> **D4-D9 and D11-D15 remain open.** See `OPERATOR_ROADMAP.md` for the current operator view and the live blocker list.
+
 ---
 
 ## Verdict

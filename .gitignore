@@ -49,3 +49,6 @@ supabase/.temp/
 
 # rehearsal fixture state (contains live tokens)
 scripts/rehearsal/.seed-state.json
+
+# generated study PDFs
+*.pdf
