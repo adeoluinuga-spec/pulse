@@ -104,9 +104,24 @@ async function cycleBelongsToOrg(admin: Admin, cycleId: string, orgId: string) {
 }
 
 function exportScopeFor(caller: Caller, requested: string) {
-  const scope = requested === "completion" || requested === "scores" || requested === "aggregate" || requested === "all"
+  const explicit = requested === "completion" || requested === "scores" || requested === "aggregate" || requested === "all"
     ? requested
-    : "all";
+    : null;
+
+  // Defaulting to "all" denied every caller who is not a super admin, because
+  // "all" includes scores. Where no scope is asked for, default to the widest
+  // one this caller's tier already permits. This never widens access — an
+  // explicit scope is still checked against the same rules below.
+  const scope = explicit ?? (
+    canReadIndividualReport({ role: caller.role, reportState: "released" })
+      ? "all"
+      : canReadCompletionTracking(caller.role)
+        ? "completion"
+        : canReadAggregateReport(caller.role)
+          ? "aggregate"
+          : "all"
+  );
+
   const wantsScores = scope === "scores" || scope === "all";
   const wantsCompletion = scope === "completion" || scope === "all";
   const wantsAggregate = scope === "aggregate" || scope === "all";
@@ -234,7 +249,7 @@ function responseFor(content: Buffer | string, filename: string, contentType: st
 export async function GET(request: NextRequest) {
   const cycleId = request.nextUrl.searchParams.get("cycleId");
   const format = request.nextUrl.searchParams.get("format") === "xlsx" ? "xlsx" : "csv";
-  const scope = request.nextUrl.searchParams.get("scope") ?? "all";
+  const scope = request.nextUrl.searchParams.get("scope") ?? "";
   if (!cycleId) return NextResponse.json({ error: "cycleId required" }, { status: 400 });
 
   const { caller, admin, error } = await getCaller();

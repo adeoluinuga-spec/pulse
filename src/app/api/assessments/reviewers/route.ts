@@ -28,6 +28,8 @@ async function sendReviewerEmailInvite(input: {
   reviewerName: string;
   subjectName: string;
   secureLink: string;
+  /** The rater queue for this assignment. Omitted rather than sent broken. */
+  queueLink?: string;
   expiresAt: string;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -58,8 +60,10 @@ async function sendReviewerEmailInvite(input: {
           <p style="margin:0 0 24px;">
             <a href="${input.secureLink}" style="display:inline-block;padding:12px 20px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;">Open assessment</a>
           </p>
-          <p style="margin:0 0 8px;line-height:1.6;">Need the full list? Visit the queue here:</p>
-          <p style="margin:0;"><a href="${new URL("/review/queue", process.env.NEXT_PUBLIC_APP_URL ?? "https://usepulse.app").toString()}" style="color:#111827;">Pulse review queue</a></p>
+          ${input.queueLink
+            ? `<p style="margin:0 0 8px;line-height:1.6;">Need the full list? Visit the queue here:</p>
+          <p style="margin:0;"><a href="${input.queueLink}" style="color:#111827;">Pulse review queue</a></p>`
+            : ""}
         </div>
       `,
     }),
@@ -242,6 +246,7 @@ export async function POST(request: NextRequest) {
     reviewerName: body.reviewerName.trim(),
     subjectName: body.reviewerName.trim(),
     secureLink: `${request.nextUrl.origin}/review/${token}`,
+    queueLink: `${request.nextUrl.origin}/review/queue/${token}`,
     expiresAt,
   });
 
@@ -384,6 +389,7 @@ export async function PATCH(request: NextRequest) {
     reviewerName: existing.reviewer_name,
     subjectName: existing.reviewer_name,
     secureLink: `${request.nextUrl.origin}/review/${token}`,
+    queueLink: `${request.nextUrl.origin}/review/queue/${token}`,
     expiresAt,
   });
 

@@ -3,6 +3,8 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
+import { escapeLikePattern } from "@/lib/reviewQueue";
+
 function getAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -106,23 +108,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "cycleId, name, and email are required" }, { status: 400 });
   }
 
+  const email = body.email.trim();
+
+  // Link the participant to their employee record. Without this the participant
+  // report tier can never resolve: the RLS policy joins
+  // assessment_subjects.employee_id -> employees.user_id, so an unlinked subject
+  // means that person can never open their own released report.
+  const { data: matchedEmployee } = await admin
+    .from("employees")
+    .select("id")
+    .eq("org_id", orgId)
+    .ilike("email", escapeLikePattern(email))
+    .maybeSingle<{ id: string }>();
+
   const { data, error } = await admin
     .from("assessment_subjects")
     .insert({
       cycle_id: body.cycleId,
+      employee_id: matchedEmployee?.id ?? null,
       name: body.name.trim(),
-      email: body.email.trim(),
+      email,
       level: body.level ?? "assistant_director",
       function_name: body.functionName ?? "",
       region: body.region ?? "",
       portfolio: body.portfolio ?? "",
     })
-    .select("id, cycle_id, name, email, level, function_name, region, portfolio")
+    .select("id, cycle_id, employee_id, name, email, level, function_name, region, portfolio")
     .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ subject: data }, { status: 201 });
+  // Created, but say so loudly: an unlinked participant will never be able to
+  // open their own report, and that is invisible until release day.
+  const warning = matchedEmployee
+    ? undefined
+    : `No employee record matches ${email} in this organisation, so this participant is not linked to a login and will not be able to open their own report. Add them to the employee list, then re-add them here.`;
+
+  return NextResponse.json({ subject: data, warning }, { status: 201 });
 }
