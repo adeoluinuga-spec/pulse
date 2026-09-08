@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 /**
  * Outbound email for Pulse.
  *
@@ -209,4 +211,40 @@ export function assessmentCycleLaunchEmail(input: {
       <p style="margin:0;line-height:1.6;color:#6b7280;font-size:13px;">Questions about this assessment? Reply to this email and it will reach your HR team.</p>
     `),
   };
+}
+
+/**
+ * Looks up where replies should go for one organisation, then resolves them.
+ *
+ * Kept here so every sender reaches the same answer: a rater replying "this link
+ * won't open" and a participant replying "what is this?" should both land in the
+ * same HR inbox.
+ */
+export async function resolveOrgReplyTo(
+  admin: SupabaseClient,
+  orgId: string,
+): Promise<string | undefined> {
+  try {
+    const [org, hr] = await Promise.all([
+      admin
+        .from("organisations")
+        .select("reply_to_email")
+        .eq("id", orgId)
+        .maybeSingle<{ reply_to_email: string | null }>(),
+      admin
+        .from("employees")
+        .select("email")
+        .eq("org_id", orgId)
+        .eq("platform_role", "hr_admin")
+        .returns<Array<{ email: string | null }>>(),
+    ]);
+
+    return resolveReplyTo({
+      orgReplyTo: org.data?.reply_to_email,
+      hrAdminEmails: (hr.data ?? []).map((row) => row.email),
+    });
+  } catch {
+    // A missing reply-to is a smaller problem than a failed send.
+    return undefined;
+  }
 }

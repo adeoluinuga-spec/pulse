@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 import { createHash, randomBytes } from "crypto";
 
+import { resolveOrgReplyTo } from "@/lib/pulseEmail";
+
 export const dynamic = "force-dynamic";
 
 function getAdminClient() {
@@ -31,6 +33,8 @@ async function sendReviewerEmailInvite(input: {
   /** The rater queue for this assignment. Omitted rather than sent broken. */
   queueLink?: string;
   expiresAt: string;
+  /** Where a rater's reply should land — their own HR team, not Pulse. */
+  replyTo?: string;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.FROM_EMAIL ?? "notifications@usepulse.app";
@@ -46,6 +50,7 @@ async function sendReviewerEmailInvite(input: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
+      ...(input.replyTo ? { reply_to: [input.replyTo] } : {}),
       from: fromEmail,
       to: [input.to],
       subject: input.subject,
@@ -247,6 +252,7 @@ export async function POST(request: NextRequest) {
     subjectName: body.reviewerName.trim(),
     secureLink: `${request.nextUrl.origin}/review/${token}`,
     queueLink: `${request.nextUrl.origin}/review/queue/${token}`,
+    replyTo: await resolveOrgReplyTo(admin, orgId),
     expiresAt,
   });
 
@@ -390,6 +396,7 @@ export async function PATCH(request: NextRequest) {
     subjectName: existing.reviewer_name,
     secureLink: `${request.nextUrl.origin}/review/${token}`,
     queueLink: `${request.nextUrl.origin}/review/queue/${token}`,
+    replyTo: await resolveOrgReplyTo(admin, orgId),
     expiresAt,
   });
 
