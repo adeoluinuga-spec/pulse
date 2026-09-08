@@ -229,6 +229,23 @@ export async function GET(request: NextRequest) {
 
 async function handleSubmission(request: NextRequest, modeOverride?: "draft" | "submit") {
   const payload = (await request.json()) as ReviewSubmissionPayload;
+
+  // The verb decides the mode: PATCH saves a draft, POST submits. A body that
+  // disagrees is refused rather than coerced, because coercing the disagreement
+  // is irreversible — submitting freezes the reviewer's responses, so a client
+  // that meant "save my draft" would silently destroy the rater's ability to
+  // finish. Fail closed instead.
+  if (modeOverride && payload.mode && payload.mode !== modeOverride) {
+    return NextResponse.json(
+      {
+        error: `This endpoint is mode "${modeOverride}". Use PATCH to save a draft and POST to submit.`,
+        requestedMode: payload.mode,
+        endpointMode: modeOverride,
+      },
+      { status: 400 },
+    );
+  }
+
   if (modeOverride) {
     payload.mode = modeOverride;
   }

@@ -46,3 +46,6 @@ pulse/
 
 # supabase CLI local state
 supabase/.temp/
+
+# rehearsal fixture state (contains live tokens)
+scripts/rehearsal/.seed-state.json

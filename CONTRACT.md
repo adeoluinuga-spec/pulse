@@ -67,7 +67,7 @@ Before this migration, `direct_report` meant the line manager and `subordinate` 
 
 A rater may save a partial assessment and come back to it. Responses stay writable while the reviewer is `not_started` or `in_progress`, and **freeze the moment the reviewer is `submitted`** — enforced by a trigger, so a late edit fails at the database rather than silently landing.
 
-Saving any response advances the reviewer from `not_started` to `in_progress` and stamps `last_saved_at`, automatically. `POST /api/assessments/submissions` takes `mode: "draft" | "submit"`; a draft may be partial, a submit may not.
+Saving any response advances the reviewer from `not_started` to `in_progress` and stamps `last_saved_at`, automatically. `PATCH /api/assessments/submissions` saves a draft and `POST` submits. A draft may be partial; a submit may not. The verb decides the mode — a body whose `mode` disagrees with the verb is refused, not coerced.
 
 ## Which instrument was used
 
@@ -77,7 +77,7 @@ Without this, a second cycle cannot show that the instrument was unchanged, and 
 
 ## Scoring rules
 
-The scoring service is `src/lib/assessmentScoring.ts` — **interface only in Stage 1**. Four rules bind anything that computes a score:
+The scoring service is `src/lib/assessmentScoring.ts` (pure) with `assessmentScoringService.ts` reading the database. Four rules bind anything that computes a score:
 
 1. **Not-observed is excluded, not zeroed.**
 2. **Average within a rater group first, then weight across groups.** Four colleagues make one colleague mean. (The existing `assessmentReporting.ts` gets this wrong — it keeps only the last rater in each group. Do not copy it.)
@@ -88,4 +88,4 @@ The scoring service is `src/lib/assessmentScoring.ts` — **interface only in St
 
 Tokens are still one per **(subject, rater, relationship type)**, hashed, single-use, and expiring — the subject is derived from the token server-side, never declared by the rater. That was already right.
 
-**`/review/[token]` still does not exist.** The contract below is correct and enforced, but nothing can write through it yet.
+**`/review/[token]` is live**, together with the rater queue at `/review/queue/[token]`. Tokens are single-use: once submitted, the link reopens read-only and cannot write.
