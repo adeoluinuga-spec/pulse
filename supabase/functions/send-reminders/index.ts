@@ -19,12 +19,20 @@ serve(async (req) => {
   });
 
   const now = Date.now();
+  // Scoped to cycles that are actually collecting. Without the join this
+  // selected every unsubmitted reviewer in the database, so a cycle in setup, a
+  // closed cycle, or another tenant's cycle would all be chased on the same
+  // schedule. The cron has no cycle argument, so the cycle's own status is what
+  // decides whether its raters should be hearing from us at all.
   const { data: reviewerRows, error: reviewerError } = await admin
     .from("assessment_reviewers")
-    .select("id, reviewer_email, reviewer_name, created_at, token_expires_at, status, subject_id")
+    .select(
+      "id, reviewer_email, reviewer_name, created_at, token_expires_at, status, subject_id, assessment_cycles!inner(id, name, status, closes_on)",
+    )
     .neq("status", "submitted")
     .not("token_expires_at", "is", null)
-    .gt("token_expires_at", new Date().toISOString());
+    .gt("token_expires_at", new Date().toISOString())
+    .eq("assessment_cycles.status", "collecting");
 
   if (reviewerError) {
     return new Response(JSON.stringify({ error: reviewerError.message }), {
@@ -50,6 +58,11 @@ serve(async (req) => {
   for (const row of reviewerRows ?? []) {
     const createdAt = row.created_at ? new Date(row.created_at).getTime() : null;
     if (!createdAt) continue;
+
+    // Never chase a rater once the window has shut — their submission would be
+    // refused anyway, so the reminder would only be an apology waiting to happen.
+    const closesOn = (row as { assessment_cycles?: { closes_on?: string | null } }).assessment_cycles?.closes_on;
+    if (closesOn && new Date(closesOn).getTime() < now) continue;
 
     const elapsedDays = Math.round((now - createdAt) / (1000 * 60 * 60 * 24));
     if (!REMINDER_DAYS.includes(elapsedDays)) continue;
