@@ -38,6 +38,9 @@ export default function WorkSidebar() {
   const { user, profileImages } = useUser();
   const profileImage = profileImages[user.id];
   const teamEnabled = user.peopleResponsibility !== "none";
+  const assessmentHref = user.platformRole === "hr_admin" || user.platformRole === "super_admin"
+    ? "/assessments"
+    : "/dashboard/360";
   const portalItems = [
     ...(teamEnabled ? [{ label: "Team", href: "/dashboard/team", icon: Users }] : []),
     ...(user.platformRole === "hr_admin" || user.platformRole === "super_admin" ? [
@@ -62,11 +65,12 @@ export default function WorkSidebar() {
         <div className="space-y-0.5">
         {primaryItems.map((item) => {
           const Icon = item.icon;
-          const isActive = active(pathname, item.href);
+          const href = item.href === "/assessments" ? assessmentHref : item.href;
+          const isActive = active(pathname, href);
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={href}
               className={clsx(
                 "group flex min-h-9 items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
                 isActive ? "bg-cobalt-light font-semibold text-cobalt-dark" : "text-ink-500 hover:bg-paper-100 hover:text-ink",

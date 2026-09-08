@@ -24,6 +24,9 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useUser();
   const tabs = user.peopleResponsibility === "none" ? TABS.filter((tab) => tab.id !== "team") : TABS;
+  const assessmentHref = user.platformRole === "hr_admin" || user.platformRole === "super_admin"
+    ? "/assessments"
+    : "/dashboard/360";
 
   return (
     <nav
@@ -34,11 +37,12 @@ export default function BottomNav() {
       <div className="border-t border-paper-200 bg-surface/96 backdrop-blur-md">
         <div className="flex h-[54px]">
           {tabs.map(({ id, label, href, Icon }) => {
-            const active = isActive(id, href, pathname);
+            const resolvedHref = id === "assessments" ? assessmentHref : href;
+            const active = isActive(id, resolvedHref, pathname);
             return (
               <Link
                 key={id}
-                href={href}
+                href={resolvedHref}
                 aria-label={label}
                 aria-current={active ? "page" : undefined}
                 className={clsx(

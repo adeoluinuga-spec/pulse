@@ -11,6 +11,9 @@ const ACCENT: Record<NotificationType, string> = {
   warning:         "bg-amber",
   success:         "bg-green",
   action_required: "bg-pulse",
+  assessment_cycle_launched: "bg-cobalt",
+  assessment_participant:    "bg-cobalt",
+  assessment_reminder:       "bg-pulse",
 };
 
 const LABEL: Record<NotificationType, string | null> = {
@@ -18,6 +21,9 @@ const LABEL: Record<NotificationType, string | null> = {
   warning:         null,
   success:         null,
   action_required: "Action",
+  assessment_cycle_launched: "360",
+  assessment_participant:    "360",
+  assessment_reminder:       "Action",
 };
 
 function formatDate(dateStr: string): string {

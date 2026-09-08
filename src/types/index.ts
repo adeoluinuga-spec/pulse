@@ -32,7 +32,10 @@ export type NotificationType =
   | "info"
   | "warning"
   | "success"
-  | "action_required";
+  | "action_required"
+  | "assessment_cycle_launched"
+  | "assessment_participant"
+  | "assessment_reminder";
 export type Priority = "high" | "medium" | "low";
 export type TrendDir = "up" | "down" | "flat";
 export type EmploymentType = "full_time" | "contract" | "part_time";

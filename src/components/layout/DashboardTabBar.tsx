@@ -11,6 +11,7 @@ const BASE_TABS: Tab[] = [
   { id: "overview",     label: "Overview",    href: "/dashboard"                },
   { id: "profile",      label: "Profile",     href: "/dashboard/profile"        },
   { id: "performance",  label: "Performance", href: "/dashboard/performance"    },
+  { id: "assessments",  label: "360",         href: "/dashboard/360"            },
   { id: "reports",      label: "Reports",     href: "/dashboard/reports"        },
   { id: "wellbeing",    label: "Wellbeing",   href: "/dashboard/ai-wellbeing"   },
 ];

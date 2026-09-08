@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Users } from "lucide-react";
 import clsx from "clsx";
+import My360StatusCard from "@/components/assessments/My360StatusCard";
 import { useUser } from "@/context/UserContext";
 import { getSupabase } from "@/lib/supabase";
 
@@ -191,6 +192,10 @@ export default function ManagerDashboard() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="px-5">
+        <My360StatusCard compact />
       </section>
 
       {team.length === 0 ? (

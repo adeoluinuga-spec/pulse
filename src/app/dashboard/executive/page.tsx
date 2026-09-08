@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import My360StatusCard from "@/components/assessments/My360StatusCard";
 import { useUser } from "@/context/UserContext";
 import { getSupabase } from "@/lib/supabase";
 
@@ -315,6 +316,8 @@ export default function ExecutiveDashboard() {
           {error}
         </section>
       ) : null}
+
+      <My360StatusCard compact />
 
       {!metrics.enoughForDashboard ? (
         <ExecutiveEmptyState

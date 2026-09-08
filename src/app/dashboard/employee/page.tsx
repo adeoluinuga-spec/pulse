@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, FileText, Loader2, Target } from "lucide-react";
 import clsx from "clsx";
+import My360StatusCard from "@/components/assessments/My360StatusCard";
 import { useUser } from "@/context/UserContext";
 import { getMyGoals } from "@/lib/api/goals";
 import { getMyReports } from "@/lib/api/reports";
@@ -139,6 +140,10 @@ export default function EmployeeDashboard() {
             )}
           </div>
         </div>
+      </section>
+
+      <section className="px-4">
+        <My360StatusCard compact />
       </section>
 
       <section className="grid grid-cols-2 gap-2.5 px-4 md:grid-cols-4">
