@@ -152,3 +152,32 @@ export function assessmentParticipantEmail(input: {
     `),
   };
 }
+
+export function assessmentReminderEmail(input: {
+  reviewerName: string;
+  subjectName: string;
+  cycleName: string;
+  closesOn?: string | null;
+  contactUrl: string;
+}): { subject: string; html: string } {
+  const reviewerName = safeText(input.reviewerName, "there");
+  const subjectName = safeText(input.subjectName, "this assessment");
+  const cycleName = safeText(input.cycleName, "the current 360 assessment");
+  const firstName = reviewerName.split(/\s+/)[0] || "there";
+  const closing = input.closesOn
+    ? `<p style="margin:0 0 12px;line-height:1.6;">The assessment window closes on <strong>${new Date(input.closesOn).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</strong>.</p>`
+    : "";
+
+  return {
+    subject: `Reminder: feedback for ${subjectName}`,
+    html: pulseEmailShell(`
+      <h2 style="margin:0 0 16px;font-size:24px;">360 feedback reminder</h2>
+      <p style="margin:0 0 12px;line-height:1.6;">Hi ${escapeHtml(firstName)},</p>
+      <p style="margin:0 0 12px;line-height:1.6;">This is a reminder to complete your feedback for <strong>${escapeHtml(subjectName)}</strong> in <strong>${escapeHtml(cycleName)}</strong>.</p>
+      ${closing}
+      <p style="margin:0 0 12px;line-height:1.6;">Please use your original assessment invitation link. If you cannot find it or the link has expired, contact the HR team.</p>
+      <p style="margin:0 0 24px;"><a href="${input.contactUrl}" style="display:inline-block;padding:12px 20px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;">Contact support</a></p>
+      <p style="margin:0;line-height:1.6;color:#6b7280;font-size:13px;">Replies to this message go to the HR team managing this assessment.</p>
+    `),
+  };
+}

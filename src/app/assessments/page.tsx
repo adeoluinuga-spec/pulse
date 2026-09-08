@@ -38,6 +38,7 @@ import {
   type ReviewerStatus,
 } from "@/lib/assessments360";
 import { useUser } from "@/context/UserContext";
+import { useToast } from "@/components/ui/Toast";
 import { getSupabase } from "@/lib/supabase";
 import { canManageAssessmentWorkspace, canViewAssessmentWorkspace } from "@/lib/tenant";
 import {
@@ -346,6 +347,7 @@ type RaterNominationItem = {
 
 export default function AssessmentsPage() {
   const { user } = useUser();
+  const { showToast } = useToast();
   const canViewAssessments = canViewAssessmentWorkspace(user.platformRole);
   const canManageAssessments = canManageAssessmentWorkspace(user.platformRole);
   const [activeTab, setActiveTab] = useState<TabKey>("command");
@@ -411,6 +413,47 @@ export default function AssessmentsPage() {
   const [nomineeGroup, setNomineeGroup] = useState<ReviewerGroup>("colleague");
   const [nominationNotice, setNominationNotice] = useState("");
   const [raterNominations, setRaterNominations] = useState<RaterNominationItem[]>([]);
+  const [isSendingReminders, setIsSendingReminders] = useState(false);
+
+  async function handleSendReminders() {
+    if (!activeCycle.id) {
+      showToast("Create or select an assessment cycle before sending reminders.", "warning");
+      return;
+    }
+
+    setIsSendingReminders(true);
+    try {
+      const response = await fetch("/api/assessments/reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cycleId: activeCycle.id }),
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        reminded?: number;
+        failed?: number;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(result.error ?? "Unable to send assessment reminders");
+      }
+
+      const reminded = result.reminded ?? 0;
+      const failed = result.failed ?? 0;
+
+      if (reminded === 0 && failed === 0) {
+        showToast("No pending reviewer reminders are due for this cycle.", "info");
+      } else if (failed > 0) {
+        showToast(`${reminded} reminder${reminded === 1 ? "" : "s"} sent. ${failed} failed and should be checked.`, "warning");
+      } else {
+        showToast(`${reminded} reminder${reminded === 1 ? "" : "s"} sent successfully.`, "success");
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Unable to send assessment reminders", "error");
+    } finally {
+      setIsSendingReminders(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -1431,9 +1474,14 @@ export default function AssessmentsPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40">
+              <button
+                type="button"
+                onClick={handleSendReminders}
+                disabled={isSendingReminders || !canManageAssessments}
+                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-55"
+              >
                 <Mail size={16} />
-                Send reminders
+                {isSendingReminders ? "Sending..." : "Send reminders"}
               </button>
               <button className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white shadow-sm transition hover:bg-ink/90">
                 <Download size={16} />
