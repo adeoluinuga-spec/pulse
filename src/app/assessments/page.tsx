@@ -15,6 +15,7 @@ import {
   Mail,
   MessageSquareText,
   RefreshCw,
+  Rocket,
   Send,
   ShieldCheck,
   SlidersHorizontal,
@@ -28,6 +29,7 @@ import {
   completionForAssessee,
   levelLabel,
   reviewerGroups,
+  statusLabel,
   weightedScore,
   type Assessee,
   type AssesseeResult,
@@ -413,7 +415,57 @@ export default function AssessmentsPage() {
   const [nomineeGroup, setNomineeGroup] = useState<ReviewerGroup>("colleague");
   const [nominationNotice, setNominationNotice] = useState("");
   const [raterNominations, setRaterNominations] = useState<RaterNominationItem[]>([]);
+  const [isLaunchingCycle, setIsLaunchingCycle] = useState(false);
   const [isSendingReminders, setIsSendingReminders] = useState(false);
+
+  async function handleLaunchCycle() {
+    if (!activeCycle.id) {
+      showToast("Create or select an assessment cycle before launching.", "warning");
+      return;
+    }
+
+    setIsLaunchingCycle(true);
+    try {
+      const response = await fetch(`/api/assessments/cycles/${encodeURIComponent(activeCycle.id)}/launch`, {
+        method: "POST",
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        launched?: boolean;
+        notified?: number;
+        emailed?: number;
+        failed?: number;
+        cycle?: ApiCycle;
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(result.error ?? "Unable to launch assessment cycle");
+      }
+
+      if (result.cycle) {
+        const liveCycle = mapApiCycle(result.cycle);
+        setActiveCycle(liveCycle);
+        setCycleStartsOn(liveCycle.startDate);
+        setCycleClosesOn(liveCycle.closeDate);
+      }
+
+      if (result.launched === false) {
+        showToast(result.message ?? "This assessment cycle is already collecting feedback.", "info");
+        return;
+      }
+
+      const notified = result.notified ?? 0;
+      const emailed = result.emailed ?? 0;
+      const failed = result.failed ?? 0;
+      const suffix = failed > 0 ? ` ${failed} email${failed === 1 ? "" : "s"} failed and should be checked.` : "";
+      showToast(`Cycle launched. ${notified} dashboard notification${notified === 1 ? "" : "s"} created and ${emailed} email${emailed === 1 ? "" : "s"} sent.${suffix}`, failed > 0 ? "warning" : "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Unable to launch assessment cycle", "error");
+    } finally {
+      setIsLaunchingCycle(false);
+    }
+  }
 
   async function handleSendReminders() {
     if (!activeCycle.id) {
@@ -1465,6 +1517,9 @@ export default function AssessmentsPage() {
                 <span className="rounded-full bg-ink px-3 py-1 text-xs font-bold text-white">
                   {activeCycle.clientName}
                 </span>
+                <span className="rounded-full border border-ink/10 bg-white px-3 py-1 text-xs font-bold text-muted">
+                  {statusLabel(activeCycle.status)}
+                </span>
               </div>
               <h1 className="mt-4 font-syne text-3xl font-black leading-tight sm:text-4xl">
                 Leadership 360 assessment command center
@@ -1474,6 +1529,15 @@ export default function AssessmentsPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleLaunchCycle}
+                disabled={isLaunchingCycle || !canManageAssessments || !activeCycle.id || activeCycle.status !== "setup"}
+                className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-sm transition hover:bg-pulse-dark disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                <Rocket size={16} />
+                {isLaunchingCycle ? "Launching..." : activeCycle.status === "setup" ? "Launch cycle" : "Cycle launched"}
+              </button>
               <button
                 type="button"
                 onClick={handleSendReminders}

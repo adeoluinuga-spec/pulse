@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { assessmentParticipantEmail, assessmentReminderEmail, resolveReplyTo } from "./pulseEmail.ts";
+import {
+  assessmentCycleLaunchEmail,
+  assessmentParticipantEmail,
+  assessmentReminderEmail,
+  resolveReplyTo,
+} from "./pulseEmail.ts";
 
 test("resolveReplyTo prefers the organisation mailbox", () => {
   assert.equal(
@@ -52,4 +57,17 @@ test("assessmentReminderEmail tells reviewers to use their original secure link"
   assert.equal(email.subject, "Reminder: feedback for Kehinde White");
   assert.match(email.html, /original assessment invitation link/);
   assert.match(email.html, /https:\/\/pulse\.example\/review\/contact/);
+});
+
+test("assessmentCycleLaunchEmail separates launch notice from secure review invites", () => {
+  const email = assessmentCycleLaunchEmail({
+    employeeName: "Moses Vaughan",
+    cycleName: "Stuart Davidson Leadership 360",
+    organisationName: "Stuart Davidson",
+    appUrl: "https://pulse.example",
+  });
+
+  assert.equal(email.subject, "Stuart Davidson Leadership 360 has started");
+  assert.match(email.html, /separate secure invitation/);
+  assert.match(email.html, /https:\/\/pulse\.example\/dashboard/);
 });

@@ -181,3 +181,32 @@ export function assessmentReminderEmail(input: {
     `),
   };
 }
+
+export function assessmentCycleLaunchEmail(input: {
+  employeeName: string;
+  cycleName: string;
+  organisationName: string;
+  closesOn?: string | null;
+  appUrl: string;
+}): { subject: string; html: string } {
+  const employeeName = safeText(input.employeeName, "there");
+  const cycleName = safeText(input.cycleName, "a 360 assessment");
+  const organisationName = safeText(input.organisationName, "Your organisation");
+  const firstName = employeeName.split(/\s+/)[0] || "there";
+  const closing = input.closesOn
+    ? `<p style="margin:0 0 12px;line-height:1.6;">The assessment window closes on <strong>${new Date(input.closesOn).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</strong>.</p>`
+    : "";
+
+  return {
+    subject: `${cycleName} has started`,
+    html: pulseEmailShell(`
+      <h2 style="margin:0 0 16px;font-size:24px;">A 360 assessment cycle has started</h2>
+      <p style="margin:0 0 12px;line-height:1.6;">Hi ${escapeHtml(firstName)},</p>
+      <p style="margin:0 0 12px;line-height:1.6;">${escapeHtml(organisationName)} has opened <strong>${escapeHtml(cycleName)}</strong>.</p>
+      ${closing}
+      <p style="margin:0 0 12px;line-height:1.6;">If you are selected to give feedback, you will receive a separate secure invitation. If you are listed as an assessment participant, Pulse will also notify you directly.</p>
+      <p style="margin:0 0 24px;"><a href="${input.appUrl}/dashboard" style="display:inline-block;padding:12px 20px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;">Open Pulse</a></p>
+      <p style="margin:0;line-height:1.6;color:#6b7280;font-size:13px;">Questions about this assessment? Reply to this email and it will reach your HR team.</p>
+    `),
+  };
+}
