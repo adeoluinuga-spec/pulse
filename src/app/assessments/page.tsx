@@ -49,7 +49,6 @@ import {
   type CompetencyDefinition,
 } from "@/lib/assessmentFramework";
 import {
-  aggregateReviewScores,
   buildReviewerWorkflowSummary,
   createSecureReviewerInvite,
   normalizeAssessmentScope,
@@ -129,7 +128,20 @@ type OrgEmployeeOption = {
   department?: string | null;
   team?: string | null;
   cadre?: string | null;
+  lineManagerId?: string | null;
 };
+
+const scopeOptions = [
+  { value: "individual", label: "Individual performance", description: "One leader assessed across the agreed reviewer groups." },
+  { value: "team", label: "Team health", description: "Signals about how the leader's team experiences direction, trust, and execution." },
+  { value: "functional", label: "Functional capability", description: "Leadership impact within a department, region, or business function." },
+  { value: "customer_experience", label: "Customer experience", description: "External stakeholder feedback on service, partnership, and delivery." },
+] as const;
+
+function employeeStakeholderLabel(employee?: OrgEmployeeOption | null) {
+  if (!employee) return "";
+  return employee.department || employee.team || employee.role || "Internal employee";
+}
 
 const tabs: Array<{ key: TabKey; label: string; icon: typeof BarChart3 }> = [
   { key: "command", label: "Command", icon: BarChart3 },
@@ -360,6 +372,7 @@ export default function AssessmentsPage() {
   const [participantNotice, setParticipantNotice] = useState("");
   const [orgEmployeeOptions, setOrgEmployeeOptions] = useState<OrgEmployeeOption[]>([]);
   const [selectedOrgEmployeeId, setSelectedOrgEmployeeId] = useState("");
+  const [selectedReviewerEmployeeId, setSelectedReviewerEmployeeId] = useState("");
   const [assessmentSubjects, setAssessmentSubjects] = useState<Assessee[]>([]);
   const [assessmentResults, setAssessmentResults] = useState<AssesseeResult[]>([]);
   const [reviewerName, setReviewerName] = useState("");
@@ -440,7 +453,7 @@ export default function AssessmentsPage() {
         const { data: orgEmployees } = orgId
           ? await supabase
               .from("employees")
-              .select("id, name, email, role, department, team, cadre")
+              .select("id, name, email, role, department, team, cadre, line_manager_id")
               .eq("org_id", orgId)
               .order("name", { ascending: true })
           : { data: [] };
@@ -455,6 +468,7 @@ export default function AssessmentsPage() {
               department: employee.department,
               team: employee.team,
               cadre: employee.cadre,
+              lineManagerId: employee.line_manager_id,
             })),
           );
         } else {
@@ -601,6 +615,41 @@ export default function AssessmentsPage() {
       ),
     [orgEmployeeOptions, assessmentSubjects],
   );
+  const orgDisplayName = activeCycle.clientName && activeCycle.clientName !== "Current organisation"
+    ? activeCycle.clientName
+    : "organisation";
+  const selectedAssesseeEmployee = orgEmployeeOptions.find(
+    (employee) => selectedAssessee.email && employee.email.toLowerCase() === selectedAssessee.email.toLowerCase(),
+  );
+  const selectedLineManager = selectedAssesseeEmployee?.lineManagerId
+    ? orgEmployeeOptions.find((employee) => employee.id === selectedAssesseeEmployee.lineManagerId)
+    : undefined;
+  const directReportOptions = selectedAssesseeEmployee
+    ? orgEmployeeOptions.filter((employee) => employee.lineManagerId === selectedAssesseeEmployee.id)
+    : [];
+  const colleagueOptions = selectedAssesseeEmployee
+    ? orgEmployeeOptions.filter((employee) =>
+        employee.id !== selectedAssesseeEmployee.id &&
+        employee.id !== selectedLineManager?.id &&
+        employee.lineManagerId !== selectedAssesseeEmployee.id &&
+        Boolean(
+          (selectedAssesseeEmployee.department && employee.department === selectedAssesseeEmployee.department) ||
+          (selectedAssesseeEmployee.team && employee.team === selectedAssesseeEmployee.team),
+        ),
+      )
+    : orgEmployeeOptions.filter((employee) => employee.email.toLowerCase() !== (selectedAssessee.email ?? "").toLowerCase());
+  const reviewerEmployeeOptions = reviewerGroupForm === "direct_report"
+    ? directReportOptions
+    : reviewerGroupForm === "colleague"
+      ? colleagueOptions
+      : reviewerGroupForm === "line_manager" && selectedLineManager
+        ? [selectedLineManager]
+        : [];
+  const selectedReviewerEmployee = reviewerGroupForm === "line_manager"
+    ? selectedLineManager
+    : reviewerGroupForm === "self"
+      ? selectedAssesseeEmployee
+      : orgEmployeeOptions.find((employee) => employee.id === selectedReviewerEmployeeId);
   const hasLiveCycle = Boolean(activeCycle.id);
   const hasSelectedAssessee = Boolean(selectedAssessee.id);
   const assessmentQuestionItems = configuredCompetencies
@@ -622,6 +671,7 @@ export default function AssessmentsPage() {
   const releaseSummary = releaseReadinessSummary(selectedAssesseeReviewers);
   const canReleaseSelectedReport = canReleaseAssessmentReport(selectedAssesseeReviewers);
   const normalizedScope = normalizeAssessmentScope(assessmentScope);
+  const selectedScopeOption = scopeOptions.find((option) => option.value === normalizedScope) ?? scopeOptions[0];
   const whatsappEnabled = supportsReviewChannel(reviewerChannel);
   const invitationQueue = reviewerAssignments.map((reviewer) => {
     const invite = reviewerInvites.find((entry) =>
@@ -651,12 +701,6 @@ export default function AssessmentsPage() {
     expired: invitationQueue.filter((entry) => entry.status === "expired").length,
     needsInvite: invitationQueue.filter((entry) => entry.status === "draft" || entry.status === "expired").length,
   };
-  const submittedReviewScores = [
-    { score: 80, weight: 30, scope: "individual", channel: "email" },
-    { score: 75, weight: 35, scope: "customer_experience", channel: "whatsapp" },
-    { score: 82, weight: 35, scope: "team", channel: "portal" },
-  ];
-  const liveReviewScore = aggregateReviewScores(submittedReviewScores);
   const reviewSubmissionSummary = buildReviewSubmissionSummary(
     assessmentQuestionItems.map((question) => ({
       score: submissionScores[question.competencyId] ?? 4,
@@ -792,6 +836,35 @@ export default function AssessmentsPage() {
     : undefined;
   const strongestCompetencyName = strongestCompetency ? competencyNameById.get(strongestCompetency.competencyId) ?? strongestCompetency.competencyId : "No competency";
   const weakestCompetencyName = weakestCompetency ? competencyNameById.get(weakestCompetency.competencyId) ?? weakestCompetency.competencyId : "No competency";
+
+  useEffect(() => {
+    if (reviewerGroupForm === "customer") return;
+
+    if (reviewerGroupForm === "self") {
+      setReviewerName(selectedAssessee.name === emptyAssessee.name ? "" : selectedAssessee.name);
+      setReviewerEmail(selectedAssessee.email ?? "");
+      setReviewerOrg(employeeStakeholderLabel(selectedAssesseeEmployee));
+      return;
+    }
+
+    if ((reviewerGroupForm === "direct_report" || reviewerGroupForm === "colleague") && !selectedReviewerEmployeeId) {
+      setReviewerName("");
+      setReviewerEmail("");
+      setReviewerOrg("");
+      return;
+    }
+
+    if (selectedReviewerEmployee) {
+      setReviewerName(selectedReviewerEmployee.name);
+      setReviewerEmail(selectedReviewerEmployee.email);
+      setReviewerOrg(employeeStakeholderLabel(selectedReviewerEmployee));
+      return;
+    }
+
+    setReviewerName("");
+    setReviewerEmail("");
+    setReviewerOrg("");
+  }, [reviewerGroupForm, selectedAssessee.name, selectedAssessee.email, selectedAssesseeEmployee, selectedReviewerEmployee, selectedReviewerEmployeeId]);
 
   async function handleReviewSubmit() {
     const payload = {
@@ -1159,14 +1232,31 @@ export default function AssessmentsPage() {
   }
 
   async function handleAddReviewer() {
+    const effectiveName = reviewerGroupForm === "self"
+      ? selectedAssessee.name
+      : reviewerGroupForm === "customer"
+        ? reviewerName
+        : selectedReviewerEmployee?.name ?? "";
+    const effectiveEmail = reviewerGroupForm === "self"
+      ? selectedAssessee.email ?? ""
+      : reviewerGroupForm === "customer"
+        ? reviewerEmail
+        : selectedReviewerEmployee?.email ?? "";
+    const effectiveOrganisation = reviewerGroupForm === "customer"
+      ? reviewerOrg
+      : reviewerGroupForm === "self"
+        ? employeeStakeholderLabel(selectedAssesseeEmployee)
+        : employeeStakeholderLabel(selectedReviewerEmployee);
     const candidate = {
-      reviewer_name: reviewerName,
-      reviewer_email: reviewerEmail,
+      reviewer_name: effectiveName,
+      reviewer_email: effectiveEmail,
       reviewer_group: reviewerGroupForm,
     };
 
     if (!reviewerAssignmentIsValid(candidate)) {
-      setReviewerNotice("Please provide a reviewer name, valid email, and reviewer group.");
+      setReviewerNotice(reviewerGroupForm === "customer"
+        ? "Please provide a customer reviewer name, valid email, and reviewer group."
+        : "Select a valid employee for this reviewer group.");
       setTimeout(() => setReviewerNotice(""), 4000);
       return;
     }
@@ -1174,10 +1264,10 @@ export default function AssessmentsPage() {
     const nextReviewer: Reviewer & { id: string; assesseeId: string; name: string; group: ReviewerGroup; email: string; status: ReviewerStatus } = {
       id: `reviewer-${Date.now()}`,
       assesseeId: selectedAssessee.id,
-      name: reviewerName.trim(),
+      name: effectiveName.trim(),
       group: reviewerGroupForm,
-      organisation: reviewerOrg.trim() || undefined,
-      email: reviewerEmail.trim(),
+      organisation: effectiveOrganisation.trim() || undefined,
+      email: effectiveEmail.trim(),
       status: "not_started",
     };
 
@@ -1200,10 +1290,10 @@ export default function AssessmentsPage() {
         body: JSON.stringify({
           cycleId: activeCycle.id,
           subjectId: selectedAssessee.id,
-          reviewerName,
-          reviewerEmail,
+          reviewerName: effectiveName,
+          reviewerEmail: effectiveEmail,
           reviewerGroup: reviewerGroupForm,
-          organisation: reviewerOrg,
+          organisation: effectiveOrganisation,
           inviteChannel: reviewerChannel,
           assessmentScope,
         }),
@@ -1219,6 +1309,7 @@ export default function AssessmentsPage() {
       setReviewerName("");
       setReviewerEmail("");
       setReviewerOrg("");
+      setSelectedReviewerEmployeeId("");
       setReviewerGroupForm("line_manager");
       setReviewerChannel("email");
       setAssessmentScope("individual");
@@ -1333,10 +1424,10 @@ export default function AssessmentsPage() {
                 </span>
               </div>
               <h1 className="mt-4 font-syne text-3xl font-black leading-tight sm:text-4xl">
-                Directorate 360 assessment command center
+                Leadership 360 assessment command center
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted sm:text-base">
-                Multi-rater assessment for {levelLabel("director", assessmentLevelLabels)} and {levelLabel("assistant_director", assessmentLevelLabels)} across direct reports, direct_reports, colleagues, and customers.
+                Multi-rater assessment for {levelLabel("director", assessmentLevelLabels)} and {levelLabel("assistant_director", assessmentLevelLabels)} across line managers, direct reports, colleagues, and customers.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1663,7 +1754,7 @@ export default function AssessmentsPage() {
                       value={cycleName}
                       onChange={(event) => setCycleName(event.target.value)}
                       className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
-                      placeholder="Directorate 360 Leadership Assessment"
+                      placeholder="Leadership 360 Assessment"
                     />
                   </label>
                   <label className="block text-sm font-black text-muted">
@@ -1744,7 +1835,7 @@ export default function AssessmentsPage() {
                 <div className="rounded-2xl border border-ink/8 bg-paper p-3">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <label className="flex-1 text-sm font-black text-muted">
-                      Existing Pulse employees
+                      Existing {orgDisplayName} employees
                       <select
                         value={selectedOrgEmployeeId}
                         onChange={(event) => setSelectedOrgEmployeeId(event.target.value)}
@@ -1769,29 +1860,13 @@ export default function AssessmentsPage() {
                     </button>
                   </div>
 
-                  {availableOrgEmployees.length === 0 ? (
-                    <p className="mt-3 text-sm text-muted">
-                      {orgEmployeeOptions.length ? "All organisation employees are already in this cycle." : "No existing employees are available yet for this organisation."}
-                    </p>
-                  ) : (
-                    <div className="mt-3 max-h-48 space-y-2 overflow-auto">
-                      {availableOrgEmployees.slice(0, 12).map((employee) => (
-                        <div key={employee.id} className="flex items-center justify-between gap-3 rounded-2xl border border-ink/8 bg-white p-2.5">
-                          <div>
-                            <p className="text-sm font-black text-ink">{employee.name}</p>
-                            <p className="text-xs text-muted">{employee.email}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleAddExistingEmployee(employee.id)}
-                            className="rounded-xl border border-ink/10 bg-paper px-2.5 py-1.5 text-xs font-black text-ink"
-                          >
-                            Add
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <p className="mt-3 text-xs text-muted">
+                    {availableOrgEmployees.length
+                      ? `${availableOrgEmployees.length} employee${availableOrgEmployees.length === 1 ? "" : "s"} available in the dropdown.`
+                      : orgEmployeeOptions.length
+                        ? "All organisation employees are already in this cycle."
+                        : "No existing employees are available yet for this organisation."}
+                  </p>
                 </div>
 
                 <div className="rounded-2xl border border-dashed border-ink/10 bg-paper p-3">
@@ -1843,47 +1918,29 @@ export default function AssessmentsPage() {
                     onChange={(event) => setAssessmentScope(event.target.value)}
                     className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                   >
-                    <option value="individual">Individual</option>
-                    <option value="team">Team</option>
-                    <option value="functional">Functional</option>
-                    <option value="customer_experience">Customer experience</option>
+                    {scopeOptions.map((scope) => (
+                      <option key={scope.value} value={scope.value}>
+                        {scope.label}
+                      </option>
+                    ))}
                   </select>
                   <span className="mt-1 block text-xs text-muted">
-                    Active scope: {normalizedScope.replace("_", " ")}
+                    {selectedScopeOption.description}
                   </span>
-                </label>
-                <label className="block text-sm font-black text-muted">
-                  Reviewer name
-                  <input
-                    value={reviewerName}
-                    onChange={(event) => setReviewerName(event.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
-                    placeholder="Jane Okafor"
-                  />
-                </label>
-                <label className="block text-sm font-black text-muted">
-                  Reviewer email
-                  <input
-                    value={reviewerEmail}
-                    onChange={(event) => setReviewerEmail(event.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
-                    placeholder="jane@company.com"
-                  />
-                </label>
-                <label className="block text-sm font-black text-muted md:col-span-2">
-                  Organisation / stakeholder
-                  <input
-                    value={reviewerOrg}
-                    onChange={(event) => setReviewerOrg(event.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
-                    placeholder="Operations, partner, function, or external account"
-                  />
                 </label>
                 <label className="block text-sm font-black text-muted md:col-span-2">
                   Reviewer group
                   <select
                     value={reviewerGroupForm}
-                    onChange={(event) => setReviewerGroupForm(event.target.value as ReviewerGroup)}
+                    onChange={(event) => {
+                      setReviewerGroupForm(event.target.value as ReviewerGroup);
+                      setSelectedReviewerEmployeeId("");
+                      if (event.target.value === "customer") {
+                        setReviewerName("");
+                        setReviewerEmail("");
+                        setReviewerOrg("");
+                      }
+                    }}
                     className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                   >
                     {reviewerGroups.map((group) => (
@@ -1893,6 +1950,73 @@ export default function AssessmentsPage() {
                     ))}
                   </select>
                 </label>
+
+                {reviewerGroupForm === "self" ? (
+                  <div className="rounded-2xl border border-ink/8 bg-paper p-3 text-sm text-muted md:col-span-2">
+                    <span className="font-black text-ink">{selectedAssessee.name}</span> will be assigned as their own self-reviewer.
+                  </div>
+                ) : reviewerGroupForm === "line_manager" ? (
+                  <div className="rounded-2xl border border-ink/8 bg-paper p-3 text-sm text-muted md:col-span-2">
+                    {selectedLineManager ? (
+                      <>
+                        <span className="font-black text-ink">{selectedLineManager.name}</span> - {selectedLineManager.email} - {employeeStakeholderLabel(selectedLineManager)}
+                      </>
+                    ) : (
+                      "No line manager is recorded for this participant in the employee table."
+                    )}
+                  </div>
+                ) : reviewerGroupForm === "direct_report" || reviewerGroupForm === "colleague" ? (
+                  <label className="block text-sm font-black text-muted md:col-span-2">
+                    Select {reviewerGroupForm === "direct_report" ? "a direct report" : "a colleague"}
+                    <select
+                      value={selectedReviewerEmployeeId}
+                      onChange={(event) => setSelectedReviewerEmployeeId(event.target.value)}
+                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    >
+                      <option value="">Choose from {orgDisplayName} employees</option>
+                      {reviewerEmployeeOptions.map((employee) => (
+                        <option key={employee.id} value={employee.id}>
+                          {employee.name} ({employee.email})
+                        </option>
+                      ))}
+                    </select>
+                    <span className="mt-1 block text-xs text-muted">
+                      {reviewerEmployeeOptions.length
+                        ? `${reviewerEmployeeOptions.length} matching employee${reviewerEmployeeOptions.length === 1 ? "" : "s"} found.`
+                        : "No matching employees found from the current org chart."}
+                    </span>
+                  </label>
+                ) : (
+                  <>
+                    <label className="block text-sm font-black text-muted">
+                      Reviewer name
+                      <input
+                        value={reviewerName}
+                        onChange={(event) => setReviewerName(event.target.value)}
+                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                        placeholder="Customer or partner name"
+                      />
+                    </label>
+                    <label className="block text-sm font-black text-muted">
+                      Reviewer email
+                      <input
+                        value={reviewerEmail}
+                        onChange={(event) => setReviewerEmail(event.target.value)}
+                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                        placeholder="reviewer@company.com"
+                      />
+                    </label>
+                    <label className="block text-sm font-black text-muted md:col-span-2">
+                      Organisation / stakeholder
+                      <input
+                        value={reviewerOrg}
+                        onChange={(event) => setReviewerOrg(event.target.value)}
+                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                        placeholder="External account, customer organisation, or partner"
+                      />
+                    </label>
+                  </>
+                )}
                 <label className="block text-sm font-black text-muted md:col-span-2">
                   Review channel
                   <select
@@ -1906,7 +2030,7 @@ export default function AssessmentsPage() {
                     <option value="portal">Portal</option>
                   </select>
                   <span className="mt-1 block text-xs text-muted">
-                    {whatsappEnabled ? "WhatsApp is enabled for this review route." : "This channel is not supported for this review route."}
+                    {whatsappEnabled ? "This delivery channel is enabled for reviewer links." : "This delivery channel is not supported yet."}
                   </span>
                 </label>
               </div>
@@ -2033,14 +2157,14 @@ export default function AssessmentsPage() {
               </div>
 
               <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Live submission score</p>
-                <h3 className="mt-2 text-xl font-black">Submitted review impact</h3>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Live submission progress</p>
+                <h3 className="mt-2 text-xl font-black">Submitted reviews</h3>
                 <div className="mt-4 flex items-end justify-between gap-3">
                   <div>
-                    <p className="text-3xl font-black">{liveReviewScore}</p>
-                    <p className="mt-1 text-xs text-muted">Weighted by reviewer weight and customer impact</p>
+                    <p className="text-3xl font-black">{submittedCount}/{reviewerAssignments.length}</p>
+                    <p className="mt-1 text-xs text-muted">Actual submitted reviewer assignments in this cycle</p>
                   </div>
-                  <span className="rounded-2xl bg-green-soft px-3 py-2 text-xs font-black text-green">Submitted</span>
+                  <span className="rounded-2xl bg-green-soft px-3 py-2 text-xs font-black text-green">{completion}% complete</span>
                 </div>
               </div>
             </div>
@@ -2124,7 +2248,7 @@ export default function AssessmentsPage() {
                           value={assessmentLevelLabelDrafts[0] ?? ""}
                           onChange={(event) => setAssessmentLevelLabelDrafts((current) => [event.target.value, current[1] ?? ""]) }
                           className="mt-1 w-full rounded-2xl border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
-                          placeholder="Director"
+                          placeholder={levelLabel("director", assessmentLevelLabels)}
                         />
                       </label>
                       <label className="block text-sm font-black text-muted">
@@ -2133,7 +2257,7 @@ export default function AssessmentsPage() {
                           value={assessmentLevelLabelDrafts[1] ?? ""}
                           onChange={(event) => setAssessmentLevelLabelDrafts((current) => [current[0] ?? "", event.target.value]) }
                           className="mt-1 w-full rounded-2xl border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
-                          placeholder="Assistant Director"
+                          placeholder={levelLabel("assistant_director", assessmentLevelLabels)}
                         />
                       </label>
                     </div>
@@ -2166,7 +2290,7 @@ export default function AssessmentsPage() {
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
                   {[
-                    ["Levels", assessmentFramework.levels.join(", ").replaceAll("_", " ")],
+                    ["Levels", assessmentFramework.levels.map((level) => levelLabel(level as AssessmentLevel, assessmentLevelLabels)).join(", ")],
                     ["Functions", assessmentFramework.businessFunctions.join(", ").replaceAll("_", " ")],
                     ["Competencies", assessmentFramework.competencies.length.toString()],
                     ["Raters", `${raterCoverage.submitted}/${raterCoverage.total} submitted`],
@@ -2263,8 +2387,8 @@ export default function AssessmentsPage() {
                     Level
                     <select value={competencyDraftLevel} onChange={(event) => setCompetencyDraftLevel(event.target.value as AssessmentLevel | "all")} className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50">
                       <option value="all">All</option>
-                      <option value="director">Director</option>
-                      <option value="assistant_director">Assistant Director</option>
+                      <option value="director">{levelLabel("director", assessmentLevelLabels)}</option>
+                      <option value="assistant_director">{levelLabel("assistant_director", assessmentLevelLabels)}</option>
                     </select>
                   </label>
                   <label className="block text-sm font-black text-muted md:col-span-2">
