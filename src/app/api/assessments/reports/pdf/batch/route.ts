@@ -11,8 +11,8 @@ import {
   IndividualAssessmentReportDocument,
 } from "@/lib/assessmentPdfDocument";
 import {
-  buildMockAggregateReport,
-  buildMockIndividualReport,
+  buildAggregateReport,
+  buildIndividualReport,
   loadPdfReportData,
 } from "@/lib/assessmentPdfData";
 import { canManageReportState } from "@/lib/assessmentReportAccess";
@@ -140,7 +140,7 @@ function publicJob(job: BatchJob, request: NextRequest) {
 async function runJob(job: BatchJob) {
   job.status = "running";
   job.updatedAt = new Date().toISOString();
-  const data = await loadPdfReportData(getAdminClient(), job.cycleId);
+  const data = await loadPdfReportData(getAdminClient(), job.cycleId, { includePrior: true });
   const generatedAt = new Date().toISOString();
 
   for (const entry of job.reports) {
@@ -152,12 +152,12 @@ async function runJob(job: BatchJob) {
 
     try {
       if (entry.type === "aggregate") {
-        const report = buildMockAggregateReport(data, generatedAt);
+        const report = buildAggregateReport(data, generatedAt);
         const buffer = await renderToBuffer(pdfDocument(React.createElement(AggregateAssessmentReportDocument, { report })));
         job.files.set(entry.key, buffer);
         entry.bytes = buffer.byteLength;
       } else if (entry.subjectId) {
-        const report = buildMockIndividualReport(data, entry.subjectId, generatedAt);
+        const report = buildIndividualReport(data, entry.subjectId, generatedAt);
         const buffer = await renderToBuffer(pdfDocument(React.createElement(IndividualAssessmentReportDocument, { report })));
         job.files.set(entry.key, buffer);
         entry.bytes = buffer.byteLength;
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
 
   let job = existingJob;
   if (!job) {
-    const data = await loadPdfReportData(getAdminClient(), cycleId);
+    const data = await loadPdfReportData(getAdminClient(), cycleId, { includePrior: true });
     const now = new Date().toISOString();
     const reports: BatchReportEntry[] = data.subjects.map((subject) => ({
       key: `individual:${subject.id}`,

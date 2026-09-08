@@ -10,8 +10,8 @@ import {
   IndividualAssessmentReportDocument,
 } from "@/lib/assessmentPdfDocument";
 import {
-  buildMockAggregateReport,
-  buildMockIndividualReport,
+  buildAggregateReport,
+  buildIndividualReport,
   loadPdfReportData,
 } from "@/lib/assessmentPdfData";
 import {
@@ -150,14 +150,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
   }
 
-  const reportData = await loadPdfReportData(admin, cycleId);
+  const reportData = await loadPdfReportData(admin, cycleId, { includePrior: true });
   const generatedAt = new Date().toISOString();
 
   if (type === "aggregate") {
     if (!canReadAggregateReport(employee.platform_role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const report = buildMockAggregateReport(reportData, generatedAt);
+    const report = buildAggregateReport(reportData, generatedAt);
     const buffer = await renderToBuffer(pdfDocument(React.createElement(AggregateAssessmentReportDocument, { report })));
     await logExport({ admin, request, employee, userId: user.id, cycleId, reportType: "aggregate" });
     return pdfResponse(buffer, `${slug(report.cycle.name)}-aggregate-360-report.pdf`);
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const report = buildMockIndividualReport(reportData, subjectId, generatedAt);
+  const report = buildIndividualReport(reportData, subjectId, generatedAt);
   const buffer = await renderToBuffer(pdfDocument(React.createElement(IndividualAssessmentReportDocument, { report })));
   await logExport({ admin, request, employee, userId: user.id, cycleId, subjectId, reportType: "individual" });
   return pdfResponse(buffer, `${slug(report.subject.name)}-360-report.pdf`);

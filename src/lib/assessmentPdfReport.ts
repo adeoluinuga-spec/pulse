@@ -8,12 +8,21 @@ import type {
   SubjectScores,
   Verbatim,
 } from "./assessmentScoring.ts";
+import {
+  buildCohortMovement,
+  buildIndividualMovement,
+  type CohortMovement,
+  type FrameworkProvenance,
+  type IndividualMovement,
+} from "./assessmentComparison.ts";
 import { aggregateCohort, DEFAULT_WEIGHTS } from "./assessmentScoring.ts";
 import type { RaterGroup } from "./raterRelationship.ts";
 
 export type ReportSubjectProfile = {
   id: string;
   name: string;
+  employeeId?: string | null;
+  email?: string | null;
   role?: string | null;
   level?: string | null;
   functionName?: string | null;
@@ -25,6 +34,10 @@ export type ReportCycleProfile = {
   name: string;
   clientName?: string | null;
   closesOn?: string | null;
+  frameworkId?: string | null;
+  frameworkVersion?: number | null;
+  priorCycleId?: string | null;
+  priorCycleName?: string | null;
 };
 
 export type CompetencyLabel = {
@@ -47,6 +60,7 @@ export type IndividualPdfReport = {
   subject: ReportSubjectProfile;
   scores: SubjectScores;
   competencies: Array<Omit<CompetencyScore, "items"> & { name: string; description?: string | null; items: Array<ScoringItemScore & { text: string }> }>;
+  movement?: IndividualMovement | null;
   narrativeThemes: Array<{ theme: string; comments: string[] }>;
   developmentPriorities: string[];
 };
@@ -60,6 +74,8 @@ export type AggregatePdfReport = {
   cohortMean: number | null;
   competencyHeatMap: Array<{ competencyId: string; name: string; mean: number | null; suppressed: boolean }>;
   segments: CohortSegment[];
+  movement?: CohortMovement | null;
+  movementNarrative?: string | null;
   capabilityGaps: string[];
   recommendedInterventions: string[];
 };
@@ -122,6 +138,8 @@ export function buildIndividualPdfReport(input: {
   cycle: ReportCycleProfile;
   subject: ReportSubjectProfile;
   scores: SubjectScores;
+  priorCycle?: ReportCycleProfile | null;
+  priorScores?: SubjectScores | null;
   competencyLabels: CompetencyLabel[];
   itemLabels: ItemLabel[];
 }): IndividualPdfReport {
@@ -148,6 +166,17 @@ export function buildIndividualPdfReport(input: {
     subject: input.subject,
     scores: input.scores,
     competencies,
+    movement: input.priorCycle
+      ? buildIndividualMovement({
+          subjectId: input.subject.id,
+          priorSubjectId: input.priorScores?.subjectId ?? null,
+          current: input.scores,
+          prior: input.priorScores,
+          currentFramework: frameworkOf(input.cycle),
+          priorFramework: frameworkOf(input.priorCycle),
+          labels: new Map(input.competencyLabels.map((item) => [item.id, item.name])),
+        })
+      : null,
     narrativeThemes: buildNarrativeThemes(input.scores.verbatims, itemNames),
     developmentPriorities: buildDevelopmentPriorities(competencies, input.scores.gaps),
   };
@@ -158,6 +187,8 @@ export function buildAggregatePdfReport(input: {
   generatedAt?: string;
   cycle: ReportCycleProfile;
   subjects: CohortSubject[];
+  priorCycle?: ReportCycleProfile | null;
+  priorSubjects?: CohortSubject[];
   competencyLabels: CompetencyLabel[];
   segments?: CohortSegment[];
 }): AggregatePdfReport {
@@ -195,95 +226,50 @@ export function buildAggregatePdfReport(input: {
     cohortMean: mean(input.subjects.map((subject) => subject.scores.overall).filter((value): value is number => value !== null)),
     competencyHeatMap,
     segments,
+    movement: input.priorCycle
+      ? buildCohortMovement({
+          priorSubjects: input.priorSubjects ?? [],
+          currentSubjects: input.subjects,
+          priorFramework: frameworkOf(input.priorCycle),
+          currentFramework: frameworkOf(input.cycle),
+          labels: new Map(input.competencyLabels.map((item) => [item.id, item.name])),
+        })
+      : null,
+    movementNarrative: input.priorCycle
+      ? buildMovementNarrative(
+          buildCohortMovement({
+            priorSubjects: input.priorSubjects ?? [],
+            currentSubjects: input.subjects,
+            priorFramework: frameworkOf(input.priorCycle),
+            currentFramework: frameworkOf(input.cycle),
+            labels: new Map(input.competencyLabels.map((item) => [item.id, item.name])),
+          }),
+        )
+      : null,
     capabilityGaps: weakest.map((item) => `${item.name} is a cohort capability gap at ${scoreLabel(item.mean)}.`),
     recommendedInterventions: weakest.map((item) => `Run focused coaching and manager-led action learning on ${item.name}.`),
   };
 }
 
-export function createMockSubjectScores(subjectId: string, seed = 1): SubjectScores {
-  const competencyIds = ["strategic_leadership", "people_leadership", "execution", "customer_focus"];
-  const competencies = competencyIds.map((competencyId, index): CompetencyScore => {
-    const base = 3.25 + ((seed + index) % 5) * 0.18;
-    const suppressed: GroupCompetencyScore = {
-      competencyId,
-      raterGroup: "customer",
-      mean: null,
-      raterCount: 2,
-      responseCount: 6,
-      notObservedCount: 1,
-      suppressed: true,
-      exempt: false,
-    };
-    return {
-      competencyId,
-      mean: round(base),
-      selfMean: round(base + (index === 0 ? 0.65 : -0.2)),
-      othersMean: round(base),
-      raterCount: 8,
-      responseCount: 28,
-      notObservedCount: 2,
-      byGroup: [
-        { competencyId, raterGroup: "self", mean: round(base + 0.25), raterCount: 1, responseCount: 4, notObservedCount: 0, suppressed: false, exempt: true },
-        { competencyId, raterGroup: "line_manager", mean: round(base - 0.1), raterCount: 1, responseCount: 4, notObservedCount: 0, suppressed: false, exempt: true },
-        { competencyId, raterGroup: "colleague", mean: round(base + 0.05), raterCount: 3, responseCount: 12, notObservedCount: 1, suppressed: false, exempt: false },
-        { competencyId, raterGroup: "direct_report", mean: round(base - 0.15), raterCount: 3, responseCount: 12, notObservedCount: 1, suppressed: false, exempt: false },
-        suppressed,
-      ],
-      items: [1, 2, 3, 4].map((item): ScoringItemScore => ({
-        itemId: `${competencyId}_item_${item}`,
-        competencyId,
-        mean: item === 4 && index === 1 ? null : round(base + item * 0.05),
-        raterCount: item === 4 && index === 1 ? 2 : 7,
-        responseCount: item === 4 && index === 1 ? 2 : 21,
-        notObservedCount: item % 2,
-        suppressed: item === 4 && index === 1,
-        selfRating: Math.min(5, Math.max(1, Math.round(base + 0.5))),
-      })),
-    };
-  });
-
+function frameworkOf(cycle: ReportCycleProfile): FrameworkProvenance {
   return {
-    subjectId,
-    overall: mean(competencies.map((competency) => competency.mean).filter((value): value is number => value !== null)),
-    competencies,
-    gaps: competencies.map((competency) => {
-      const gap = competency.selfMean !== null && competency.othersMean !== null ? round(competency.selfMean - competency.othersMean) : null;
-      return {
-        competencyId: competency.competencyId,
-        selfMean: competency.selfMean,
-        othersMean: competency.othersMean,
-        gap,
-        blindSpot: gap !== null && gap >= 0.5,
-        hiddenStrength: gap !== null && gap <= -0.5,
-      };
-    }),
-    verbatims: [
-      { competencyId: null, itemId: "start_doing", raterGroup: "colleague", comment: "Clarify decision rights earlier when initiatives cross functions." },
-      { competencyId: "people_leadership", itemId: "people_leadership_item_2", raterGroup: "direct_report", comment: "Coaching conversations are practical and respectful." },
-      { competencyId: "customer_focus", itemId: "customer_focus_item_1", raterGroup: "customer", comment: "More proactive escalation updates would help customers plan better." },
-    ],
-    release: { ready: true, hasLineManager: true, qualifyingCategories: ["colleague", "direct_report"], reasons: [] },
-    insufficientData: false,
+    frameworkId: cycle.frameworkId,
+    frameworkVersion: cycle.frameworkVersion,
   };
 }
 
-export function createMockLabels(): { competencies: CompetencyLabel[]; items: ItemLabel[] } {
-  const competencies: CompetencyLabel[] = [
-    { id: "strategic_leadership", name: "Strategic Leadership", description: "Sets direction and translates priorities into action." },
-    { id: "people_leadership", name: "People Leadership", description: "Builds trust, coaching rhythm, and accountable teams." },
-    { id: "execution", name: "Execution Discipline", description: "Turns commitments into reliable delivery." },
-    { id: "customer_focus", name: "Customer Focus", description: "Keeps customer outcomes visible in leadership decisions." },
-  ];
-  const items: ItemLabel[] = competencies.flatMap((competency) =>
-    [1, 2, 3, 4].map((index) => ({
-      id: `${competency.id}_item_${index}`,
-      competencyId: competency.id,
-      text: `${competency.name} behaviour ${index}`,
-    })),
-  );
-  items.push({ id: "start_doing", competencyId: null, text: "What should this leader start doing?" });
-  return { competencies, items };
+export function buildMovementNarrative(movement: CohortMovement): string {
+  if (!movement.comparability.comparable) return movement.comparability.message;
+  const visible = movement.competencies
+    .filter((item) => item.delta !== null && !item.suppressed)
+    .sort((a, b) => Math.abs(Number(b.delta)) - Math.abs(Number(a.delta)));
+  const leader = visible[0];
+  if (!leader) return movement.headline;
+  const direction = leader.direction === "declined" ? "declined" : leader.direction === "improved" ? "improved" : "held broadly flat";
+  const delta = leader.delta === null ? "" : ` by ${Math.abs(leader.delta).toFixed(2)} points`;
+  return `${movement.headline} The clearest competency movement is ${leader.label}, which ${direction}${delta}.`;
 }
+
 
 function mean(values: number[]): number | null {
   if (!values.length) return null;

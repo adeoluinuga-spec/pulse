@@ -12,7 +12,7 @@ import { connect } from "./_db.mjs";
 import { scoreSubjectFromDatabase, scoreCohortFromDatabase } from "../../src/lib/assessmentScoringService.ts";
 import { buildReportPayload } from "../../src/lib/assessmentReporting.ts";
 import { MINIMUM_RESPONSES_PER_GROUP } from "../../src/lib/assessmentScoring.ts";
-import { loadPdfReportData, buildMockIndividualReport, buildMockAggregateReport } from "../../src/lib/assessmentPdfData.ts";
+import { loadPdfReportData, buildIndividualReport, buildAggregateReport } from "../../src/lib/assessmentPdfData.ts";
 import { assertExportContainsNoRawVerbatims } from "../../src/lib/assessmentExports.ts";
 
 const env = Object.fromEntries(
@@ -161,8 +161,8 @@ console.log("\n════ PDF DATA ══════════════�
   const t0 = Date.now();
   const data = await loadPdfReportData(admin, state.cycleId);
   const ms = Date.now() - t0;
-  const individual = buildMockIndividualReport(data, SUPPRESSED.subjectId);
-  const aggregate = buildMockAggregateReport(data);
+  const individual = buildIndividualReport(data, SUPPRESSED.subjectId);
+  const aggregate = buildAggregateReport(data);
   const serialised = JSON.stringify(individual);
 
   record("individual PDF data builds", Boolean(individual?.subject), `loadedIn=${ms}ms`);

@@ -9,7 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import { connect } from "./_db.mjs";
 import { scoreSubjectFromDatabase, scoreCohortFromDatabase } from "../../src/lib/assessmentScoringService.ts";
 import { buildReportPayload } from "../../src/lib/assessmentReporting.ts";
-import { loadPdfReportData, buildMockIndividualReport, buildMockAggregateReport } from "../../src/lib/assessmentPdfData.ts";
+import { loadPdfReportData, buildIndividualReport, buildAggregateReport } from "../../src/lib/assessmentPdfData.ts";
 import { parseBulkReviewerCsv } from "../../src/lib/assessmentReviewerBulk.ts";
 
 const env = Object.fromEntries(
@@ -72,9 +72,9 @@ const time = async (fn) => { const t = Date.now(); const v = await fn(); return 
 {
   const [tLoad, data] = await time(() => loadPdfReportData(admin, state.cycleId, { includePrior: true }));
   const t0 = Date.now();
-  for (const s of state.subjects) buildMockIndividualReport(data, s.subjectId);
+  for (const s of state.subjects) buildIndividualReport(data, s.subjectId);
   const tBuild = Date.now() - t0;
-  buildMockAggregateReport(data);
+  buildAggregateReport(data);
   const per = tBuild / state.subjects.length;
   rows.push({ stage: "PDF data load (once per batch)", measured: ms(tLoad), projected568: ms(tLoad), note: "single query set" });
   rows.push({

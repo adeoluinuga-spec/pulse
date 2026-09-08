@@ -7,6 +7,8 @@
 -- Reflects, as applied:
 --   20260903_000001_assessment_schema.sql
 --   20260904_000001_assessment_response_contract.sql
+--   20260904_000002_assessment_report_access_tiers.sql
+--   20260905_000001_assessment_prior_cycle.sql
 
 create table if not exists public.assessment_cycles (
   id uuid primary key default gen_random_uuid(),
@@ -18,6 +20,8 @@ create table if not exists public.assessment_cycles (
   levels text[] not null default array['director', 'assistant_director'],
   starts_on date,
   closes_on date,
+  prior_cycle_id uuid references public.assessment_cycles(id) on delete set null,
+  line_manager_report_access_enabled boolean not null default false,
   reviewer_weights jsonb not null default '{"self":0,"line_manager":30,"colleague":25,"direct_report":25,"customer":20}'::jsonb,
   competency_model jsonb not null default '[]'::jsonb,
   created_by uuid references auth.users(id) on delete set null,
@@ -190,6 +194,7 @@ create table if not exists public.assessment_reports (
   development_areas text[] not null default '{}',
   risk_notes text[] not null default '{}',
   released_at timestamptz,
+  report_status text not null default 'draft' check (report_status in ('draft', 'in_review', 'released')),
   generated_at timestamptz not null default now(),
   unique (cycle_id, subject_id)
 );

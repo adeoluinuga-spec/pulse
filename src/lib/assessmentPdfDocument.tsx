@@ -137,6 +137,11 @@ function ScoreRow({ label, value, muted }: { label: string; value: string; muted
   );
 }
 
+function deltaLabel(value: number | null): string {
+  if (value === null) return "No comparable delta";
+  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
+}
+
 export function IndividualAssessmentReportDocument({ report }: { report: IndividualPdfReport }) {
   const blindSpots = report.scores.gaps.filter((gap) => gap.blindSpot);
   const hiddenStrengths = report.scores.gaps.filter((gap) => gap.hiddenStrength);
@@ -149,6 +154,7 @@ export function IndividualAssessmentReportDocument({ report }: { report: Individ
         <Text style={styles.subtitle}>{report.subject.name}</Text>
         <Text style={styles.subtitle}>{report.subject.role ?? report.subject.level ?? "Participant"}</Text>
         <Text style={styles.subtitle}>{report.cycle.name}</Text>
+        <Text style={styles.subtitle}>Framework version {report.cycle.frameworkVersion ?? "not recorded"}</Text>
         <Text style={styles.subtitle}>Generated {new Date(report.generatedAt).toLocaleDateString("en-GB")}</Text>
         <View style={styles.confidentiality}>
           <Text style={styles.subheading}>Confidentiality statement</Text>
@@ -202,6 +208,22 @@ export function IndividualAssessmentReportDocument({ report }: { report: Individ
             />
           ))}
         </Section>
+
+        {report.movement ? (
+          <Section title="Movement against baseline">
+            <Text style={report.movement.comparability.comparable ? styles.muted : styles.suppressed}>
+              {report.movement.comparability.message}
+            </Text>
+            {report.movement.competencies.map((item) => (
+              <ScoreRow
+                key={item.competencyId}
+                label={item.label}
+                value={item.suppressed ? "Suppressed (n<3)" : deltaLabel(item.delta)}
+                muted={`Prior ${scoreLabel(item.priorScore)} | Current ${scoreLabel(item.currentScore)}`}
+              />
+            ))}
+          </Section>
+        ) : null}
 
         <Section title="Blind spots and hidden strengths">
           <Text style={styles.subheading}>Blind spots</Text>
@@ -272,6 +294,7 @@ export function AggregateAssessmentReportDocument({ report }: { report: Aggregat
         <Text style={styles.title}>Aggregate 360 Assessment Report</Text>
         <Text style={styles.subtitle}>{report.cycle.name}</Text>
         <Text style={styles.subtitle}>{report.cohortSize} participants</Text>
+        <Text style={styles.subtitle}>Framework version {report.cycle.frameworkVersion ?? "not recorded"}</Text>
         <Text style={styles.subtitle}>Generated {new Date(report.generatedAt).toLocaleDateString("en-GB")}</Text>
         <View style={styles.confidentiality}>
           <Text style={styles.subheading}>Confidential aggregate design</Text>
@@ -286,6 +309,19 @@ export function AggregateAssessmentReportDocument({ report }: { report: Aggregat
         <Section title="Cohort scores">
           <ScoreRow label="Cohort mean" value={scoreLabel(report.cohortMean)} muted={`${report.cohortSize} participants`} />
         </Section>
+
+        {report.movement ? (
+          <Section title="Movement against baseline">
+            <Text style={report.movement.comparability.comparable ? styles.muted : styles.suppressed}>
+              {report.movementNarrative ?? report.movement.headline}
+            </Text>
+            <ScoreRow
+              label="Overall movement"
+              value={report.movement.overall.suppressed ? "Suppressed (n<3)" : deltaLabel(report.movement.overall.delta)}
+              muted={`Prior ${scoreLabel(report.movement.overall.priorScore)} | Current ${scoreLabel(report.movement.overall.currentScore)}`}
+            />
+          </Section>
+        ) : null}
 
         <Section title="Competency heat map">
           {report.competencyHeatMap.map((item) => (
