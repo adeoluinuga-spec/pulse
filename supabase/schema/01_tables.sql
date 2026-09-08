@@ -9,6 +9,7 @@ create table if not exists organisations (
   name text not null,
   slug text unique not null,
   logo_url text,
+  reply_to_email text,
   currency text default 'NGN',
   appraisal_cadence text default 'quarterly',
   assessment_level_labels jsonb default '["Director", "Assistant Director"]',

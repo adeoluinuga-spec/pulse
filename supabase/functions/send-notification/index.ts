@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const FROM_EMAIL = Deno.env.get("FROM_EMAIL") ?? "notifications@usepulse.app";
+const FROM_EMAIL = Deno.env.get("FROM_EMAIL");
 const APP_URL = Deno.env.get("APP_URL") ?? "https://usepulse.app";
 // Shared secret so only our own server/cron can trigger emails.
 // Anyone with just the public anon key gets a 401.
@@ -223,6 +223,15 @@ serve(async (req) => {
       });
     }
 
+    if (!RESEND_API_KEY || !FROM_EMAIL) {
+      return new Response(JSON.stringify({ error: "Email provider secrets are not configured" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const replyToEmail = payload.data?.replyToEmail?.trim();
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -234,6 +243,7 @@ serve(async (req) => {
         to: payload.recipientEmail,
         subject: email.subject,
         html: email.html,
+        ...(replyToEmail ? { reply_to: [replyToEmail] } : {}),
       }),
     });
 

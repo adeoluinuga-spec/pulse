@@ -17,6 +17,7 @@ interface NotificationInput {
   email?: {
     recipientEmail: string;
     recipientName: string;
+    replyToEmail?: string;
     data?: Record<string, string>;
   };
 }
@@ -48,7 +49,10 @@ export async function sendNotification(input: NotificationInput): Promise<void> 
           type: input.type,
           recipientEmail: input.email.recipientEmail,
           recipientName: input.email.recipientName,
-          data: input.email.data ?? {},
+          data: {
+            ...(input.email.data ?? {}),
+            ...(input.email.replyToEmail ? { replyToEmail: input.email.replyToEmail } : {}),
+          },
         }),
       });
     } catch {
