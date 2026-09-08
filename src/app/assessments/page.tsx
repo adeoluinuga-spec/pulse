@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import Link from "next/link";
 import clsx from "clsx";
 import {
   BarChart3,
@@ -417,6 +418,7 @@ export default function AssessmentsPage() {
   const [raterNominations, setRaterNominations] = useState<RaterNominationItem[]>([]);
   const [isLaunchingCycle, setIsLaunchingCycle] = useState(false);
   const [isSendingReminders, setIsSendingReminders] = useState(false);
+  const [isUpdatingCycleStatus, setIsUpdatingCycleStatus] = useState(false);
 
   async function handleLaunchCycle() {
     if (!activeCycle.id) {
@@ -504,6 +506,41 @@ export default function AssessmentsPage() {
       showToast(error instanceof Error ? error.message : "Unable to send assessment reminders", "error");
     } finally {
       setIsSendingReminders(false);
+    }
+  }
+
+  async function handleUpdateCycleStatus(status: AssessmentCycle["status"]) {
+    if (!activeCycle.id) {
+      showToast("Create or select an assessment cycle before changing its status.", "warning");
+      return;
+    }
+
+    setIsUpdatingCycleStatus(true);
+    try {
+      const response = await fetch("/api/assessments/cycles", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cycleId: activeCycle.id,
+          status,
+          ...(status === "closed" ? { closesOn: new Date().toISOString().slice(0, 10) } : {}),
+        }),
+      });
+      const result = (await response.json().catch(() => ({}))) as { cycle?: ApiCycle; error?: string };
+      if (!response.ok) {
+        throw new Error(result.error ?? "Unable to update assessment cycle status");
+      }
+      if (result.cycle) {
+        const nextCycle = mapApiCycle(result.cycle);
+        setActiveCycle(nextCycle);
+        setCycleStartsOn(nextCycle.startDate);
+        setCycleClosesOn(nextCycle.closeDate);
+      }
+      showToast(`Cycle moved to ${statusLabel(status)}.`, "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Unable to update assessment cycle status", "error");
+    } finally {
+      setIsUpdatingCycleStatus(false);
     }
   }
 
@@ -1529,6 +1566,27 @@ export default function AssessmentsPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Link
+                href="/assessments/instrument"
+                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-pulse/25 bg-pulse-soft px-4 text-sm font-black text-pulse shadow-sm transition hover:border-pulse/45"
+              >
+                <ClipboardList size={16} />
+                Build rating statements
+              </Link>
+              <Link
+                href="/assessments/reviewers/bulk"
+                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40"
+              >
+                <Users size={16} />
+                Bulk raters
+              </Link>
+              <Link
+                href="/assessments/reports"
+                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40"
+              >
+                <FileText size={16} />
+                Generate reports
+              </Link>
               <button
                 type="button"
                 onClick={handleLaunchCycle}
@@ -1547,10 +1605,54 @@ export default function AssessmentsPage() {
                 <Mail size={16} />
                 {isSendingReminders ? "Sending..." : "Send reminders"}
               </button>
-              <button className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white shadow-sm transition hover:bg-ink/90">
+              {activeCycle.status === "collecting" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateCycleStatus("calibration")}
+                    disabled={isUpdatingCycleStatus || !canManageAssessments}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    <Clock3 size={16} />
+                    Move to review
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateCycleStatus("closed")}
+                    disabled={isUpdatingCycleStatus || !canManageAssessments}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white shadow-sm transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    <CheckCircle2 size={16} />
+                    Close cycle
+                  </button>
+                </>
+              )}
+              {activeCycle.status === "calibration" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateCycleStatus("collecting")}
+                    disabled={isUpdatingCycleStatus || !canManageAssessments}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    <RefreshCw size={16} />
+                    Reopen collection
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateCycleStatus("closed")}
+                    disabled={isUpdatingCycleStatus || !canManageAssessments}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white shadow-sm transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    <CheckCircle2 size={16} />
+                    Close cycle
+                  </button>
+                </>
+              )}
+              <Link href="/assessments/reports/pdf" className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white shadow-sm transition hover:bg-ink/90">
                 <Download size={16} />
-                Export pack
-              </button>
+                PDF pack
+              </Link>
             </div>
           </div>
 

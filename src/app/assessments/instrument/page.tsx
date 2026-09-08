@@ -16,19 +16,48 @@ type FrameworkRecord = {
   competencies: Array<{ id: string; name: string; level?: string; function?: string; active?: boolean }>;
 };
 
+type InstrumentItem = AssessmentInstrumentItem & {
+  competencyName?: string | null;
+};
+
 const emptyDraft = {
   body: "",
   type: "scale" as AssessmentInstrumentItemType,
   competencyId: "",
 };
 
+function mapInstrumentItem(row: Record<string, unknown>, competencies: FrameworkRecord["competencies"]): InstrumentItem {
+  const itemType = (row.itemType ?? row.item_type ?? "scale") as AssessmentInstrumentItemType;
+  const competencyName = typeof row.competencyName === "string"
+    ? row.competencyName
+    : typeof row.competency_name === "string"
+      ? row.competency_name
+      : null;
+  const rawCompetencyId = (row.competencyId ?? row.competency_id ?? null) as string | null;
+  const matchingFrameworkCompetency = competencyName
+    ? competencies.find((competency) => competency.name === competencyName)
+    : null;
+
+  return {
+    id: typeof row.id === "string" ? row.id : undefined,
+    competencyId: matchingFrameworkCompetency?.id ?? rawCompetencyId,
+    competencyName,
+    itemType,
+    body: String(row.body ?? ""),
+    displayOrder: Number(row.displayOrder ?? row.display_order ?? 0),
+    isActive: row.isActive ?? row.is_active ?? true ? true : false,
+  };
+}
+
 export default function AssessmentInstrumentPage() {
   const [frameworks, setFrameworks] = useState<FrameworkRecord[]>([]);
   const [selectedFrameworkId, setSelectedFrameworkId] = useState("");
-  const [items, setItems] = useState<AssessmentInstrumentItem[]>([]);
+  const [items, setItems] = useState<InstrumentItem[]>([]);
   const [draft, setDraft] = useState(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const selectedFramework = frameworks.find((framework) => framework.id === selectedFrameworkId) ?? frameworks[0];
+  const competencies = selectedFramework?.competencies ?? [];
 
   useEffect(() => {
     async function load() {
@@ -66,14 +95,12 @@ export default function AssessmentInstrumentPage() {
         setNotice(payload?.error ?? "Unable to load instrument items");
         return;
       }
-      setItems((payload.items ?? []) as AssessmentInstrumentItem[]);
+      setItems(((payload.items ?? []) as Record<string, unknown>[]).map((item) => mapInstrumentItem(item, competencies)));
     }
 
     void loadItems();
-  }, [selectedFrameworkId]);
+  }, [selectedFrameworkId, competencies]);
 
-  const selectedFramework = frameworks.find((framework) => framework.id === selectedFrameworkId) ?? frameworks[0];
-  const competencies = selectedFramework?.competencies ?? [];
   const sortedItems = useMemo(() => sortInstrumentItems(items), [items]);
   const groupedItems = useMemo(
     () =>
@@ -130,30 +157,31 @@ export default function AssessmentInstrumentPage() {
       return;
     }
 
-    const savedItem = nextPayload.item as AssessmentInstrumentItem;
+    const savedItem = mapInstrumentItem(nextPayload.item as Record<string, unknown>, competencies);
+    const selectedCompetencyName = draft.type === "scale"
+      ? competencies.find((competency) => competency.id === draft.competencyId)?.name ?? savedItem.competencyName
+      : null;
+    const displayItem = { ...savedItem, competencyId: draft.type === "scale" ? draft.competencyId : null, competencyName: selectedCompetencyName };
     setItems((current) => {
       if (editingId) {
-        return current.map((item) => (item.id === editingId ? { ...item, ...savedItem } : item));
+        return current.map((item) => (item.id === editingId ? { ...item, ...displayItem } : item));
       }
-      return [...current, { ...savedItem, body: savedItem.body ?? body }];
+      return [...current, { ...displayItem, body: displayItem.body ?? body }];
     });
     setDraft(emptyDraft);
     setEditingId(null);
     setNotice(editingId ? "Item updated." : "Item created.");
   }
 
-  async function toggleActive(itemId: string, active: boolean) {
-    const response = await fetch("/api/assessments/items", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: itemId, body: "", itemType: "scale", isActive: active, competencyId: null }),
-    });
+  async function deactivateItem(itemId: string) {
+    const response = await fetch(`/api/assessments/items?id=${encodeURIComponent(itemId)}`, { method: "DELETE" });
     const payload = await response.json();
     if (!response.ok) {
       setNotice(payload?.error ?? "Unable to update item");
       return;
     }
-    setItems((current) => current.map((item) => (item.id === itemId ? { ...item, isActive: active } : item)));
+    setItems((current) => current.map((item) => (item.id === itemId ? { ...item, isActive: false } : item)));
+    setNotice("Item deactivated.");
   }
 
   async function moveItem(itemId: string, direction: "up" | "down") {
@@ -287,7 +315,7 @@ export default function AssessmentInstrumentPage() {
                               >
                                 Edit
                               </button>
-                              <button type="button" onClick={() => void toggleActive(item.id!, false)} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-bold text-red-700">
+                              <button type="button" onClick={() => void deactivateItem(item.id!)} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-bold text-red-700">
                                 Deactivate
                               </button>
                             </div>
@@ -309,7 +337,7 @@ export default function AssessmentInstrumentPage() {
                   standaloneTextItems.map((item) => (
                     <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
                       <p className="text-sm text-slate-700">{item.body}</p>
-                      <button type="button" onClick={() => void toggleActive(item.id!, false)} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-bold text-red-700">Deactivate</button>
+                      <button type="button" onClick={() => void deactivateItem(item.id!)} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-bold text-red-700">Deactivate</button>
                     </div>
                   ))
                 )}

@@ -7,6 +7,19 @@ import { normalizeInstrumentBody } from "@/lib/assessmentInstrument";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+type ItemRow = {
+  id: string;
+  cycle_id: string;
+  competency_id: string | null;
+  item_type: "scale" | "text";
+  body: string;
+  display_order: number | null;
+  is_active: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+  assessment_competencies?: { name: string | null } | Array<{ name: string | null }> | null;
+};
+
 /**
  * Turns whatever the instrument builder calls a competency into a real
  * assessment_competencies row on this cycle.
@@ -112,6 +125,40 @@ function getAdminClient() {
   );
 }
 
+async function cycleBelongsToOrg(
+  admin: ReturnType<typeof getAdminClient>,
+  cycleId: string,
+  orgId: string,
+): Promise<boolean> {
+  const { data } = await admin
+    .from("assessment_cycles")
+    .select("id")
+    .eq("id", cycleId)
+    .eq("org_id", orgId)
+    .maybeSingle<{ id: string }>();
+
+  return Boolean(data);
+}
+
+function serializeItem(row: ItemRow) {
+  const joined = Array.isArray(row.assessment_competencies)
+    ? row.assessment_competencies[0]
+    : row.assessment_competencies;
+
+  return {
+    id: row.id,
+    cycleId: row.cycle_id,
+    competencyId: row.competency_id,
+    competencyName: joined?.name ?? null,
+    itemType: row.item_type,
+    body: row.body,
+    displayOrder: row.display_order ?? 0,
+    isActive: row.is_active ?? true,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 async function requireHrAccess() {
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -159,18 +206,22 @@ export async function GET(request: NextRequest) {
   if (!cycleId) {
     return NextResponse.json({ error: "cycleId is required" }, { status: 400 });
   }
+  if (!(await cycleBelongsToOrg(auth.admin, cycleId, auth.orgId))) {
+    return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
+  }
 
   const { data: items, error } = await auth.admin
     .from("assessment_items")
-    .select("id, cycle_id, competency_id, item_type, body, display_order, is_active, created_at, updated_at")
+    .select("id, cycle_id, competency_id, item_type, body, display_order, is_active, created_at, updated_at, assessment_competencies(name)")
     .eq("cycle_id", cycleId)
-    .order("display_order", { ascending: true });
+    .order("display_order", { ascending: true })
+    .returns<ItemRow[]>();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ items: items ?? [] }, { status: 200 });
+  return NextResponse.json({ items: (items ?? []).map(serializeItem) }, { status: 200 });
 }
 
 export async function POST(request: NextRequest) {
@@ -195,6 +246,9 @@ export async function POST(request: NextRequest) {
   if (!normalizedBody) return NextResponse.json({ error: "Item body is required" }, { status: 400 });
   if (itemType === "scale" && !body.competencyId?.trim()) {
     return NextResponse.json({ error: "Scale items must belong to a competency" }, { status: 400 });
+  }
+  if (!(await cycleBelongsToOrg(auth.admin, cycleId, auth.orgId))) {
+    return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
   }
 
   let competencyId: string | null = null;
@@ -234,14 +288,14 @@ export async function POST(request: NextRequest) {
       display_order: displayOrder,
       is_active: body.isActive ?? true,
     })
-    .select("id, cycle_id, competency_id, item_type, body, display_order, is_active, created_at, updated_at")
-    .single();
+    .select("id, cycle_id, competency_id, item_type, body, display_order, is_active, created_at, updated_at, assessment_competencies(name)")
+    .single<ItemRow>();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ item: data }, { status: 201 });
+  return NextResponse.json({ item: serializeItem(data) }, { status: 201 });
 }
 
 export async function PUT(request: NextRequest) {
@@ -285,6 +339,9 @@ export async function PUT(request: NextRequest) {
   if (!current) {
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
+  if (!(await cycleBelongsToOrg(auth.admin, current.cycle_id, auth.orgId))) {
+    return NextResponse.json({ error: "Item not found" }, { status: 404 });
+  }
 
   let competencyId: string | null = null;
   if (itemType === "scale") {
@@ -311,14 +368,14 @@ export async function PUT(request: NextRequest) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", body.id)
-    .select("id, cycle_id, competency_id, item_type, body, display_order, is_active, created_at, updated_at")
-    .single();
+    .select("id, cycle_id, competency_id, item_type, body, display_order, is_active, created_at, updated_at, assessment_competencies(name)")
+    .single<ItemRow>();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ item: data }, { status: 200 });
+  return NextResponse.json({ item: serializeItem(data) }, { status: 200 });
 }
 
 export async function DELETE(request: NextRequest) {
@@ -330,6 +387,16 @@ export async function DELETE(request: NextRequest) {
 
   if (!id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
+  }
+
+  const { data: current } = await auth.admin
+    .from("assessment_items")
+    .select("cycle_id")
+    .eq("id", id)
+    .maybeSingle<{ cycle_id: string }>();
+
+  if (!current || !(await cycleBelongsToOrg(auth.admin, current.cycle_id, auth.orgId))) {
+    return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
 
   const { data, error } = await auth.admin
