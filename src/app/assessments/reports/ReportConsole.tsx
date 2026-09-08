@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, FileText, Loader2, Send, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, FileText, Loader2, Send, Sparkles } from "lucide-react";
 
 /**
  * The consultant's console: generate a report from collected responses, move it
@@ -186,15 +186,31 @@ export default function ReportConsole() {
               {STATE_LABEL[k].label}: {counts[k] ?? 0}
             </span>
           ))}
-          <button
-            type="button"
-            onClick={generateAll}
-            disabled={bulkBusy || loading || !rows.some((r) => !r.generated_at)}
-            className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-black text-white disabled:opacity-40"
-          >
-            {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            Generate all outstanding
-          </button>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {/* The export endpoint streams a file, so a plain link is enough —
+                it already scopes itself to whatever the caller's tier permits. */}
+            <a
+              href={cycleId ? `/api/assessments/exports?cycleId=${encodeURIComponent(cycleId)}&format=csv` : "#"}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-4 text-sm font-black ${cycleId ? "" : "pointer-events-none opacity-40"}`}
+            >
+              <Download className="h-4 w-4" /> Export CSV
+            </a>
+            <a
+              href={cycleId ? `/api/assessments/exports?cycleId=${encodeURIComponent(cycleId)}&format=xlsx` : "#"}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-4 text-sm font-black ${cycleId ? "" : "pointer-events-none opacity-40"}`}
+            >
+              <Download className="h-4 w-4" /> Export XLSX
+            </a>
+            <button
+              type="button"
+              onClick={generateAll}
+              disabled={bulkBusy || loading || !rows.some((r) => !r.generated_at)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-black text-white disabled:opacity-40"
+            >
+              {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Generate all outstanding
+            </button>
+          </div>
         </div>
 
         {loadError ? (
