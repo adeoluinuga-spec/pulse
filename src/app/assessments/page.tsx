@@ -13,6 +13,7 @@ import {
   Download,
   ExternalLink,
   FileText,
+  Plus,
   Mail,
   MessageSquareText,
   RefreshCw,
@@ -22,6 +23,7 @@ import {
   SlidersHorizontal,
   Star,
   Target,
+  Trash2,
   Users,
 } from "lucide-react";
 import {
@@ -122,6 +124,27 @@ type ApiReport = {
   strengths?: string[];
   development_areas?: string[];
   risk_notes?: string[];
+};
+
+type ApiFramework = {
+  id: string;
+  name: string;
+  levels?: string[] | null;
+  business_functions?: string[] | null;
+  default_groups?: string[] | null;
+  competencies?: CompetencyDefinition[] | null;
+  self_assessment_enabled?: boolean | null;
+};
+
+type ApiAssessmentItem = {
+  id: string;
+  cycleId: string;
+  competencyId: string | null;
+  competencyName?: string | null;
+  itemType: "scale" | "text";
+  body: string;
+  displayOrder: number;
+  isActive: boolean;
 };
 
 type OrgEmployeeOption = {
@@ -286,6 +309,35 @@ function mapApiSubject(subject: ApiSubject) {
   };
 }
 
+function mapApiFramework(framework: ApiFramework) {
+  return {
+    id: framework.id,
+    name: framework.name,
+    levels: framework.levels ?? emptyCycle.levels,
+    businessFunctions: framework.business_functions ?? ["all"],
+    defaultGroups: framework.default_groups ?? ["line_manager", "direct_report", "colleague", "customer"],
+    competencies: framework.competencies ?? [],
+    selfAssessmentEnabled: framework.self_assessment_enabled ?? true,
+  };
+}
+
+function mapApiAssessmentItem(item: ApiAssessmentItem): ApiAssessmentItem {
+  return {
+    id: item.id,
+    cycleId: item.cycleId,
+    competencyId: item.competencyId,
+    competencyName: item.competencyName ?? null,
+    itemType: item.itemType,
+    body: item.body,
+    displayOrder: item.displayOrder ?? 0,
+    isActive: item.isActive ?? true,
+  };
+}
+
+function itemMatchesCompetency(item: ApiAssessmentItem, competency: CompetencyDefinition) {
+  return item.competencyId === competency.id || item.competencyName?.toLowerCase() === competency.name.toLowerCase();
+}
+
 function mapApiReviewer(reviewer: ApiReviewer): Reviewer {
   return {
     id: reviewer.id,
@@ -407,6 +459,11 @@ export default function AssessmentsPage() {
   const [competencyDraftFunction, setCompetencyDraftFunction] = useState<AssessmentFunction>("all");
   const [configuredCompetencies, setConfiguredCompetencies] = useState<CompetencyDefinition[]>([]);
   const [competencyWeights, setCompetencyWeights] = useState<Record<string, number>>({});
+  const [frameworkId, setFrameworkId] = useState("");
+  const [instrumentItems, setInstrumentItems] = useState<ApiAssessmentItem[]>([]);
+  const [expandedCompetencyId, setExpandedCompetencyId] = useState<string | null>(null);
+  const [statementDrafts, setStatementDrafts] = useState<Record<string, string>>({});
+  const [statementBusyId, setStatementBusyId] = useState<string | null>(null);
   const [selfRatings, setSelfRatings] = useState<Record<string, number>>({});
   const [selfComments, setSelfComments] = useState<Record<string, string>>({});
   const [selfSubmitted, setSelfSubmitted] = useState(false);
@@ -623,6 +680,7 @@ export default function AssessmentsPage() {
             setReviewerAssignments([]);
             setReviewerInvites([]);
             setRaterNominations([]);
+            setInstrumentItems([]);
             setSelectedAssesseeId("");
             setDataSourceNotice("No live 360 assessment cycle found for this organisation yet.");
             setIsHydratingAssessmentData(false);
@@ -631,24 +689,30 @@ export default function AssessmentsPage() {
         }
 
         const liveCycle = mapApiCycle(cycle);
-        const [subjectsResponse, reviewersResponse, nominationsResponse, reportsResponse] = await Promise.all([
+        const [subjectsResponse, reviewersResponse, nominationsResponse, reportsResponse, frameworksResponse, itemsResponse] = await Promise.all([
           fetch(`/api/assessments/subjects?cycleId=${encodeURIComponent(liveCycle.id)}`, { cache: "no-store" }),
           fetch(`/api/assessments/reviewers?cycleId=${encodeURIComponent(liveCycle.id)}`, { cache: "no-store" }),
           fetch(`/api/assessments/nominations?cycleId=${encodeURIComponent(liveCycle.id)}`, { cache: "no-store" }),
           fetch(`/api/assessments/reports?cycleId=${encodeURIComponent(liveCycle.id)}`, { cache: "no-store" }),
+          fetch("/api/assessments/frameworks", { cache: "no-store" }),
+          fetch(`/api/assessments/items?cycleId=${encodeURIComponent(liveCycle.id)}`, { cache: "no-store" }),
         ]);
 
-        const [subjectsPayload, reviewersPayload, nominationsPayload, reportsPayload] = await Promise.all([
+        const [subjectsPayload, reviewersPayload, nominationsPayload, reportsPayload, frameworksPayload, itemsPayload] = await Promise.all([
           subjectsResponse.json(),
           reviewersResponse.json(),
           nominationsResponse.json(),
           reportsResponse.json(),
+          frameworksResponse.json(),
+          itemsResponse.json(),
         ]);
 
         if (!subjectsResponse.ok) throw new Error(subjectsPayload?.error ?? "Unable to load participants");
         if (!reviewersResponse.ok) throw new Error(reviewersPayload?.error ?? "Unable to load reviewers");
         if (!nominationsResponse.ok) throw new Error(nominationsPayload?.error ?? "Unable to load nominations");
         if (!reportsResponse.ok) throw new Error(reportsPayload?.error ?? "Unable to load reports");
+        if (!frameworksResponse.ok) throw new Error(frameworksPayload?.error ?? "Unable to load frameworks");
+        if (!itemsResponse.ok) throw new Error(itemsPayload?.error ?? "Unable to load rating statements");
 
         if (cancelled) return;
 
@@ -656,6 +720,9 @@ export default function AssessmentsPage() {
         const liveReviewers = (reviewersPayload?.reviewers ?? []).map(mapApiReviewer);
         const liveNominations = (nominationsPayload?.nominations ?? []).map(mapApiNomination);
         const liveResults = (reportsPayload?.reports ?? []).map(mapApiReport);
+        const latestFramework = (frameworksPayload?.frameworks ?? [])[0] as ApiFramework | undefined;
+        const liveFramework = latestFramework ? mapApiFramework(latestFramework) : null;
+        const liveItems = (itemsPayload?.items ?? []).map(mapApiAssessmentItem);
 
         setActiveCycle(liveCycle);
         setCycleName(liveCycle.name);
@@ -663,6 +730,21 @@ export default function AssessmentsPage() {
         setCycleStartsOn(liveCycle.startDate);
         setCycleClosesOn(liveCycle.closeDate);
         setReviewerWeights(liveCycle.reviewerWeights);
+        if (liveFramework) {
+          setFrameworkId(liveFramework.id);
+          setFrameworkName(liveFramework.name);
+          setFrameworkFunction((liveFramework.businessFunctions[0] ?? "all") as AssessmentFunction);
+          setSelfAssessmentEnabled(liveFramework.selfAssessmentEnabled);
+          setConfiguredCompetencies(liveFramework.competencies);
+          setCompetencyWeights((current) => {
+            const next: Record<string, number> = {};
+            liveFramework.competencies.forEach((competency) => {
+              next[competency.id] = current[competency.id] ?? Math.round(100 / Math.max(1, liveFramework.competencies.length));
+            });
+            return next;
+          });
+        }
+        setInstrumentItems(liveItems);
         if (liveSubjects.length) {
           setAssessmentSubjects(liveSubjects);
           setSelectedAssesseeId(liveSubjects[0].id);
@@ -1082,7 +1164,31 @@ export default function AssessmentsPage() {
     }
   }
 
-  function handleAddCompetency() {
+  async function saveFrameworkSnapshot(nextCompetencies: CompetencyDefinition[]) {
+    const response = await fetch("/api/assessments/frameworks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: frameworkName,
+        levels: activeCycle.levels,
+        businessFunctions: [frameworkFunction],
+        defaultGroups: reviewerGroups.map((group) => group.key),
+        competencies: nextCompetencies,
+        selfAssessmentEnabled,
+      }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload?.error ?? "Unable to save framework");
+    }
+
+    const saved = payload?.framework as ApiFramework | undefined;
+    if (saved?.id) setFrameworkId(saved.id);
+    return saved;
+  }
+
+  async function handleAddCompetency() {
     if (!canManageAssessments) {
       setFrameworkNotice("Only HR admins and super admins can update the assessment framework.");
       setTimeout(() => setFrameworkNotice(""), 3500);
@@ -1106,15 +1212,104 @@ export default function AssessmentsPage() {
       active: true,
     };
 
-    setConfiguredCompetencies((current) => [nextCompetency, ...current]);
-    setCompetencyWeights((current) => ({ ...current, [nextCompetency.id]: 10 }));
-    setCompetencyDraftName("");
-    setCompetencyDraftDescription("");
-    setCompetencyDraftGroup("leadership");
-    setCompetencyDraftLevel("all");
-    setCompetencyDraftFunction("all");
-    setFrameworkNotice("Competency added to the draft framework.");
-    setTimeout(() => setFrameworkNotice(""), 3500);
+    const nextCompetencies = [nextCompetency, ...configuredCompetencies];
+
+    try {
+      await saveFrameworkSnapshot(nextCompetencies);
+      setConfiguredCompetencies(nextCompetencies);
+      setCompetencyWeights((current) => ({ ...current, [nextCompetency.id]: current[nextCompetency.id] ?? 10 }));
+      setExpandedCompetencyId(nextCompetency.id);
+      setCompetencyDraftName("");
+      setCompetencyDraftDescription("");
+      setCompetencyDraftGroup("leadership");
+      setCompetencyDraftLevel("all");
+      setCompetencyDraftFunction("all");
+      setFrameworkNotice("Competency saved. Add rating statements inside the competency card.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to save competency";
+      setFrameworkNotice(message);
+    } finally {
+      setTimeout(() => setFrameworkNotice(""), 4500);
+    }
+  }
+
+  async function handleAddStatement(competency: CompetencyDefinition) {
+    if (!canManageAssessments) {
+      setFrameworkNotice("Only HR admins and super admins can update rating statements.");
+      setTimeout(() => setFrameworkNotice(""), 3500);
+      return;
+    }
+    if (!activeCycle.id) {
+      setFrameworkNotice("Create or select an assessment cycle before adding rating statements.");
+      setTimeout(() => setFrameworkNotice(""), 3500);
+      return;
+    }
+
+    const body = (statementDrafts[competency.id] ?? "").trim();
+    if (!body) {
+      setFrameworkNotice("Write the rating statement before adding it.");
+      setTimeout(() => setFrameworkNotice(""), 3500);
+      return;
+    }
+
+    setStatementBusyId(competency.id);
+    try {
+      const siblingCount = instrumentItems.filter((item) => item.isActive && item.itemType === "scale" && itemMatchesCompetency(item, competency)).length;
+      const response = await fetch("/api/assessments/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cycleId: activeCycle.id,
+          competencyId: competency.id,
+          itemType: "scale",
+          body,
+          displayOrder: siblingCount,
+          isActive: true,
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Unable to save rating statement");
+      }
+
+      if (payload?.item) {
+        const saved = mapApiAssessmentItem(payload.item as ApiAssessmentItem);
+        setInstrumentItems((current) => [
+          ...current,
+          { ...saved, competencyName: saved.competencyName ?? competency.name },
+        ]);
+      }
+      setStatementDrafts((current) => ({ ...current, [competency.id]: "" }));
+      setFrameworkNotice("Rating statement saved.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to save rating statement";
+      setFrameworkNotice(message);
+    } finally {
+      setStatementBusyId(null);
+      setTimeout(() => setFrameworkNotice(""), 4000);
+    }
+  }
+
+  async function handleRemoveStatement(item: ApiAssessmentItem) {
+    if (!item.id) return;
+    setStatementBusyId(item.id);
+    try {
+      const response = await fetch(`/api/assessments/items?id=${encodeURIComponent(item.id)}`, {
+        method: "DELETE",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Unable to remove rating statement");
+      }
+      setInstrumentItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, isActive: false } : entry));
+      setFrameworkNotice("Rating statement removed from the active instrument.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to remove rating statement";
+      setFrameworkNotice(message);
+    } finally {
+      setStatementBusyId(null);
+      setTimeout(() => setFrameworkNotice(""), 4000);
+    }
   }
 
   async function handleSelfSubmit() {
@@ -1566,13 +1761,6 @@ export default function AssessmentsPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link
-                href="/assessments/instrument"
-                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-pulse/25 bg-pulse-soft px-4 text-sm font-black text-pulse shadow-sm transition hover:border-pulse/45"
-              >
-                <ClipboardList size={16} />
-                Build rating statements
-              </Link>
               <Link
                 href="/assessments/reviewers/bulk"
                 className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40"
@@ -2441,7 +2629,7 @@ export default function AssessmentsPage() {
                     <h3 className="mt-2 text-xl font-black">{assessmentFramework.name}</h3>
                   </div>
                   <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", assessmentFramework.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
-                    {assessmentFramework.ready ? "Ready" : "Draft"}
+                    {assessmentFramework.ready ? (frameworkId ? "Saved" : "Ready") : "Draft"}
                   </span>
                 </div>
                 <div className="mt-5 grid gap-3">
@@ -2639,34 +2827,119 @@ export default function AssessmentsPage() {
                   </span>
                 </div>
                 <div className="mt-5 space-y-4">
-                  {configuredCompetencies.map((competency) => (
-                    <div key={competency.id} className="rounded-[18px] border border-ink/8 bg-paper p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-black">{competency.name}</p>
-                          <p className="mt-1 text-xs leading-5 text-muted">{competency.description}</p>
-                          <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
-                            {competency.group} / {competency.level?.replace("_", " ")} / {competency.function?.replace("_", " ")}
-                          </p>
-                        </div>
-                        <Building2 className="shrink-0 text-pulse" size={18} />
-                      </div>
-                      <label className="mt-4 block text-sm font-black text-muted">
-                        <span className="flex items-center justify-between gap-3">
-                          Competency weight
-                          <span className="text-ink">{competencyWeights[competency.id] ?? 0}%</span>
-                        </span>
-                        <input
-                          type="range"
-                          min="0"
-                          max="30"
-                          value={competencyWeights[competency.id] ?? 0}
-                          onChange={(event) => setCompetencyWeights((current) => ({ ...current, [competency.id]: Number(event.target.value) }))}
-                          className="mt-2 w-full accent-pulse"
-                        />
-                      </label>
+                  {configuredCompetencies.length === 0 && (
+                    <div className="rounded-[18px] border border-dashed border-ink/15 bg-paper p-5 text-sm leading-6 text-muted">
+                      No competencies have been saved yet. Create the first competency above, then add the rating statements inside its card.
                     </div>
-                  ))}
+                  )}
+                  {configuredCompetencies.map((competency) => {
+                    const isExpanded = expandedCompetencyId === competency.id;
+                    const activeStatements = instrumentItems
+                      .filter((item) => item.isActive && item.itemType === "scale" && itemMatchesCompetency(item, competency))
+                      .sort((a, b) => a.displayOrder - b.displayOrder);
+                    const competencyWeight = competencyWeights[competency.id] ?? 0;
+                    const statementWeight = activeStatements.length ? Number((competencyWeight / activeStatements.length).toFixed(1)) : 0;
+
+                    return (
+                      <div key={competency.id} className={clsx("overflow-hidden rounded-[18px] border bg-paper transition", isExpanded ? "border-pulse/35 shadow-sm" : "border-ink/8")}>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedCompetencyId(isExpanded ? null : competency.id)}
+                          className="flex w-full items-start justify-between gap-3 p-4 text-left"
+                          aria-expanded={isExpanded}
+                        >
+                          <div>
+                            <p className="text-sm font-black">{competency.name}</p>
+                            <p className="mt-1 text-xs leading-5 text-muted">{competency.description || "No description added yet."}</p>
+                            <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
+                              {competency.group} / {competency.level?.replace("_", " ")} / {competency.function?.replace("_", " ")}
+                            </p>
+                            <p className="mt-3 text-xs font-bold text-pulse">
+                              {activeStatements.length} statement{activeStatements.length === 1 ? "" : "s"} mapped
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end gap-2">
+                            <span className="rounded-2xl bg-white px-3 py-2 text-sm font-black text-ink shadow-sm">{competencyWeight}%</span>
+                            <Building2 className="text-pulse" size={18} />
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="border-t border-ink/8 bg-white p-4">
+                            <label className="block text-sm font-black text-muted">
+                              <span className="flex items-center justify-between gap-3">
+                                Competency weight
+                                <span className="text-ink">{competencyWeight}%</span>
+                              </span>
+                              <input
+                                type="range"
+                                min="0"
+                                max="30"
+                                value={competencyWeight}
+                                onChange={(event) => setCompetencyWeights((current) => ({ ...current, [competency.id]: Number(event.target.value) }))}
+                                className="mt-2 w-full accent-pulse"
+                              />
+                            </label>
+
+                            <div className="mt-4 rounded-2xl border border-ink/8 bg-paper p-4">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-black text-ink">Rating statements</p>
+                                  <p className="text-xs leading-5 text-muted">
+                                    Statement weights are shared evenly inside this competency and always add back to {competencyWeight}%.
+                                  </p>
+                                </div>
+                                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-muted">
+                                  {activeStatements.length ? `${statementWeight}% each` : "No statements yet"}
+                                </span>
+                              </div>
+
+                              <div className="mt-4 space-y-3">
+                                {activeStatements.map((item, index) => (
+                                  <div key={item.id} className="flex items-start gap-3 rounded-2xl border border-ink/8 bg-white p-3">
+                                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pulse-soft text-xs font-black text-pulse">
+                                      {index + 1}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-sm font-bold leading-5 text-ink">{item.body}</p>
+                                      <p className="mt-1 text-xs text-muted">{statementWeight}% of total report weight</p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveStatement(item)}
+                                      disabled={statementBusyId === item.id}
+                                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-ink/8 bg-white text-muted transition hover:border-red-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                      aria-label="Remove rating statement"
+                                    >
+                                      <Trash2 size={15} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+                                <textarea
+                                  value={statementDrafts[competency.id] ?? ""}
+                                  onChange={(event) => setStatementDrafts((current) => ({ ...current, [competency.id]: event.target.value }))}
+                                  className="min-h-20 w-full resize-none rounded-2xl border border-ink/8 bg-white p-3 text-sm text-ink outline-none transition focus:border-pulse/50"
+                                  placeholder={`Example: Demonstrates ${competency.name.toLowerCase()} in daily decisions.`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddStatement(competency)}
+                                  disabled={statementBusyId === competency.id}
+                                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60 sm:self-start"
+                                >
+                                  <Plus size={16} />
+                                  {statementBusyId === competency.id ? "Saving..." : "Add statement"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
