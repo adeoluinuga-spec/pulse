@@ -47,9 +47,20 @@ type ReviewerRow = {
   token_expires_at: string | null;
 };
 
+/**
+ * Which cycle this employee's card should be about.
+ *
+ * A live cycle always wins, then one being set up, then one in calibration. A
+ * closed cycle is chosen only when there is nothing else — which is the point:
+ * the query used to filter closed cycles out entirely, so the last cycle of the
+ * year vanished from every dashboard the moment HR closed it and the card fell
+ * back to "no 360 assessment is active yet". Participants waiting on a report
+ * were told nothing was happening at all.
+ */
 function chooseCycle(cycles: CycleRow[]): CycleRow | null {
   return cycles.find((cycle) => cycle.status === "collecting")
     ?? cycles.find((cycle) => cycle.status === "setup")
+    ?? cycles.find((cycle) => cycle.status === "calibration")
     ?? cycles[0]
     ?? null;
 }
@@ -73,7 +84,6 @@ export async function GET() {
     .from("assessment_cycles")
     .select("id, name, status, starts_on, closes_on, created_at")
     .eq("org_id", employee.org_id)
-    .neq("status", "closed")
     .order("created_at", { ascending: false })
     .limit(10)
     .returns<CycleRow[]>();

@@ -1775,6 +1775,13 @@ export default function AssessmentsPage() {
                 <FileText size={16} />
                 Generate reports
               </Link>
+              <Link
+                href="/assessments/cycles"
+                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40"
+              >
+                <RefreshCw size={16} />
+                Reopen or clone
+              </Link>
               <button
                 type="button"
                 onClick={handleLaunchCycle}

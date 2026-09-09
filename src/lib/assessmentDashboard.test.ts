@@ -46,6 +46,20 @@ test("shows pending reviewer work separately from being assessed", () => {
   assert.equal(status.tone, "warning");
 });
 
+test("a cycle closed early reads as closed even though its close date is still ahead", () => {
+  const status = buildMyAssessmentStatus({
+    cycle: { ...liveCycle, status: "closed" },
+    subjects: [{ id: "subject-1", name: "Kehinde White", email: "kwhite@example.com" }],
+    reviewerAssignments: [],
+    now: new Date("2026-09-10T10:00:00Z"),
+  });
+
+  assert.equal(status.cycleIsCollecting, false);
+  assert.equal(status.cycleLabel, "Closed");
+  assert.equal(status.headline, "The 360 assessment window has closed");
+  assert.equal(status.tone, "neutral");
+});
+
 test("does not call a closed assessment live", () => {
   const status = buildMyAssessmentStatus({
     cycle: liveCycle,

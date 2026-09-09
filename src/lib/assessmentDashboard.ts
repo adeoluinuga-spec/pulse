@@ -82,7 +82,11 @@ export function buildMyAssessmentStatus(input: MyAssessmentStatusInput): MyAsses
     };
   }
 
-  const expired = isPastDate(cycle.closesOn, now);
+  // A cycle is finished either because its window ran out or because HR closed
+  // it deliberately. Both must read as closed: a cycle closed early still has a
+  // future closes_on, and treating that as "not collecting yet" would tell a
+  // participant to keep waiting for something that is over.
+  const expired = isPastDate(cycle.closesOn, now) || cycle.status === "closed";
   const cycleIsCollecting = cycle.status === "collecting" && !expired;
 
   if (cycleIsCollecting && participantCount > 0 && pendingReviews > 0) {

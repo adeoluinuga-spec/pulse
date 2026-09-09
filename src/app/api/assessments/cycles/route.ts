@@ -3,6 +3,14 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
+import {
+  allowedTransitions,
+  isReopen,
+  isTransitionAllowed,
+  reopenBlockedReason,
+  reopenPatch,
+} from "@/lib/assessmentLifecycle";
+
 function getAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,7 +61,42 @@ export async function GET() {
     .eq("org_id", orgId)
     .order("created_at", { ascending: false });
 
-  return NextResponse.json({ cycles: cycles ?? [] });
+  // Each cycle carries what it has collected and where it may go next, so a
+  // console can disable an impossible action and say why, rather than offering
+  // a button that answers 409. An organisation has a handful of cycles, so the
+  // per-cycle counts are cheap; they are head-only and run in parallel.
+  const enriched = await Promise.all((cycles ?? []).map(async (cycle) => {
+    const [responses, submitted, released] = await Promise.all([
+      admin.from("assessment_responses").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),
+      admin
+        .from("assessment_reviewers")
+        .select("id", { count: "exact", head: true })
+        .eq("cycle_id", cycle.id)
+        .eq("status", "submitted"),
+      admin
+        .from("assessment_reports")
+        .select("id", { count: "exact", head: true })
+        .eq("cycle_id", cycle.id)
+        .eq("report_status", "released"),
+    ]);
+
+    const collected = {
+      responseCount: responses.count ?? 0,
+      submittedReviewers: submitted.count ?? 0,
+      releasedReports: released.count ?? 0,
+    };
+
+    return {
+      ...cycle,
+      collected,
+      allowedTransitions: allowedTransitions(cycle.status),
+      reopenBlockedReason: cycle.status === "closed"
+        ? reopenBlockedReason({ status: cycle.status, ...collected })
+        : null,
+    };
+  }));
+
+  return NextResponse.json({ cycles: enriched });
 }
 
 export async function POST(request: NextRequest) {
@@ -145,13 +188,11 @@ export async function POST(request: NextRequest) {
  * Closing does not retrospectively reject anything — submissions already stop at
  * closes_on. What it changes is intent, which is what the reminder cron and the
  * completion views read.
+ *
+ * The transition table and the reopen rule now live in `assessmentLifecycle`, so
+ * the same rules can be unit-tested and shown in the UI before a button is
+ * pressed rather than only discovered from a 409.
  */
-const CYCLE_TRANSITIONS: Record<string, string[]> = {
-  setup: ["collecting"],
-  collecting: ["calibration", "closed"],
-  calibration: ["collecting", "closed"],
-  closed: [],
-};
 
 export async function PATCH(request: NextRequest) {
   const cookieStore = await cookies();
@@ -207,8 +248,8 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ cycle, unchanged: true });
   }
 
-  const allowed = CYCLE_TRANSITIONS[cycle.status] ?? [];
-  if (!allowed.includes(body.status)) {
+  const allowed = allowedTransitions(cycle.status);
+  if (!isTransitionAllowed(cycle.status, body.status)) {
     return NextResponse.json(
       {
         error: `A ${cycle.status} cycle cannot become ${body.status}.`,
@@ -218,6 +259,46 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
+  // Reopening is the one transition that can destroy meaning rather than just
+  // change intent, so it is checked against what the cycle actually holds. RLS
+  // cannot help here — this route reads and writes with the service-role client
+  // — so the rule is enforced in full, in code, before the update runs.
+  const reopening = isReopen(cycle.status, body.status);
+  if (reopening) {
+    const [responses, submitted, released] = await Promise.all([
+      admin.from("assessment_responses").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),
+      admin
+        .from("assessment_reviewers")
+        .select("id", { count: "exact", head: true })
+        .eq("cycle_id", cycle.id)
+        .eq("status", "submitted"),
+      admin
+        .from("assessment_reports")
+        .select("id", { count: "exact", head: true })
+        .eq("cycle_id", cycle.id)
+        .eq("report_status", "released"),
+    ]);
+
+    if (responses.error || submitted.error || released.error) {
+      // Failing open here would reopen a cycle we could not prove was empty.
+      return NextResponse.json(
+        { error: "Could not confirm this cycle is empty, so it was not reopened. Try again." },
+        { status: 503 },
+      );
+    }
+
+    const blocked = reopenBlockedReason({
+      status: cycle.status,
+      responseCount: responses.count ?? 0,
+      submittedReviewers: submitted.count ?? 0,
+      releasedReports: released.count ?? 0,
+    });
+
+    if (blocked) {
+      return NextResponse.json({ error: blocked, allowed: [] }, { status: 409 });
+    }
+  }
+
   const { data, error } = await admin
     .from("assessment_cycles")
     .update({
@@ -225,6 +306,7 @@ export async function PATCH(request: NextRequest) {
       // Closing early should also shut the submission window, or raters could
       // keep answering a cycle HR considers finished.
       ...(body.status === "closed" && body.closesOn !== undefined ? { closes_on: body.closesOn } : {}),
+      ...(reopening ? reopenPatch() : {}),
       updated_at: new Date().toISOString(),
     })
     .eq("id", cycle.id)
@@ -233,5 +315,13 @@ export async function PATCH(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ cycle: data });
+  // Every lifecycle move is logged, because "who closed this and when" is the
+  // first question asked when a rater says their link stopped working.
+  await admin.from("assessment_audit_events").insert({
+    cycle_id: cycle.id,
+    action: reopening ? "assessment_cycle_reopened" : "assessment_cycle_status_changed",
+    metadata: { from: cycle.status, to: body.status, actorId: user.id },
+  });
+
+  return NextResponse.json({ cycle: data, reopened: reopening });
 }
