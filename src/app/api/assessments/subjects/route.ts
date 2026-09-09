@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
-import { assessmentParticipantEmail, resolveReplyTo, sendPulseEmail } from "@/lib/pulseEmail";
+import { notifyAssessmentParticipants } from "@/lib/assessmentParticipantNotification";
 import { escapeLikePattern } from "@/lib/reviewQueue";
 import { canReinstateParticipant, resolveParticipantRemoval } from "@/lib/assessmentRemoval";
 
@@ -195,70 +195,17 @@ async function notifyParticipant(input: {
   email: string;
   origin: string;
 }): Promise<{ inApp: boolean; email: "sent" | "delivery_failed" | "skipped"; error?: string }> {
-  try {
-    const [cycleResult, orgResult, hrResult] = await Promise.all([
-      input.admin
-        .from("assessment_cycles")
-        .select("name, closes_on")
-        .eq("id", input.cycleId)
-        .eq("org_id", input.orgId)
-        .maybeSingle<{ name: string | null; closes_on: string | null }>(),
-      input.admin
-        .from("organisations")
-        .select("name, reply_to_email")
-        .eq("id", input.orgId)
-        .maybeSingle<{ name: string | null; reply_to_email: string | null }>(),
-      input.admin
-        .from("employees")
-        .select("email")
-        .eq("org_id", input.orgId)
-        .eq("platform_role", "hr_admin")
-        .returns<Array<{ email: string | null }>>(),
-    ]);
+  const result = await notifyAssessmentParticipants({
+    admin: input.admin,
+    orgId: input.orgId,
+    cycleId: input.cycleId,
+    participants: [{ employeeId: input.employeeId, name: input.name, email: input.email }],
+    origin: input.origin,
+  });
 
-    const cycleName = cycleResult.data?.name?.trim() || "a 360 assessment";
-    const organisationName = orgResult.data?.name?.trim() || "Your organisation";
-
-    let inApp = false;
-    if (input.employeeId) {
-      const { error: notifyError } = await input.admin.from("notifications").insert({
-        employee_id: input.employeeId,
-        title: "You are part of a 360 assessment",
-        body: `${organisationName} has included you in ${cycleName}. Colleagues will be asked for confidential feedback. Your report follows once it has been reviewed.`,
-        type: "assessment_participant",
-        action_url: "/dashboard",
-      });
-      inApp = !notifyError;
-    }
-
-    const message = assessmentParticipantEmail({
-      participantName: input.name,
-      cycleName,
-      organisationName,
-      closesOn: cycleResult.data?.closes_on ?? null,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL ?? input.origin,
-    });
-
-    const sent = await sendPulseEmail({
-      to: input.email,
-      subject: message.subject,
-      html: message.html,
-      replyTo: resolveReplyTo({
-        orgReplyTo: orgResult.data?.reply_to_email,
-        hrAdminEmails: (hrResult.data ?? []).map((row) => row.email),
-      }),
-    });
-
-    return sent.ok
-      ? { inApp, email: "sent" }
-      : { inApp, email: "delivery_failed", error: sent.error };
-  } catch (thrown) {
-    return {
-      inApp: false,
-      email: "delivery_failed",
-      error: thrown instanceof Error ? thrown.message : "Notification failed",
-    };
-  }
+  return result.emailFailed
+    ? { inApp: result.inApp > 0, email: "delivery_failed" }
+    : { inApp: result.inApp > 0, email: "sent" };
 }
 
 /**

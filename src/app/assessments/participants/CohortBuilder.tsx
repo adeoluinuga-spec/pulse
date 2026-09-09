@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Info, Loader2, Lock, Users, Wand2 } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 /**
  * Building a cohort from the published organisation chart.
@@ -58,6 +59,7 @@ export default function CohortBuilder({
   cycleId: string;
   onChanged: () => void;
 }) {
+  const { showToast } = useToast();
   const [levels, setLevels] = useState<Level[]>([]);
   const [feasibility, setFeasibility] = useState<Feasibility | null>(null);
   const [rules, setRules] = useState<Rules | null>(null);
@@ -108,7 +110,18 @@ export default function CohortBuilder({
       const skippedNote = body.skipped?.length
         ? ` ${body.skipped.length} skipped (${[...new Set(body.skipped.map((s: { reason: string }) => s.reason))].join("; ")}).`
         : "";
-      setNotice(`Added ${body.added?.length ?? 0} participants.${skippedNote}`);
+      const delivery = body.notification as { inApp?: number; emailed?: number; emailFailed?: number } | undefined;
+      const added = body.added?.length ?? 0;
+      const deliveryNote = delivery
+        ? ` ${delivery.inApp ?? 0} dashboard notification${delivery.inApp === 1 ? "" : "s"} and ${delivery.emailed ?? 0} email${delivery.emailed === 1 ? "" : "s"} sent${delivery.emailFailed ? `; ${delivery.emailFailed} email${delivery.emailFailed === 1 ? "" : "s"} failed` : ""}.`
+        : "";
+      setNotice(`Added ${added} participants.${deliveryNote}${skippedNote}`);
+      showToast(
+        delivery?.emailFailed
+          ? `Added ${added} participants. ${delivery.emailFailed} notification email${delivery.emailFailed === 1 ? " needs" : "s need"} attention.`
+          : `Added ${added} participants and sent their assessment notifications.`,
+        delivery?.emailFailed ? "warning" : "success",
+      );
       setChosen(new Set());
       await loadLevels();
       onChanged();

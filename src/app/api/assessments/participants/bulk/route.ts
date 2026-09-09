@@ -11,6 +11,7 @@ import {
   TIER_TO_SUBJECT_LEVEL,
   type OrgTier,
 } from "@/lib/raterAutoAssign";
+import { notifyAssessmentParticipants } from "@/lib/assessmentParticipantNotification";
 
 /**
  * Adding everyone at one level of the organisation chart as participants.
@@ -247,11 +248,23 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  const notification = await notifyAssessmentParticipants({
+    admin,
+    orgId,
+    cycleId: body.cycleId,
+    participants: (inserted ?? []).map((participant) => ({
+      employeeId: participant.employee_id,
+      name: participant.name,
+      email: participant.email,
+    })),
+    origin: request.nextUrl.origin,
+  });
+
   await admin.from("assessment_audit_events").insert({
     cycle_id: body.cycleId,
     action: "assessment_participants_bulk_added",
     metadata: { actorId: userId, tiers, added: inserted?.length ?? 0, skipped: skipped.length },
   });
 
-  return NextResponse.json({ added: inserted ?? [], skipped }, { status: 201 });
+  return NextResponse.json({ added: inserted ?? [], skipped, notification }, { status: 201 });
 }
