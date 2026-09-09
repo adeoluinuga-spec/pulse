@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import clsx from "clsx";
-import { AlertCircle, Bell, CheckCircle2, ClipboardList, Loader2, Mail, ShieldCheck } from "lucide-react";
+import { AlertCircle, Bell, CheckCircle2, ClipboardList, FileText, Loader2, Mail, ShieldCheck } from "lucide-react";
 
 import type { MyAssessmentStatus } from "@/lib/assessmentDashboard";
 
@@ -98,6 +98,16 @@ export default function My360StatusCard({ compact = false }: { compact?: boolean
           <MiniStat label="Done" value={status.submittedReviews} />
         </div>
       </div>
+
+      {/* Shown only once a report has actually been released to this person. */}
+      {status.releasedReport ? (
+        <a
+          href={`/assessments/reports/${status.releasedReport.subjectId}`}
+          className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-ink px-4 text-sm font-black text-white"
+        >
+          <FileText size={16} /> Read your 360 report
+        </a>
+      ) : null}
 
       <div className="mt-4 grid gap-2 md:grid-cols-3">
         <StatusLine

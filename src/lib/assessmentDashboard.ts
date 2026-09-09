@@ -30,6 +30,8 @@ export type MyAssessmentStatusInput = {
   subjects: MyAssessmentSubject[];
   reviewerAssignments: MyAssessmentReviewerAssignment[];
   unreadAssessmentNotifications?: number;
+  /** Set only when a report about this employee has actually been released. */
+  releasedReport?: { cycleId: string; subjectId: string } | null;
   now?: Date;
 };
 
@@ -44,6 +46,14 @@ export type MyAssessmentStatus = {
   pendingReviews: number;
   submittedReviews: number;
   unreadAssessmentNotifications: number;
+  /**
+   * Where this person can read their own report, once one exists.
+   *
+   * Null until release. The page told participants their report appears here
+   * when it is ready, and then had nowhere to send them — the endpoint that
+   * serves it was never called by any screen.
+   */
+  releasedReport: { cycleId: string; subjectId: string } | null;
 };
 
 function isPastDate(value: string | null, now: Date): boolean {
@@ -79,6 +89,7 @@ export function buildMyAssessmentStatus(input: MyAssessmentStatusInput): MyAsses
       pendingReviews,
       submittedReviews,
       unreadAssessmentNotifications,
+      releasedReport: input.releasedReport ?? null,
     };
   }
 
@@ -101,6 +112,7 @@ export function buildMyAssessmentStatus(input: MyAssessmentStatusInput): MyAsses
       pendingReviews,
       submittedReviews,
       unreadAssessmentNotifications,
+      releasedReport: input.releasedReport ?? null,
     };
   }
 
@@ -116,6 +128,7 @@ export function buildMyAssessmentStatus(input: MyAssessmentStatusInput): MyAsses
       pendingReviews,
       submittedReviews,
       unreadAssessmentNotifications,
+      releasedReport: input.releasedReport ?? null,
     };
   }
 
@@ -131,6 +144,7 @@ export function buildMyAssessmentStatus(input: MyAssessmentStatusInput): MyAsses
       pendingReviews,
       submittedReviews,
       unreadAssessmentNotifications,
+      releasedReport: input.releasedReport ?? null,
     };
   }
 
@@ -147,5 +161,6 @@ export function buildMyAssessmentStatus(input: MyAssessmentStatusInput): MyAsses
     pendingReviews,
     submittedReviews,
     unreadAssessmentNotifications,
+    releasedReport: input.releasedReport ?? null,
   };
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Download, FileText, Loader2, Send, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, CheckCircle2, Download, Eye, FileText, Loader2, Send, Sparkles } from "lucide-react";
 
 /**
  * The consultant's console: generate a report from collected responses, move it
@@ -252,6 +253,14 @@ export default function ReportConsole() {
                       {state.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                       {row.generated_at ? "Regenerate" : "Generate"}
                     </button>
+                    {row.generated_at ? (
+                      <Link
+                        href={`/assessments/reports/${row.subject_id}`}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-black"
+                      >
+                        <Eye className="h-4 w-4" /> Read it
+                      </Link>
+                    ) : null}
                     {current === "draft" ? (
                       <button
                         type="button"

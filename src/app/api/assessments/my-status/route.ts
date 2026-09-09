@@ -167,7 +167,27 @@ export async function GET() {
     : { data: [] as Array<{ id: string; name: string | null }> };
   const subjectNameById = new Map((reviewerSubjects ?? []).map((subject) => [subject.id, subject.name ?? "Unnamed participant"]));
 
+  // A released report about this person, if one exists. Only released ones are
+  // looked for: a draft or in-review report is the consultant's working copy and
+  // must not surface to the participant, which is the same rule the report
+  // endpoint enforces when they follow the link.
+  const mySubjectIds = [...subjectsById.keys()];
+  const { data: myReleased } = mySubjectIds.length
+    ? await admin
+        .from("assessment_reports")
+        .select("subject_id")
+        .eq("cycle_id", cycle.id)
+        .in("subject_id", mySubjectIds)
+        .eq("report_status", "released")
+        .not("released_at", "is", null)
+        .limit(1)
+        .returns<Array<{ subject_id: string }>>()
+    : { data: [] as Array<{ subject_id: string }> };
+
   const status = buildMyAssessmentStatus({
+    releasedReport: myReleased?.[0]
+      ? { cycleId: cycle.id, subjectId: myReleased[0].subject_id }
+      : null,
     cycle: {
       id: cycle.id,
       name: cycle.name?.trim() || "360 assessment",
