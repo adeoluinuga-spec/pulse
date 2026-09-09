@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { buildCycleClonePlan } from "@/lib/assessmentComparison";
+import { buildCycleClonePlan, resolveClonePopulation } from "@/lib/assessmentComparison";
 
 export const dynamic = "force-dynamic";
 
@@ -185,10 +185,11 @@ export async function POST(request: NextRequest) {
     status: body.status,
     populationMode: body.populationMode,
   });
-  const replacementSubjects = normalizeSubjects(body.subjects);
-  const subjectsToCopy = plan.populationMode === "replace" && replacementSubjects
-    ? replacementSubjects
-    : subjectsResult.data ?? [];
+  const subjectsToCopy = resolveClonePopulation({
+    populationMode: plan.populationMode,
+    replacements: normalizeSubjects(body.subjects),
+    priorSubjects: subjectsResult.data ?? [],
+  });
 
   const { data: newCycle, error: cycleError } = await admin
     .from("assessment_cycles")

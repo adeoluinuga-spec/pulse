@@ -22,6 +22,13 @@ type Collected = {
   releasedReports: number;
 };
 
+type Contents = {
+  subjects: number;
+  competencies: number;
+  items: number;
+  raters: number;
+};
+
 type Cycle = {
   id: string;
   name: string;
@@ -29,9 +36,16 @@ type Cycle = {
   starts_on: string | null;
   closes_on: string | null;
   collected: Collected;
+  contents: Contents;
   allowedTransitions: string[];
   reopenBlockedReason: string | null;
 };
+
+const EMPTY_CONTENTS: Contents = { subjects: 0, competencies: 0, items: 0, raters: 0 };
+
+function plural(count: number, one: string, many = `${one}s`): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
 
 type Busy = { id: string; action: "reopen" | "clone" } | null;
 
@@ -128,13 +142,19 @@ export default function CycleLifecycleConsole() {
             startsOn: cloneStarts || null,
             closesOn: cloneCloses || null,
             populationMode: carryForward ? "carry_forward" : "replace",
+            // Sent explicitly so "replace" carries a list rather than an absent
+            // one. The route no longer treats absent as "reuse the old
+            // population", but saying it outright leaves no room to regress.
+            ...(carryForward ? {} : { subjects: [] }),
           }),
         });
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? `Clone failed (${res.status})`);
         const copied = body.copied ?? {};
         setNotice(
-          `Created "${body.cycle?.name ?? cloneName}" in setup — carried over ${copied.competencies ?? 0} competencies, ${copied.items ?? 0} items and ${copied.subjects ?? 0} participants. Raters are not copied; add them, then launch.`,
+          copied.subjects
+            ? `Created "${body.cycle?.name ?? cloneName}" in setup with ${plural(copied.subjects, "participant")}, ${plural(copied.competencies ?? 0, "competency", "competencies")} and ${plural(copied.items ?? 0, "statement")}. It has no raters — assign and invite them, then launch.`
+            : `Created "${body.cycle?.name ?? cloneName}" in setup with no participants and ${plural(copied.competencies ?? 0, "competency", "competencies")} and ${plural(copied.items ?? 0, "statement")}. Add participants on the Participants tab, assign raters, then launch.`,
         );
         setCloneFor(null);
         setCloneName("");
@@ -158,8 +178,8 @@ export default function CycleLifecycleConsole() {
         <h1 className="mt-4 text-2xl font-black leading-tight">Cycle lifecycle</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
           Reopen a cycle that was closed before anyone answered, or clone any cycle into a fresh one.
-          Cloning copies the competencies, the statements and the participant list — never the raters,
-          the responses or the reports.
+          A clone always copies the competencies and statements, and never copies raters, responses or
+          reports — you choose whether it also carries the participants across.
         </p>
 
         {notice ? (
@@ -178,6 +198,7 @@ export default function CycleLifecycleConsole() {
             {cycles.map((cycle) => {
               const rowBusy = busy?.id === cycle.id;
               const canReopen = cycle.status === "closed" && !cycle.reopenBlockedReason;
+              const contents = cycle.contents ?? EMPTY_CONTENTS;
 
               return (
                 <li key={cycle.id} className="rounded-lg border border-border bg-card p-4 shadow-sm">
@@ -188,6 +209,10 @@ export default function CycleLifecycleConsole() {
                         {cycle.starts_on ?? "no start date"} → {cycle.closes_on ?? "no close date"}
                       </p>
                       <p className="mt-1 text-xs text-muted">
+                        {plural(contents.subjects, "participant")} · {plural(contents.raters, "rater")} ·{" "}
+                        {plural(contents.items, "statement")}
+                      </p>
+                      <p className="text-xs text-muted">
                         {cycle.collected.responseCount} responses · {cycle.collected.submittedReviewers} raters
                         submitted · {cycle.collected.releasedReports} reports released
                       </p>
@@ -271,16 +296,75 @@ export default function CycleLifecycleConsole() {
                             className="min-h-11 w-full rounded-lg border border-border bg-card px-3 text-sm"
                           />
                         </label>
-                        <label className="flex items-center gap-2 self-end text-xs font-bold">
-                          <input
-                            type="checkbox"
-                            checked={carryForward}
-                            onChange={(e) => setCarryForward(e.target.checked)}
-                            className="h-4 w-4"
-                          />
-                          Carry the participants over
-                        </label>
                       </div>
+
+                      {/* Two named outcomes rather than one checkbox. The
+                          checkbox read as a preference; people need to know
+                          what the new cycle will contain when they press the
+                          button, so each option says it. */}
+                      <fieldset className="mt-4">
+                        <legend className="mb-2 text-xs font-bold text-muted">Who is assessed in the new cycle</legend>
+                        <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-card p-3 text-xs">
+                          <input
+                            type="radio"
+                            name={`population-${cycle.id}`}
+                            checked={carryForward}
+                            onChange={() => setCarryForward(true)}
+                            className="mt-0.5 h-4 w-4"
+                          />
+                          <span>
+                            <span className="block font-black">
+                              Assess the same {plural(contents.subjects, "person", "people")} again
+                            </span>
+                            <span className="block text-muted">
+                              Their names, emails and levels are copied across.
+                            </span>
+                          </span>
+                        </label>
+                        <label className="mt-2 flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-card p-3 text-xs">
+                          <input
+                            type="radio"
+                            name={`population-${cycle.id}`}
+                            checked={!carryForward}
+                            onChange={() => setCarryForward(false)}
+                            className="mt-0.5 h-4 w-4"
+                          />
+                          <span>
+                            <span className="block font-black">Start with nobody</span>
+                            <span className="block text-muted">
+                              The new cycle has no participants. You add them on the Participants tab.
+                            </span>
+                          </span>
+                        </label>
+                      </fieldset>
+
+                      <div className="mt-4 rounded-lg border border-border bg-card p-3 text-xs leading-5">
+                        <p className="font-black">What the new cycle will contain</p>
+                        <ul className="mt-1 space-y-0.5 text-muted">
+                          <li>
+                            <span className="font-bold text-ink">
+                              {plural(contents.competencies, "competency", "competencies")} and{" "}
+                              {plural(contents.items, "statement")}
+                            </span>{" "}
+                            — copied
+                          </li>
+                          <li>
+                            <span className="font-bold text-ink">
+                              {carryForward ? plural(contents.subjects, "participant") : "No participants"}
+                            </span>{" "}
+                            — {carryForward ? "copied" : "you add them yourself"}
+                          </li>
+                          <li>
+                            <span className="font-bold text-ink">No raters</span> — never copied. Every rater is
+                            assigned and invited fresh, so nobody keeps an old link.
+                          </li>
+                          <li>
+                            <span className="font-bold text-ink">No responses or reports</span> — the old cycle keeps
+                            those, untouched.
+                          </li>
+                        </ul>
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => void clone(cycle)}
@@ -292,7 +376,9 @@ export default function CycleLifecycleConsole() {
                         ) : (
                           <Copy className="h-4 w-4" />
                         )}
-                        Create the new cycle
+                        {carryForward
+                          ? `Create cycle with ${plural(contents.subjects, "participant")}`
+                          : "Create empty cycle"}
                       </button>
                     </div>
                   ) : null}

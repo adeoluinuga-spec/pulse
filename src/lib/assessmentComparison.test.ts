@@ -6,6 +6,7 @@ import {
   buildCycleClonePlan,
   buildIndividualMovement,
   compareFrameworkProvenance,
+  resolveClonePopulation,
 } from "./assessmentComparison.ts";
 import type { CohortSubject, SubjectScores } from "./assessmentScoring.ts";
 
@@ -203,3 +204,47 @@ test(
     }
   },
 );
+
+test("carrying forward keeps the prior population", () => {
+  assert.deepEqual(
+    resolveClonePopulation({
+      populationMode: "carry_forward",
+      replacements: null,
+      priorSubjects: [{ name: "Taiwo" }, { name: "Iyanu" }],
+    }),
+    [{ name: "Taiwo" }, { name: "Iyanu" }],
+  );
+});
+
+test("replacing with no list supplied starts the cycle empty, not full", () => {
+  assert.deepEqual(
+    resolveClonePopulation({
+      populationMode: "replace",
+      replacements: null,
+      priorSubjects: [{ name: "Taiwo" }, { name: "Iyanu" }],
+    }),
+    [],
+  );
+});
+
+test("replacing with an explicit list uses exactly that list", () => {
+  assert.deepEqual(
+    resolveClonePopulation({
+      populationMode: "replace",
+      replacements: [{ name: "Kehinde" }],
+      priorSubjects: [{ name: "Taiwo" }, { name: "Iyanu" }],
+    }),
+    [{ name: "Kehinde" }],
+  );
+});
+
+test("an explicitly empty replacement list is honoured rather than treated as absent", () => {
+  assert.deepEqual(
+    resolveClonePopulation({
+      populationMode: "replace",
+      replacements: [],
+      priorSubjects: [{ name: "Taiwo" }],
+    }),
+    [],
+  );
+});

@@ -66,7 +66,7 @@ export async function GET() {
   // a button that answers 409. An organisation has a handful of cycles, so the
   // per-cycle counts are cheap; they are head-only and run in parallel.
   const enriched = await Promise.all((cycles ?? []).map(async (cycle) => {
-    const [responses, submitted, released] = await Promise.all([
+    const [responses, submitted, released, subjects, competencies, items, raters] = await Promise.all([
       admin.from("assessment_responses").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),
       admin
         .from("assessment_reviewers")
@@ -78,6 +78,10 @@ export async function GET() {
         .select("id", { count: "exact", head: true })
         .eq("cycle_id", cycle.id)
         .eq("report_status", "released"),
+      admin.from("assessment_subjects").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),
+      admin.from("assessment_competencies").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),
+      admin.from("assessment_items").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),
+      admin.from("assessment_reviewers").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),
     ]);
 
     const collected = {
@@ -89,6 +93,14 @@ export async function GET() {
     return {
       ...cycle,
       collected,
+      // What a clone of this cycle would carry, so the console can say so before
+      // the button is pressed rather than after the rows exist.
+      contents: {
+        subjects: subjects.count ?? 0,
+        competencies: competencies.count ?? 0,
+        items: items.count ?? 0,
+        raters: raters.count ?? 0,
+      },
       allowedTransitions: allowedTransitions(cycle.status),
       reopenBlockedReason: cycle.status === "closed"
         ? reopenBlockedReason({ status: cycle.status, ...collected })

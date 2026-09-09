@@ -335,3 +335,29 @@ export function buildCycleClonePlan(input: {
     populationMode: input.populationMode ?? "carry_forward",
   };
 }
+
+/**
+ * Which participants a cloned cycle starts with.
+ *
+ * This was decided inline in the clone route as:
+ *
+ *     mode === "replace" && replacements ? replacements : priorSubjects
+ *
+ * which reads as "replace when a list was supplied" but behaves as "carry
+ * everyone forward whenever one was not". Asking to replace the population and
+ * supplying nothing therefore copied the entire prior population — the opposite
+ * of the request, silently.
+ *
+ * Replace now means replace: an absent list is an empty population, not a
+ * licence to reuse the old one. A cycle that starts empty is easy to see and
+ * fix; one that quietly inherits five people is not.
+ */
+export function resolveClonePopulation<T>(input: {
+  populationMode: "carry_forward" | "replace";
+  /** Subjects posted with the clone request; null when the caller sent none. */
+  replacements: T[] | null;
+  priorSubjects: T[];
+}): T[] {
+  if (input.populationMode === "replace") return input.replacements ?? [];
+  return input.priorSubjects;
+}
