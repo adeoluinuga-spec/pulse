@@ -1,62 +1,11 @@
--- Organisation structure editor schema.
+-- VACANT-POSITION REPORTING FALLBACK
 --
--- DOCUMENTATION / SQL-EDITOR COPY. The applied migration is:
---   supabase/migrations/20260909_000001_organisation_structure.sql
---   supabase/migrations/20260909_000002_vacant_position_reporting.sql
---
--- This file mirrors that migration for operators who need to run it directly
--- in the Supabase SQL Editor. Future changes must be new migrations first.
+-- A vacant role remains visible in the published organisation chart. When an
+-- occupied position reports into one, the employee's operational line manager
+-- is the nearest occupied ancestor (normally the grandparent, two levels up).
+-- This replaces the original publish function; no existing migration is edited.
 
--- Visual organisation editor. Publishing is one transaction, including the
--- live employee fields consumed by dashboards, 360 and report access checks.
-create table public.organisation_structures (
-  org_id uuid primary key references public.organisations(id) on delete cascade,
-  draft jsonb not null,
-  roster_baseline jsonb not null default '[]',
-  revision bigint not null default 0,
-  published jsonb,
-  published_at timestamptz,
-  published_by uuid references auth.users(id) on delete set null,
-  updated_at timestamptz not null default now()
-);
-
-create table public.organisation_structure_versions (
-  id uuid primary key default gen_random_uuid(),
-  org_id uuid not null references public.organisations(id) on delete cascade,
-  revision bigint not null,
-  document jsonb not null,
-  previous_roster jsonb not null,
-  published_by uuid references auth.users(id) on delete set null,
-  published_at timestamptz not null default now(),
-  unique(org_id, revision)
-);
-alter table public.organisation_structures enable row level security;
-alter table public.organisation_structure_versions enable row level security;
-create policy organisation_structure_hr_read on public.organisation_structures for select to authenticated
-using (exists (select 1 from public.employees e where e.user_id = auth.uid()
-  and e.org_id = organisation_structures.org_id and e.platform_role in ('hr_admin', 'super_admin')));
-create policy organisation_structure_history_hr_read on public.organisation_structure_versions for select to authenticated
-using (exists (select 1 from public.employees e where e.user_id = auth.uid()
-  and e.org_id = organisation_structure_versions.org_id and e.platform_role in ('hr_admin', 'super_admin')));
--- No browser writes. The service-only transaction below is the write boundary.
-revoke all on public.organisation_structures, public.organisation_structure_versions from anon, authenticated;
-grant select on public.organisation_structures, public.organisation_structure_versions to authenticated;
-grant all on public.organisation_structures, public.organisation_structure_versions to service_role;
-
-create function public.organisation_structure_roster(p_org uuid) returns jsonb
-language sql stable set search_path = public as $$
-  select coalesce(jsonb_agg(jsonb_build_object(
-    'id', id, 'name', name, 'email', email, 'role', role,
-    'department', department, 'team', team,
-    'line_manager_id', line_manager_id, 'people_responsibility', people_responsibility
-  ) order by id), '[]'::jsonb) from public.employees where org_id = p_org;
-$$;
-revoke all on function public.organisation_structure_roster(uuid) from public, anon, authenticated;
-grant execute on function public.organisation_structure_roster(uuid) to service_role;
-
--- An employee beneath a vacant position operationally reports to the first
--- occupied ancestor. With one vacancy, this is their grandparent.
-create function public.organisation_structure_effective_manager(
+create or replace function public.organisation_structure_effective_manager(
   p_positions jsonb,
   p_parent_id text
 ) returns uuid
@@ -71,12 +20,16 @@ language sql stable set search_path = public as $$
     join jsonb_array_elements(p_positions) n on n->>'id' = a.parent_id
     where a.parent_id is not null and a.depth < 1000
   )
-  select employee_id::uuid from ancestors where employee_id is not null order by depth limit 1;
+  select employee_id::uuid
+  from ancestors
+  where employee_id is not null
+  order by depth
+  limit 1;
 $$;
 revoke all on function public.organisation_structure_effective_manager(jsonb, text) from public, anon, authenticated;
 grant execute on function public.organisation_structure_effective_manager(jsonb, text) to service_role;
 
-create function public.save_organisation_structure(
+create or replace function public.save_organisation_structure(
   p_org uuid, p_user uuid, p_revision bigint, p_document jsonb,
   p_roster_baseline jsonb, p_publish boolean default false
 ) returns jsonb
@@ -118,7 +71,6 @@ begin
     raise exception 'Each position and employee can appear only once.' using errcode = '22023';
   end if;
 
-  -- Serialise initial saves as well as subsequent edits with optimistic revision checks.
   insert into public.organisation_structures(org_id, draft, roster_baseline)
     values(p_org, p_document, p_roster_baseline) on conflict (org_id) do nothing;
   select * into current_row from public.organisation_structures where org_id = p_org for update;
@@ -126,8 +78,6 @@ begin
     raise exception 'Another HR user saved this structure. Reload before making further changes.' using errcode = '40001';
   end if;
 
-  -- Brief table lock prevents roster edits/imports racing the atomic publish.
-  -- Draft saves never take this lock or update employees.
   if p_publish then lock table public.employees in share row exclusive mode; end if;
   current_roster := public.organisation_structure_roster(p_org);
   if p_publish and current_roster is distinct from p_roster_baseline then

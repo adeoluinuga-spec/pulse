@@ -60,8 +60,8 @@ export function validateStructure(doc: StructureDocument, employees: StructureEm
       if (seen.has(parent)) { errors.add("Reporting lines contain a loop. A position cannot report to itself or its descendants."); break; }
       seen.add(parent); parent = nodes.get(parent)!.parentId;
     }
-    if (publishing && p.employeeId && p.parentId && !nodes.get(p.parentId)?.employeeId) {
-      errors.add(`${roster.get(p.employeeId)?.name ?? p.title} reports to a vacant position. Assign a manager or move this position before publishing.`);
+    if (publishing && p.employeeId && p.parentId && !effectiveLineManagerId(p, doc.positions)) {
+      errors.add(`${roster.get(p.employeeId)?.name ?? p.title} has no occupied manager above this position. Assign someone above them or move the position before publishing.`);
     }
     if (publishing && p.employeeId && !p.department) errors.add(`Set a department for ${roster.get(p.employeeId)?.name ?? p.title}.`);
   }
@@ -99,12 +99,30 @@ export function effectiveResponsibility(p: Position, positions: Position[]): Res
     ? "manager" : p.responsibility;
 }
 
+/**
+ * Vacancies remain visible in the chart, but employees.line_manager_id needs
+ * a real employee. A vacant direct manager therefore resolves to the nearest
+ * occupied ancestor, which is normally two levels above the employee.
+ */
+export function effectiveLineManagerId(position: Position, positions: Position[]): string | null {
+  const nodes = new Map(positions.map((entry) => [entry.id, entry]));
+  const visited = new Set<string>([position.id]);
+  let parentId = position.parentId;
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId);
+    const parent = nodes.get(parentId);
+    if (!parent) return null;
+    if (parent.employeeId) return parent.employeeId;
+    parentId = parent.parentId;
+  }
+  return null;
+}
+
 export function structureChanges(doc: StructureDocument, employees: StructureEmployee[]) {
-  const nodes = new Map(doc.positions.map(p => [p.id, p]));
   return doc.positions.flatMap(p => {
     const employee = employees.find(e => e.id === p.employeeId);
     if (!employee) return [];
-    const managerId = (p.parentId ? nodes.get(p.parentId)?.employeeId : null) ?? null;
+    const managerId = effectiveLineManagerId(p, doc.positions);
     const fields = [
       ["Line manager", employee.line_manager_id, managerId], ["Position", employee.role || "", p.title],
       ["Department", employee.department || "", p.department], ["Team", employee.team || "", p.team],

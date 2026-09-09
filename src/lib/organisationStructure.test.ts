@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyStructureTemplate, effectiveResponsibility, layoutStructure, parseStructure, structureChanges,
+import { applyStructureTemplate, effectiveLineManagerId, effectiveResponsibility, layoutStructure, parseStructure, structureChanges,
   structureFromEmployees, validateStructure, type StructureEmployee } from "./organisationStructure.ts";
 
 const staff: StructureEmployee[] = [
@@ -26,12 +26,25 @@ test("rejects cross-tenant staff, duplicate assignments, missing managers and ci
   assert.match(errors, /more than one/);
   assert.match(errors, /no longer in this organisation/);
 });
-test("draft vacancies are allowed, publication requires assigned managers and all staff", () => {
+test("draft vacancies are allowed, publication requires an occupied manager above and all staff", () => {
   const doc = structureFromEmployees(staff);
   doc.positions[0].employeeId = null;
   assert.deepEqual(validateStructure(doc, staff), []);
   assert.match(validateStructure(doc, staff, true).join(" "), /unassigned/);
-  assert.match(validateStructure(doc, staff, true).join(" "), /vacant position/);
+  assert.match(validateStructure(doc, staff, true).join(" "), /occupied manager/);
+});
+test("an employee beneath a vacant manager reports to the nearest occupied leader above", () => {
+  const doc = structureFromEmployees(staff);
+  doc.positions.push({
+    id: "vacant-manager", title: "Vacant delivery manager", employeeId: null,
+    parentId: "staff-a", department: "Advisory", team: "Delivery", responsibility: "manager",
+  });
+  const associate = doc.positions.find((position) => position.employeeId === "c")!;
+  associate.parentId = "vacant-manager";
+
+  assert.equal(effectiveLineManagerId(associate, doc.positions), "a");
+  assert.deepEqual(validateStructure(doc, staff, true), []);
+  assert.equal(structureChanges(doc, staff).find((change) => change.employee.id === "c")?.managerId, "a");
 });
 test("an empty tenant cannot publish a vacant chart", () => {
   assert.match(validateStructure(structureFromEmployees([]), [], true).join(" "), /Add staff/);
@@ -49,7 +62,7 @@ test("department template groups staff without guessing who the leads are", () =
   assert.equal(doc.positions.filter(p => !p.employeeId).length, 3);
   assert.equal(doc.positions.find(p => p.employeeId === "b")?.parentId, doc.positions.find(p => p.employeeId === "c")?.parentId);
   assert.deepEqual(validateStructure(doc, staff), []);
-  assert.match(validateStructure(doc, staff, true).join(" "), /vacant/);
+  assert.match(validateStructure(doc, staff, true).join(" "), /occupied manager/);
 });
 test("new reporting managers get navigation responsibility without changing access roles", () => {
   const doc = structureFromEmployees(staff);
