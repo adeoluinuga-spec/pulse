@@ -3,9 +3,11 @@
 import { Bell, BarChart2, ChevronRight, LogOut, Settings, User, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 
 export default function TopBar() {
+  const pathname = usePathname();
   const { user, signOut, openNotif, hasUnread, profileImages } = useUser();
   const profileImage = profileImages[user.id];
   const [profileOpen, setProfileOpen] = useState(false);
@@ -30,7 +32,7 @@ export default function TopBar() {
       </Link>
 
       <div className="hidden min-w-0 md:block">
-        <h1 className="font-display text-lg font-semibold text-ink">Performance command center</h1>
+        <p className="font-display text-lg font-semibold text-ink">{pathname === "/dashboard/organisation" ? "Organisation structure" : "Performance command center"}</p>
         <p className="mt-0.5 text-xs text-muted">Pulse Work OS</p>
       </div>
 

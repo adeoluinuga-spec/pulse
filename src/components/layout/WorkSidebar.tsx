@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Suspense } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import {
   BarChart3,
@@ -11,6 +12,7 @@ import {
   FileText,
   HeartPulse,
   Home,
+  GitBranch,
   Settings2,
   ShieldCheck,
   Target,
@@ -34,7 +36,12 @@ function active(pathname: string, href: string) {
 }
 
 export default function WorkSidebar() {
+  return <Suspense><SidebarContent /></Suspense>;
+}
+
+function SidebarContent() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, profileImages } = useUser();
   const profileImage = profileImages[user.id];
   const teamEnabled = user.peopleResponsibility !== "none";
@@ -46,6 +53,7 @@ export default function WorkSidebar() {
     ...(user.platformRole === "hr_admin" || user.platformRole === "super_admin" ? [
       { label: "HR Dashboard", href: "/dashboard/hr", icon: ShieldCheck },
       { label: "Org Setup", href: "/dashboard/hr?mode=setup", icon: Settings2 },
+      { label: "Org Structure", href: "/dashboard/organisation", icon: GitBranch },
     ] : []),
     ...(user.platformRole === "executive_view" || user.platformRole === "super_admin" ? [{ label: "Executive", href: "/executive", icon: Building2 }] : []),
   ];
@@ -90,7 +98,11 @@ export default function WorkSidebar() {
           <div className="space-y-0.5">
             {portalItems.map((item) => {
               const Icon = item.icon;
-              const isActive = active(pathname, item.href);
+              const isActive = item.href === "/dashboard/hr?mode=setup"
+                ? pathname === "/dashboard/hr" && searchParams.get("mode") === "setup"
+                : item.href === "/dashboard/hr"
+                  ? pathname === "/dashboard/hr" && searchParams.get("mode") !== "setup"
+                  : active(pathname, item.href);
               return (
                 <Link
                   key={item.href}

@@ -27,7 +27,14 @@ export default function DashboardTabBar() {
   const pathname = usePathname();
   const { user } = useUser();
 
-  const tabs = user.peopleResponsibility !== "none" ? [...BASE_TABS, TEAM_TAB] : BASE_TABS;
+  const tabs = [
+    ...BASE_TABS,
+    ...(user.peopleResponsibility !== "none" ? [TEAM_TAB] : []),
+    ...(["hr_admin", "super_admin"].includes(user.platformRole) ? [
+      { id: "hr", label: "HR", href: "/dashboard/hr" },
+      { id: "structure", label: "Org Structure", href: "/dashboard/organisation" },
+    ] : []),
+  ];
 
   return (
     <div className="sticky top-16 z-40 border-b border-ink/6 bg-cream/82 backdrop-blur-xl md:hidden">

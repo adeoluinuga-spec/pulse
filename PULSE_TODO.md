@@ -43,6 +43,8 @@
 
 ### Wider platform
 
+- [x] Implement organisation structure editor: existing staff assignment, reporting lines, department/team positions, templates/themes, draft/review/publish, and transactional employee integration. See `ORGANISATION_STRUCTURE.md` for validation and deployment status.
+- [ ] Apply `20260909_000001_organisation_structure.sql` to the target environment and rehearse structure publication with real tenant roles.
 - [x] Employee/manager/executive dashboard routes have a 360-aware status card
 - [ ] Appraisal and goals pages consume the real appraisal API rather than fixture data
 - [ ] Platform-wide end-to-end tests cover the primary role journeys

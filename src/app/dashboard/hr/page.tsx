@@ -492,6 +492,11 @@ function OperationalDashboard({
         </div>
       </section>
 
+      <Link href="/dashboard/organisation" className="flex items-center justify-between gap-4 rounded-lg border border-cobalt/20 bg-cobalt-light p-4 text-cobalt-dark hover:border-cobalt/50">
+        <span className="flex items-center gap-3"><Network size={20} /><span><strong className="block text-sm">Organisation structure</strong><span className="mt-1 block text-xs">Assign team leads, design your chart and publish reporting lines.</span></span></span>
+        <span className="text-xs font-semibold">Open editor →</span>
+      </Link>
+
       {/* Stat strip */}
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile label="Total staff" value={staff.length} />
@@ -1014,6 +1019,10 @@ function SetupWizard({ state, orgId, userEmail, activeTab, onTabChange, isOverla
         </div>
       </section>
 
+      <Link href="/dashboard/organisation" className="flex items-center gap-3 rounded-lg border border-cobalt/20 bg-cobalt-light p-4 text-sm font-semibold text-cobalt-dark hover:border-cobalt/50">
+        <Network size={18} /> Design organisation structure and assign reporting lines →
+      </Link>
+
       <section className="flex gap-2 overflow-x-auto scrollbar-none">
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -1495,30 +1504,32 @@ function AddEmployeePanel({ orgId, employees, onClose, onAdded }: {
 
 function TeamsSetup({ employees }: { employees: EmployeeRow[] }) {
   const teams = Array.from(employees.reduce((map, e) => {
-    const key = e.team?.trim(); if (!key) return map;
-    const current = map.get(key) ?? { name: key, department: e.department ?? "No department", members: [] as EmployeeRow[] };
+    const name = e.team?.trim(); if (!name) return map;
+    const key = JSON.stringify([e.department ?? "No department", name]);
+    const current = map.get(key) ?? { id: key, name, department: e.department ?? "No department", members: [] as EmployeeRow[] };
     map.set(key, { ...current, members: [...current.members, e] });
     return map;
-  }, new Map<string, { name: string; department: string; members: EmployeeRow[] }>())).map(([, v]) => v);
+  }, new Map<string, { id: string; name: string; department: string; members: EmployeeRow[] }>())).map(([, v]) => v);
   const [selectedTeamName, setSelectedTeamName] = useState("");
-  const selectedTeam = teams.find((team) => team.name === selectedTeamName) ?? teams[0] ?? null;
+  const selectedTeam = teams.find((team) => team.id === selectedTeamName) ?? teams[0] ?? null;
 
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="border-b border-border px-4 py-3">
         <p className="text-sm font-black text-ink">Team structure</p>
-        <p className="mt-1 text-xs text-muted">Teams are derived from employee department and team fields.</p>
+        <p className="mt-1 text-xs text-muted">Teams reflect your published employee department and team assignments.</p>
+        <Link href="/dashboard/organisation" className="mt-3 inline-flex items-center gap-2 rounded-md bg-cobalt px-3 py-2 text-xs font-semibold text-white"><Network size={14} />Edit structure and team leads</Link>
       </div>
       {teams.length ? (
         <div className="space-y-4 p-4">
           <div className="grid gap-3 md:grid-cols-2">
             {teams.map((t) => {
-              const selected = selectedTeam?.name === t.name;
+              const selected = selectedTeam?.id === t.id;
               return (
                 <button
-                  key={t.name}
+                  key={t.id}
                   type="button"
-                  onClick={() => setSelectedTeamName(t.name)}
+                  onClick={() => setSelectedTeamName(t.id)}
                   className={clsx(
                     "rounded-lg border p-3 text-left transition hover:border-pulse/50 hover:bg-pulse-soft/40 focus:outline-none focus:ring-2 focus:ring-pulse/25",
                     selected ? "border-pulse bg-pulse-soft" : "border-border bg-paper",
