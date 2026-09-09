@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 import { getRouteUser } from "@/lib/apiAuth";
-import { assessmentCycleLaunchEmail, resolveReplyTo, sendPulseEmail } from "@/lib/pulseEmail";
+import { assessmentCycleLaunchEmail, emailDeliveryFailureMessage, resolveReplyTo, sendPulseEmail } from "@/lib/pulseEmail";
 
 export const dynamic = "force-dynamic";
 
@@ -156,18 +156,20 @@ export async function POST(
           html: message.html,
           replyTo,
         });
-        return sent.ok;
+        return sent;
       }),
   );
 
-  const emailed = emailResults.filter(Boolean).length;
+  const emailed = emailResults.filter((result) => result.ok).length;
   const failed = emailResults.length - emailed;
+  const firstFailure = emailResults.find((result) => !result.ok);
 
   return NextResponse.json({
     launched: true,
     notified,
     emailed,
     failed,
+    deliveryMessage: firstFailure && !firstFailure.ok ? emailDeliveryFailureMessage(firstFailure.error) : undefined,
     cycle: launchedCycle,
   });
 }

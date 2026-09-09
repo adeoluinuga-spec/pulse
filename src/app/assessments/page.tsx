@@ -494,6 +494,7 @@ export default function AssessmentsPage() {
         notified?: number;
         emailed?: number;
         failed?: number;
+        deliveryMessage?: string;
         cycle?: ApiCycle;
         message?: string;
         error?: string;
@@ -518,7 +519,9 @@ export default function AssessmentsPage() {
       const notified = result.notified ?? 0;
       const emailed = result.emailed ?? 0;
       const failed = result.failed ?? 0;
-      const suffix = failed > 0 ? ` ${failed} email${failed === 1 ? "" : "s"} failed and should be checked.` : "";
+      const suffix = failed > 0
+        ? ` ${failed} email${failed === 1 ? "" : "s"} failed. ${result.deliveryMessage ?? "Check the email delivery configuration."}`
+        : "";
       showToast(`Cycle launched. ${notified} dashboard notification${notified === 1 ? "" : "s"} created and ${emailed} email${emailed === 1 ? "" : "s"} sent.${suffix}`, failed > 0 ? "warning" : "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Unable to launch assessment cycle", "error");

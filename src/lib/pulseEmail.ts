@@ -63,6 +63,17 @@ export type SendResult =
   | { ok: true; status: "sent" }
   | { ok: false; status: "delivery_failed"; error: string };
 
+/** A safe, actionable explanation for HR without exposing provider payloads. */
+export function emailDeliveryFailureMessage(error?: string): string {
+  if (error?.includes("RESEND_API_KEY is not configured")) {
+    return "Email is not configured on this Pulse deployment. Add RESEND_API_KEY to the deployed app and redeploy.";
+  }
+  if (error?.includes("FROM_EMAIL is not configured")) {
+    return "Email is not configured on this Pulse deployment. Add a verified FROM_EMAIL to the deployed app and redeploy.";
+  }
+  return "Resend did not accept one or more emails. Check the sender domain and delivery activity in Resend.";
+}
+
 /**
  * Sends one message through Resend.
  *

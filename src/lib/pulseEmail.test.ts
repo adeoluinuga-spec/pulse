@@ -6,6 +6,7 @@ import {
   assessmentParticipantEmail,
   assessmentReminderEmail,
   assessmentReviewerInviteEmail,
+  emailDeliveryFailureMessage,
   resolveReplyTo,
 } from "./pulseEmail.ts";
 
@@ -31,6 +32,12 @@ test("resolveReplyTo falls back to the first HR admin email", () => {
 
 test("resolveReplyTo returns undefined when no tenant mailbox exists", () => {
   assert.equal(resolveReplyTo({ orgReplyTo: null, hrAdminEmails: [null, ""] }), undefined);
+});
+
+test("email delivery failures tell HR whether the deployed sender is missing", () => {
+  assert.match(emailDeliveryFailureMessage("RESEND_API_KEY is not configured"), /RESEND_API_KEY/);
+  assert.match(emailDeliveryFailureMessage("FROM_EMAIL is not configured"), /FROM_EMAIL/);
+  assert.match(emailDeliveryFailureMessage("provider said no"), /Resend/);
 });
 
 test("assessmentParticipantEmail escapes tenant supplied content", () => {
