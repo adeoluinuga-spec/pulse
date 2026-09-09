@@ -1,218 +1,113 @@
-# Pulse 360 — Pre-Launch Rehearsal Report
+# Pulse 360 Pre-Launch Rehearsal Report
 
-**Date:** 2026-09-05
-**Against:** `main` at `3591ff1` + local fixes, production database (`yluskblohjdioqmeczsd`, eu-west-1)
-**Cohort rehearsed:** 10 synthetic subjects, 80 assignments, 8-competency / 32-item instrument + 3 open-text items, 2,202 responses, 212 unable-to-observe, 925 comments
-**Seed:** `node scripts/rehearsal/seed.mjs` · **Purge:** `node scripts/rehearsal/purge.mjs`
+**Updated:** 2026-09-09
+**Purpose:** a repeatable, evidence-led rehearsal protocol for a tenant's 360 cycle. This replaces the historical report as the practical go/no-go record.
 
----
+## 1. Current code-level verification
 
-> ### ⚠️ Status update — 2026-09-05, later the same day
->
-> **The single failure in this report has been fixed and re-verified.** Read the report with these corrections in mind:
->
-> - **§1 and §3 — the PDF rendering fabricated scores: FIXED.** `createMockSubjectScores` and `createMockLabels` were deleted outright. `loadPdfReportData` now calls `scoreSubjectFromDatabase` for every subject. Re-verified against a seeded cycle: 8 real competencies, 24 suppression cells computed from actual rater counts (`colleague n=2`, `direct_report n=2`, `customer n=1`), every one `mean: null`, zero placeholder strings.
-> - **§5 — "Individual PDF: NO — theatre": now YES.** Suppression in the PDF is computed, not hard-coded.
-> - **§7 blocker 1: closed.** The rehearsal suite went **34/35 → 35/35**.
-> - Also fixed since: the deferred `prior_cycle_id` column (migration `20260905_000001`), and the error-swallow at `assessmentPdfData.ts:70` that was hiding its absence.
->
-> **Still open and still true:** everything in §7 items 2–8 — email delivery and AI synthesis have never been exercised live, `send-reminders` has no cycle filter, the thin-peer "overall" caveat, and the unrotated database password.
->
-> For the current end-to-end operator view, see **`OPERATOR_ROADMAP.md`**.
+The repository baseline is `main` at `d2348f7`. Before this document update, the automated checks passed:
 
----
+- `node --experimental-strip-types --test src/lib/*.test.ts`: 171 passing, 1 skipped integration-style clone test when Supabase environment variables are unavailable.
+- `npx tsc --noEmit`: passing.
+- `npx next build`: passing.
 
-## 1. Verdict
+These checks verify source compatibility and pure behaviour. They do not prove the deployed Supabase schema, Resend delivery, Edge Function secrets, scheduled jobs, or actual tenant permissions.
 
-**47 of 48 automated checks passed. One failure, and it is a launch blocker.**
+## 2. Rehearsal environment rules
 
-The collect → score → suppress → gate chain is sound and behaves correctly under adversarial conditions. Every access tier holds against live RLS. Suppression holds in scoring, in the report payload, in the aggregate and in the cohort segments.
+- Use a dedicated non-production tenant or a clearly labelled test cycle. Never use real client raters to prove a feature.
+- Use five to ten test employees, with at least one HR admin, super admin, participant, line manager, executive-view user, colleague and external customer email.
+- Include a competency set with several scale items, at least one standalone text item, and one category that deliberately has fewer than three submitted raters.
+- Record exact cycle ID, subject IDs, reviewer IDs, sent email IDs and screenshots in the evidence column. Do not record tokens in this document.
+- Confirm the required migrations and secrets before testing. If a precondition is not met, mark the relevant test blocked rather than passing it by assumption.
 
-**The individual PDF — the artefact you actually hand to 71 people — renders fabricated scores.** Do not send a single report until that is fixed.
+## 3. Pre-flight evidence
 
-Three parts of the chain were not exercised, for stated reasons. They are listed in §5 and they matter.
-
----
-
-## 2. What passed
-
-### Rater journey, over real HTTP against a production build — 5/5
-
-| Step | Result |
-|---|---|
-| Rater opens assessment by token | 8 competencies, 3 text items returned |
-| Rater queue lists what that email owes | renders, shows "0 of 1 complete" |
-| Rater saves a partial draft | `PATCH` → `in_progress` |
-| Rater resumes | 6 answers restored, including the unable-to-observe, `last_saved_at` set |
-| Rater submits | 32 scored, reviewer frozen |
-
-### Adversarial — 8/8, all fail closed
-
-| Attack | Result |
-|---|---|
-| Reuse a submitted token | **409** |
-| Reopen the form on a submitted token | returns `submitted`, no instrument |
-| Use an expired token (GET) | **410** |
-| Submit on an expired token | **410** |
-| Unknown/garbage token | **404** |
-| Submit after `closes_on` | **410**, audit event written |
-| Read another rater's assignments via the queue | no leak |
-| `POST` carrying `mode:"draft"` | **400**, reviewer left `not_started` *(see §4.1)* |
-
-### Access tiers, against live RLS — 14/14
-
-Exercised as `authenticated` with a real JWT claim per role, inside a rolled-back transaction.
-
-| | Result |
-|---|---|
-| Participant → own **released** report | visible |
-| Participant → all reports | sees exactly 1, their own |
-| Participant → another participant's report | **blocked** |
-| Participant → own **unreleased** report | **blocked** |
-| `hr_admin` → any individual report | **blocked** |
-| `executive_view` → any individual report | **blocked** |
-| Line manager → unreleased report | **blocked** |
-| Line manager → released, per-cycle flag **off** | **blocked** |
-| Line manager → released, per-cycle flag **on** | visible |
-| `hr_admin` / `executive_view` / participant → named verbatim | **blocked, all three** |
-| `super_admin` → raw responses, unreleased report | visible (support tier) |
-
-### Scoring and suppression — 8/8
-
-- 8 competencies scored; overall computed.
-- **Every non-exempt category below 3 raters withheld** (24 cells, all `mean: null`); every cell at or above 3 reported. Stated as an invariant, not a fixture count.
-- `line_manager` at 1 rater correctly **exempt** and reported.
-- Unable-to-observe counted and excluded from denominators.
-- Subject below the release rule flagged `insufficientData`.
-- Subject with zero responses scores `null`, not `0`.
-
-### Suppression, everywhere it could surface
-
-| Surface | Result |
-|---|---|
-| Scoring service | **suppressed** — 24 thin cells, all null |
-| Report payload | **suppressed** — 24 entries null, withheld categories named in `risk_notes` |
-| Cohort aggregate | **suppressed** — segments under 3 subjects null |
-| Individual PDF | **suppressed** — but see §3, the numbers are fake anyway |
-| Export / verbatim view | 913 verbatims, **every one** carrying a category label only; zero malformed labels |
-| AI themes | **NOT EXERCISED** — see §5 |
-
-### Reports and export
-
-- Report payload builds with real competency names and 4 items per competency.
-- Draft until released (`released_at: null`).
-- **No rater name or email anywhere in the report payload.**
-- Pseudonymised view returns category labels only; `reviewer_email` appears nowhere in it.
-
----
-
-## 3. THE FAILURE — individual PDF renders fabricated scores
-
-**Severity: launch blocker. Nothing else in this report matters until it is fixed.**
-
-`/api/assessments/reports/pdf` and `/api/assessments/reports/pdf/batch` both call `buildMockIndividualReport()`, which calls **`createMockSubjectScores()`** — a fixture generator.
-
-```
-PDF competencies:  strategic_leadership, people_leadership, execution, customer_focus
-Real cycle has:    Sets Direction, Develops People, Drives Execution, Customer Obsession,
-                   Commercial Judgement, Collaboration Across Silos,
-                   Resilience Under Pressure, Ethical Leadership   (8)
-```
-
-The scores are generated by `3.25 + ((seed + index) % 5) * 0.18`, where `seed` is the subject's **position in an array**. The "suppressed customer category" in the PDF is hard-coded, not derived. `scoreSubjectFromDatabase` — the real scoring service, which this rehearsal proved correct — **appears nowhere in the PDF path**.
-
-The output is not obviously wrong. It looks like a plausible 360 report. A consultant would not catch it by eye, and a participant would be debriefed on numbers that describe nobody.
-
-I did not fix this. It is a substantial rewrite in another branch's files, and the fix is not mechanical — the PDF report model expects a shape the scoring service does not currently emit for prior-cycle comparison.
-
-**What "done" looks like:** `buildIndividualPdfReport` fed from `scoreSubjectFromDatabase`, with the cycle's real competency labels, and this rehearsal's check re-run green.
-
----
-
-## 4. Defects found and fixed
-
-### 4.1 `POST` silently converted a draft save into an irreversible submit — FIXED
-
-`handleSubmission(request, modeOverride)` overwrote `payload.mode` with the verb's mode. A client sending `POST { mode: "draft" }` got a **full submission**: HTTP 200, reviewer frozen, draft unrecoverable — because the freeze trigger then refuses all further writes. Silent, and destructive.
-
-The real client (`ReviewFlow.tsx`) uses `PATCH` and was never affected. But `CONTRACT.md` documented `POST … takes mode: "draft" | "submit"`, so anyone coding to the contract would have hit it — and each occurrence costs one rater their assessment.
-
-Now returns **400** with both modes named. Fails closed. Covered by the adversarial suite.
-
-### 4.2 `CONTRACT.md` was stale in three places — FIXED
-
-- Documented `POST`-with-mode; the endpoint is `PATCH` = draft, `POST` = submit.
-- Claimed `/review/[token]` "still does not exist". It exists, along with the rater queue.
-- Claimed the scoring service was "interface only in Stage 1". It is implemented.
-
-The contract is the document other branches code against, so a stale contract is a live hazard, not a documentation nicety.
-
----
-
-## 5. Not exercised — and why
-
-These are gaps in the rehearsal, not passes.
-
-| Step | Why not | Risk carried into launch |
+| Check | Expected evidence | Result |
 |---|---|---|
-| **Launch and send** (Resend) | Would send real mail to `@synthetic.invalid`. Hard bounces damage sender reputation before the real cohort is invited. | The send path exists (`api.resend.com` is called) but **has never been observed delivering**. First real proof would be on 568 live invitations. |
-| **Reminders firing** | Same reason. | Untested at the point it matters most. |
-| **AI synthesis → consultant edit** | Spends real money on the Anthropic API. Not run without your approval. | The whole synthesis path is unproven against the live API. Request shapes (`output_config.format`, adaptive thinking, `max_tokens`) are typed and unit-tested but never sent. **A 400 would surface on first real use.** |
-| **Suppression inside AI themes** | Depends on the above. | The n<3 theme gate is unit-tested but has never gated a real model response. |
-| **Export / PDF via authenticated HTTP** | Needs a minted Supabase session cookie. | Exercised at the library layer and at RLS instead — both layers, per the standing rule. The HTTP wrapper itself is unproven. |
+| Migrations applied | Supabase migration history includes the five 360 migrations listed in the study pack | [ ] |
+| App environment | Production/test deployment has Supabase keys, app URL, Resend key and verified `FROM_EMAIL` | [ ] |
+| Edge Function | `send-notification` secrets set and deployed where notification function is used | [ ] |
+| Tenant reply-to | Organisation reply-to email set, or valid HR-admin fallback confirmed | [ ] |
+| Scheduler decision | Reminder and purge scheduler owner, URL, secret and cadence documented | [ ] |
+| Instrument | At least two competencies and active scale/text items visible after reload | [ ] |
+| Participant linking | Internal participants resolve to their employee accounts | [ ] |
 
----
+## 4. End-to-end rehearsal script
 
-## 6. Load sanity at cohort scale
+### A. HR setup and launch
 
-Measured on the 10-subject cycle, extrapolated linearly to 71 subjects / 568 assignments. All per-subject loops, so linear is the right model.
+| Test | Expected result | Result / evidence |
+|---|---|---|
+| Create cycle | New cycle is scoped to the test tenant and starts in `setup` | [ ] |
+| Build framework | Competencies persist after leaving/reopening the Framework tab | [ ] |
+| Add inline statement | Statement appears under the selected competency and remains after refresh | [ ] |
+| Add participant | Correct employee is linked; participant receives in-app notification and email attempt | [ ] |
+| Bulk reviewer dry run | CSV/XLSX returns all row errors and warnings; imports nothing before confirmation | [ ] |
+| Bulk reviewer confirm | Valid assignments import; duplicate/relationship warnings are visible | [ ] |
+| Nomination approval | Approved nomination creates reviewer assignment exactly once | [ ] |
+| Launch cycle | Cycle becomes `collecting`; tenant launch notification and email attempt are recorded | [ ] |
+| Send a reminder | Visible success toast appears; only intended open assignments are targeted | [ ] |
 
-| Stage | Measured | Projected at 568 | Verdict |
-|---|---|---|---|
-| Bulk import parse, 568 rows | 3 ms | 3 ms | fine |
-| Score + build report payload | 2,367 ms / 10 subjects | **~0.3 min** | fine |
-| Cohort aggregation | 942 ms | **~0.1 min** | fine |
-| PDF data load (once per batch) | 286 ms | 286 ms | fine |
-| PDF report model build | 15 ms / 10 | **~0.0 min** | fine (model only — actual PDF rendering not measured) |
-| DB round trip (pooler, eu-west-1) | **119 ms** | — | see below |
+### B. Rater experience
 
-**Nothing in the application will fail to finish in a sensible window.** The scoring pass over the full cohort is well under a minute.
+| Test | Expected result | Result / evidence |
+|---|---|---|
+| Open secure link on 360px phone viewport | No sign-in; only named subject and safe assessment payload shown | [ ] |
+| Draft autosave | Complete one answer, wait for save, close tab, reopen same link; saved answer and progress return | [ ] |
+| Unable to Observe | Rater can choose it beside the scale; no artificial numeric score is sent | [ ] |
+| Text item | Narrative response can be entered and preserved | [ ] |
+| Review screen | Unanswered items are identified before final submit | [ ] |
+| Submit | Assignment becomes submitted; confirmation is clear; reopened link says already submitted | [ ] |
+| Expiry | Expired test token gives an explanatory message and contact route | [ ] |
+| Queue | Multi-assignment rater sees all assignments and can open the next incomplete one | [ ] |
+| Closed cycle | Attempt after close or `closes_on` returns a clear rejection, without changing responses | [ ] |
 
-The one number to respect is the **119 ms round trip** to eu-west-1. Any code path that does one query per row will crawl: seeding 2,202 responses row-by-row took **4 minutes 38 seconds**. At 568 assignments × 35 items that naive shape projects to **~40 minutes**. The application does not do this — submissions upsert a whole assessment in one call — but any future import, migration or backfill written as a per-row loop will be unusable. Batch, or run it from inside the region.
+### C. Scoring, confidentiality and reports
 
----
+| Test | Expected result | Result / evidence |
+|---|---|---|
+| UTO exclusion | Score calculation does not count the UTO response in its denominator | [ ] |
+| Small category suppression | A category with fewer than three responses is visibly marked suppressed, never zero-filled | [ ] |
+| Self vs others | Where self is present, comparison/gap content is calculated from actual data | [ ] |
+| Pseudonymised narrative | Analysis/reporting below super admin exposes category labels only, not rater identity | [ ] |
+| Generate report | Report console generates a draft from stored responses, not supplied client values | [ ] |
+| Review/release | Draft can move to in review, then released only when the release rule is met | [ ] |
+| Participant access | Participant opens only their own released report | [ ] |
+| Line manager access | Manager sees direct-report released report only when cycle setting allows it | [ ] |
+| HR access | HR can see completion/aggregate, not individual report or named verbatims | [ ] |
+| Executive access | Executive sees aggregate only | [ ] |
+| Super-admin access | Super admin support access works and creates appropriate audit trail | [ ] |
+| Individual PDF | PDF renders true subject/cycle scores, suppression labels and no placeholder competencies | [ ] |
+| Aggregate PDF | PDF contains no individual names or ranking table | [ ] |
+| Export | CSV/XLSX honours caller tier, excludes raw verbatim identity joins and creates `report_exported` audit event | [ ] |
 
-## 7. What remains before a real cohort
+### D. Repeat-cycle and governance
 
-**Blocking**
+| Test | Expected result | Result / evidence |
+|---|---|---|
+| Clone cycle | New cycle copies framework, items and selected population and records `prior_cycle_id` | [ ] |
+| Framework provenance | Reports state framework version; incompatible comparison is flagged | [ ] |
+| Retention configuration | Per-cycle retention setting is read and updated correctly | [ ] |
+| Manual purge | Test cycle purge creates a deletion certificate/audit event and removes the intended cycle records only | [ ] |
+| Scheduled purge auth | Unsigned request is rejected; signed test invocation processes only due cycles | [ ] |
 
-1. **Wire the PDF to the real scoring service.** §3. Nothing ships before this.
-2. **Prove email delivery once, to a real inbox you control.** One assignment, one address. The send path has never delivered.
-3. **Run the AI synthesis for one subject against the live API.** Proves the request shapes and the theme gate. Costs cents; needs your go-ahead.
+## 5. Mandatory failure handling
 
-**Should fix before launch**
+- Email failure: stop the invitation test. Check deployment `FROM_EMAIL`, verified sender domain, Resend key, `NEXT_PUBLIC_APP_URL`, reply-to resolution and provider logs. Do not mark a database `sent` state as inbox delivery.
+- Access failure: stop release. Capture role, employee ID, cycle and report state; test application route logic and RLS separately.
+- Suppression failure: stop reporting. Never release a report that displays a small category as a number or empty chart without an explicit suppression label.
+- Batch PDF restart failure: record it as expected current limitation. Use individual PDFs or complete a batch in one stable process for the rehearsal; do not promise resumability until durable job storage is delivered.
+- Purge failure: do not retry manually against a client cycle until target cycle/organisation scope and certificate behaviour are understood.
 
-4. **`send-reminders` has no cycle or organisation filter.** It selects every unsubmitted reviewer with a live token, globally. With two cycles live it reminds both; while the synthetic cycle existed it would have emailed `@synthetic.invalid`. Scope it to a cycle.
-5. **The reminder schedule is a single global weekly cron** (`weekly-report-reminder`, Fridays 08:00 UTC), not per-cycle configurable. For a 14-day window that is two reminders total.
-6. **Watch the thin-peer case.** When every peer category is suppressed, the "overall" score silently reduces to the line manager's rating alone — one person's view presented as a 360 score. `risk_notes` names the withheld categories, but the headline number does not carry a caveat. Subject s07 scored **3.06 overall on one rater**.
+## 6. Go/no-go criteria
 
-**Operational**
+**Go for controlled client collection** only when every pre-flight item and all A-C tests pass, with one observed delivered email and one real mobile completion. The P1 durable batch/scheduler work may be tracked after that only if the client cycle has an agreed manual operational owner.
 
-7. The database password used throughout this rehearsal is still unrotated.
-8. `assessmentReportRls.test.ts` asserts migration *file text*, not behaviour — it passed green through the entire period when none of those policies were applied. The RLS proof in this rehearsal (`scripts/rehearsal/analyse.mjs`) is what actually establishes the tiers; keep it.
+**No-go** when any of the following is true: migrations are missing, email cannot be proven, an external rater cannot resume a draft, a suppressed category is exposed, a role sees more than its tier, or an item/competency cannot be persisted and subsequently loaded.
 
----
+## 7. Evidence ledger
 
-## 8. Rehearsal assets
-
-| File | Purpose |
-|---|---|
-| `scripts/rehearsal/seed.mjs` | Builds the synthetic cycle. Every row `[SYNTHETIC]`-prefixed, every uuid `dddddddd-`-prefixed. |
-| `scripts/rehearsal/purge.mjs` | **One command.** Cascades from the org, sweeps auth users by prefix, asserts zero rows remain. |
-| `scripts/rehearsal/walk.mjs` | Rater journey + adversarial token checks over HTTP. |
-| `scripts/rehearsal/analyse.mjs` | Scoring, suppression, reports, PDF, export, and the five access tiers against live RLS. |
-| `scripts/rehearsal/load.mjs` | Timings and cohort projections. |
-
-All five are re-runnable. `walk.mjs` reads live reviewer status rather than the seed plan, so it survives repeat runs.
-
-**Verified purged.** Zero synthetic cycles, reviewers, responses or employees remain in production.
+| Date | Tenant/test cycle | Tester | Outcome | Follow-up owner | Link/reference |
+|---|---|---|---|---|---|
+| 2026-09-09 | Repository-only verification | Codex | Build/type/unit checks passing; deployment rehearsal not yet recorded | Delivery owner | `d2348f7` |

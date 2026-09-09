@@ -1,97 +1,107 @@
-# Pulse — Where We Are, and What's Left
+# Pulse Status and To-Do
 
-**Date:** 2026-09-08 · **Against:** `main` @ `24accbc` · **Live tenant:** Stuart Davidson, cycle "369 Assessment"
-Every line below is checked against the running code and the production database, not against the earlier reports.
+**Updated:** 2026-09-09
+**Repository baseline:** `main` at `d2348f7`
+**Use this document as the working checklist.** Tick an item only after code is merged, the stated checks pass, and any required deployment/configuration action is evidenced.
 
----
+## 1. Current delivery status
 
-## 1. Your live cycle, right now
+### 360 assessment delivery
 
-This is the actual state of "369 Assessment" in production:
+- [x] Multi-tenant assessment cycle model and organisation scoping
+- [x] Internal participant creation linked to tenant employees
+- [x] Participant notification path: in-app plus assessment email
+- [x] Cycle launch action and all-employee launch awareness notification
+- [x] Cycle lifecycle transitions, including explicit close
+- [x] In-product competency framework creation
+- [x] Inline item/statement creation beneath a clickable competency card
+- [x] Standalone instrument route retained as a secondary management surface
+- [x] Public token review route that does not require a Pulse account
+- [x] Token hashing, expiry, one-assignment binding and used-link messaging
+- [x] Mobile-first competency-by-competency review flow
+- [x] Draft autosave/resume and `last_saved_at`
+- [x] Unable to Observe storage and scoring exclusion
+- [x] Open-text item support and review-before-submit flow
+- [x] Rater queue for people assigned more than one review
+- [x] Reviewer bulk CSV/XLSX validation, error report and confirm-then-import flow
+- [x] Rater-load warning with a default cap of six
+- [x] Participant nomination and approval-to-assignment connection
+- [x] Server-side score calculation from responses
+- [x] n<3 category and segment suppression
+- [x] Self-versus-others gaps, blind spots and hidden strengths
+- [x] Pseudonymised verbatim read path for analysis
+- [x] Role-based report access and released-only participant/manager access
+- [x] Report state machine: draft -> in review -> released
+- [x] Report access/export audit events
+- [x] HR report console for generate, review, release and export
+- [x] Individual and aggregate PDF routes using real scores
+- [x] CSV/XLSX export without raw verbatim-to-rater identity joins
+- [x] Retention configuration, manual purge certificate and scheduled purge endpoint
+- [x] Prior-cycle linkage, clone API and PDF movement/provenance support
+- [x] Tenant-level reply-to email with HR-admin fallback
+- [x] Global seven-second success toast for platform action feedback
 
-| | |
-|---|---|
-| Status | `collecting` — it was launched successfully |
-| Participants | **5**, and **all 5 linked to a login** ✅ |
-| Competencies | **0** |
-| Items | **0** |
-| Raters | **2** total. Three of the five participants have **zero** raters |
-| Submitted | **0** |
-| Rater invite status | both `draft` — **the invitation emails did not send** |
-| Reports generated | **0** |
+### Wider platform
 
-**The cycle cannot collect anything.** There is no instrument — zero competencies, zero items. If a rater opened their link today they would see an empty form. That is the single thing standing between you and a working cycle, and it is not a code defect: the instrument has to be built at `/assessments/instrument`.
+- [x] Employee/manager/executive dashboard routes have a 360-aware status card
+- [ ] Appraisal and goals pages consume the real appraisal API rather than fixture data
+- [ ] Platform-wide end-to-end tests cover the primary role journeys
+- [ ] Production observability, incident runbook and support/admin tooling are complete
 
-Two other live facts worth knowing:
+## 2. Immediate operator checklist - before inviting real raters
 
-- **Assessment email is not being delivered.** Resend's log shows only Supabase Auth mail ("Your sign-in link", "Confirm your email address") going out from `noreply@pulse.stuartdavidson.org`. No assessment invitations at all. Both raters sit at `invite_status: 'draft'`, which is exactly what the code writes when Resend rejects a send — it reverts to `draft` rather than lying about delivery. If those two raters were added *before* you set `FROM_EMAIL` and redeployed, this is stale and re-issuing an invite will now work. **Test that first**, because everything downstream depends on it.
-- **In-app notifications are working.** `assessment_cycle_launched` ×10 and `assessment_participant` ×1 rows are in the database. That half of the new notification system is live and functioning.
+- [ ] Confirm all listed 360 migrations are applied to the target Supabase project.
+- [ ] Confirm production Resend key, verified `FROM_EMAIL`, `NEXT_PUBLIC_APP_URL`, and Edge Function secrets.
+- [ ] Set `organisations.reply_to_email` for the tenant HR mailbox, or verify the HR-admin fallback has a correct email.
+- [ ] Create/review the live competency framework and active statements. Do not launch an empty instrument.
+- [ ] Add all participants and confirm every internal participant is linked to the correct employee account.
+- [ ] Add/approve reviewer assignments and clear bulk-import errors. Review rater-load warnings deliberately.
+- [ ] Send one invite to a controlled mailbox and verify receipt, sender, reply-to, token destination, and expiry.
+- [ ] Complete one mobile review, close the browser midway, resume, mark one item Unable to Observe, then submit.
+- [ ] Confirm the submitted assignment cannot be reopened and the participant dashboard reflects the cycle.
+- [ ] Generate a report only after sufficient responses, then review, release and open it as the participant, their line manager, HR and executive view.
+- [ ] Download one individual PDF, one aggregate PDF, CSV and XLSX; inspect suppression labels and ensure aggregate output has no named people.
+- [ ] Decide whether reminders and retention scheduling are enabled for this tenant; document the intended cadence and the scheduler owner.
 
----
+## 3. Next engineering phase - priority order
 
-## 2. Against the study pack — what moved
+### P0 - Rehearse and evidence the live system
 
-| # | Defect (study pack) | Then | Now | Evidence |
-|---|---|---|---|---|
-| **D1** | Participants can't open their own report | ⛔ | ✅ **FIXED** | `subjects/route.ts` links `employee_id`; all 5 live subjects linked; verified 8/8 against RLS |
-| **D2** | Cycle status can never change | ⛔ | 🟡 **PARTIAL** | Launch now moves `setup → collecting`. Still **no manual close** — only the retention purge sets `closed` |
-| **D3** | No bulk launch — 568 clicks | ⛔ | ✅ **FIXED** | New `/api/assessments/cycles/[cycleId]/launch` + UI button |
-| **D4** | Invitation queue link 404s | ⛔ | ✅ **FIXED** | Built from the assignment's own token at both send sites |
-| **D5** | Reminders hit every rater in the database | ⛔ | 🟡 **PARTIAL** | New cycle-scoped `/api/assessments/reminders` + UI. **But the global weekly cron is still active and still unscoped** |
-| **D6** | No UI to generate, review, release, synthesise or export | ⛔ | ⛔ **UNCHANGED** | Zero UI callers for reports POST, AI synthesis, exports, retention, clone |
-| **D7** | `hr_admin` gets 403 on any export | ⛔ | ✅ **FIXED** | Scope defaults to the caller's tier |
-| **D8** | Appraisal journey is mock end to end | ⛔ | ⛔ **UNCHANGED** | `appraisal/page.tsx` and `goals/page.tsx` still import `mockData`; the real API layer still has zero importers |
-| **D9** | AI synthesis and email never exercised live | ⛔ | 🟡 **PARTIAL** | Auth email delivers. **Assessment email is failing.** AI synthesis has **never run** — zero audit events |
+- [ ] Execute the full non-production rehearsal in `REHEARSAL_REPORT.md` and record actual identifiers, timestamps and outcomes.
+- [ ] Validate database policies against real roles, not migration-text assertions alone.
+- [ ] Verify Resend sends and reply handling in the deployed environment, including a failed-send path.
 
-**Net: three fixed outright, two partial, three unchanged.** Plus a genuinely new capability the study pack didn't anticipate — participant notification, in-app and email.
+### P1 - Make long-running operations durable
 
-### New since the study pack
+- [ ] Replace process-memory PDF batch jobs with persisted job rows, durable file storage, retries and resumable worker execution.
+- [ ] Add a durable scheduled runner for retention purge with alerting and a signed invocation runbook.
+- [ ] Add a per-cycle scheduled reminder engine; keep on-demand reminders as the manual override.
+- [ ] Add provider webhooks for delivered, bounced and complained email states, then surface these states to HR.
 
-- **Launch a cycle in one action**, which also issues invites and writes notifications.
-- **Assessee notification** — in-app row plus email when someone is added to a cycle.
-- **Per-tenant Reply-To** — falls back to the org's HR admin, so no per-org setup at signup.
-- **A cross-tenant hole closed** — subject creation now verifies the cycle belongs to the caller's org.
-- **HTML escaping** on tenant-supplied values in email templates.
+### P1 - Complete operator UX outside the command centre
 
----
+- [ ] Build a dedicated Cycle Operations route: lifecycle, launch history, reminder configuration and close controls.
+- [ ] Build a Governance route: retention period, purge eligibility, manual certificate history and export audit history.
+- [ ] Build a Cycle Clone route: prior-cycle chooser, population changes, comparison compatibility warning and confirmation.
+- [ ] Build an AI narrative review route, with explicit reviewer approval and version history if AI synthesis remains in the offering.
+- [ ] Add framework list, edit, archive and version history. Avoid creating an opaque stack of snapshots as frameworks evolve.
 
-## 3. The checklist
+### P2 - Codebase and product quality
 
-### Blocking your live cycle — do these first
+- [ ] Decompose `src/app/assessments/page.tsx` into route-level feature components without changing user behaviour.
+- [ ] Add browser-level tests for public review, release gate, tenant isolation and notification/email presentation.
+- [ ] Add monitoring for failed assessment sends, failed PDF jobs, failed scheduled purges and cross-tenant access denials.
+- [ ] Decide and document the definitive meaning of `direct_report` in every UI label, import template and report category.
+- [ ] Replace mock-data appraisal and goals journeys with live API-backed ones.
 
-- [ ] **B1. Build the instrument.** 0 competencies and 0 items means nothing can be collected. Go to `/assessments/instrument`, create competencies, then ~4 scale items under each, plus 2–3 standalone open-text items. *(30–60 min of data entry, no code)*
-- [ ] **B2. Prove one assessment email delivers.** Re-issue an invite to an address you control and watch Resend. If it still fails, the deployed `FROM_EMAIL` is missing or differs from `.env.local` — check the hosting env vars, not the local file. *(15 min)*
-- [ ] **B3. Assign raters to the three participants who have none.** Adeolu Osinuga, Funmilayo Kareem and Taiwo Ogba have zero. Use `/assessments/reviewers/bulk`. *(15 min)*
-- [ ] **B4. Disarm or scope the weekly cron.** `weekly-report-reminder` is `active`, fires Fridays 08:00 UTC, and reminds **every unsubmitted rater in the database** with no cycle or org filter. With a live cycle this will mail your real raters on a schedule nobody chose. Either pause the job or add the filter. *(1 h)*
+## 4. Explicit non-goals for the next 360 hardening pass
 
-### Section D — the remaining defects
+- Do not redesign the scoring algorithm without a psychometric decision and client sign-off.
+- Do not weaken suppression to make small categories visible.
+- Do not make RLS the sole access control while routes still use a service-role client.
+- Do not add a second instrument workflow to the command centre; improve the existing inline competency workflow or extract it cleanly.
+- Do not treat a green TypeScript build as proof that Supabase, Resend, Edge Functions or scheduled jobs are configured in production.
 
-- [ ] **D2. Let HR close a cycle.** `/api/assessments/cycles` still has only `GET` and `POST`. Add `PATCH` for the status transition, and a control in the console. Submissions already stop at `closes_on`, so this is about state, not enforcement. *(0.5 d)*
-- [ ] **D5. Scope the cron reminder.** The new on-demand route is correct; the scheduled one still isn't. Give `send-reminders` a cycle filter, or retire it in favour of a per-cycle schedule. *(1 d)*
-- [ ] **D6a. A screen to generate and release reports.** Nothing in the UI POSTs to `/api/assessments/reports`. Today a consultant needs curl. This gates the participant tier — no release, no participant report. **The highest-value remaining item.** *(2 d)*
-- [ ] **D6b. A screen for AI synthesis and consultant review.** `/api/ai/assessment-synthesis` and its `review` endpoint have no UI. This is the "AI-generated, consultant-reviewed" promise. *(2 d)*
-- [ ] **D6c. An export button.** `/api/assessments/exports` works and has no screen. *(0.5 d)*
-- [ ] **D6d. Retention and clone screens.** Both API-only. Lower priority — neither is needed for cycle one. *(1 d)*
-- [ ] **D9a. Run AI synthesis once, live.** Zero audit events: it has never been called. Request shapes are typed and unit-tested but never sent. Costs cents. **Do this before you promise it to a client.** *(0.5 d)*
-- [ ] **D9b. Confirm the edge function.** `send-notification` now requires `FROM_EMAIL` with no fallback and 500s without it. Set the secret and deploy. Nothing in the 360 flow uses it yet, so no live impact — but don't let it rot. *(0.5 h)*
-- [ ] **D8. Wire the appraisal journey.** `src/lib/api/appraisal.ts` is complete and has zero importers; `/appraisal` and `/goals` render fixture people. Real tables, real queries, no connection. *(12–18 d)*
+## 5. Definition of ready for a client cohort
 
-### Hygiene
-
-- [ ] **H1. Rater invitation emails still have no Reply-To.** The assessee email has one; the rater email doesn't — and raters are the ones most likely to reply "this link won't open". Point `reviewers/route.ts` at `sendPulseEmail`. *(0.5 h)*
-- [ ] **H2. Rotate the database password.** It has been in plaintext in a chat transcript for several days.
-- [ ] **H3. Delete `buildlog.txt`** from the repo root. Stray build output, untracked.
-- [ ] **H4. Zenith Corp demo org** is still in production alongside Stuart Davidson. Decide whether it stays.
-- [ ] **H5. `assessmentReportRls.test.ts`** asserts migration file *text*, not behaviour. It passed green while none of those policies were applied. Replace or delete.
-
----
-
-## 4. The honest summary
-
-**The 360 collection spine is real and works.** Create a cycle, build the instrument, add participants and raters, launch, rater completes on a phone with draft and resume, scoring computes with unable-to-observe excluded and n<3 suppressed, access tiers hold in both the route handler and the database, PDFs render real numbers. I have verified every link in that chain against live data.
-
-**What is missing is the back half and the operator surface.** Once feedback is in, generating, reviewing, releasing, synthesising and exporting are all curl-only. A consultant cannot do their job in the product. That is D6, and it is roughly a week.
-
-**And the appraisal product does not exist.** Journey 2 from the operator roadmap is a set of screens showing fictional people from a demo company. The data layer beneath it is written and correct and connected to nothing.
-
-**Right now, though, none of that is what's stopping you.** Your live cycle has no instrument and no working invitation email. Those two, plus raters for three participants, are an afternoon — and they are the difference between a cycle that can collect data and one that cannot.
+The 360 module is ready to open a cohort when all immediate operator items are complete, the rehearsal passes with real tenant identities, email delivery is observed, and the client has approved the instrument and confidentiality rules. It is ready for repeatable enterprise operations after the P1 durable-job and scheduler items are complete.

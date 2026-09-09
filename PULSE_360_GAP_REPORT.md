@@ -1,205 +1,137 @@
-# Pulse — 360 Capability Gap Report
+# Pulse 360 Study Pack - Current Capability and Delivery Guide
 
-> ### ⚠️ SUPERSEDED — historical record only
->
-> This was the audit taken **before any of the 360 build began**. Its verdict ("cannot run this engagement, 60-75 developer-days") described the platform on 2026-09-04 and is **no longer accurate**. Most of what it lists as ABSENT has since been built: the response contract, items and unable-to-observe, drafts, the scoring service with n<3 suppression, the rater queue, the review page, verbatim synthesis, the four access tiers, PDFs, and export.
->
-> Keep it for the reasoning and the requirement matrix. **Do not use it to judge current state.**
-> For that, read **`OPERATOR_ROADMAP.md`** (current) and **`REHEARSAL_REPORT.md`** (verified test evidence).
+**Prepared:** 2026-09-09
+**Repository baseline:** `main` at `d2348f7` (`Unify 360 competency and statement builder`)
+**Purpose:** the authoritative functional study pack for the Pulse 360 module. It replaces the 2026-09-04 pre-build gap audit. It is written for a delivery agent, implementation lead, or client-facing HR consultant.
 
-**Audit date:** 2026-09-04
-**Scope of question:** can Pulse, as it stands today, deliver a 360-degree feedback assessment for 71 senior managers × 8 raters (≈568 assessments) across multiple Nigerian locations?
-**Method:** read-only inspection of schema → API surface → front end → scoring/reporting → jobs. No code was written or changed.
+## 1. Executive position
 
----
+Pulse is now a real multi-tenant 360-degree assessment product, not a design prototype. A tenant can create a cycle, define a framework and item-level instrument, add internal participants, assign internal or external raters, launch collection, notify staff, collect token-secured mobile responses with draft recovery, score the data with confidentiality suppression, generate and release reports, export permitted data, and support a follow-on cycle against a baseline.
 
-## 1. Stack summary
+The product is ready for a controlled tenant rehearsal once the tenant has a real instrument, valid rater assignments, deployed email configuration, and the database migrations applied. It is not yet ready to be described as unattended enterprise operations at scale. The durable job, scheduled governance, and a few HR operator screens are the next phase.
 
-- **Front end + API:** Next.js 16.2.6 (App Router, Turbopack), React 19.2.4, TypeScript 5, Tailwind 4. One deployable — API routes live in `src/app/api/**` alongside pages; there is no separate API service.
-- **Database/auth:** Supabase (Postgres + Auth + RLS). Schema is hand-maintained SQL in `supabase/schema/01–08*.sql`; `supabase/migrations/20260903_000001_assessment_schema.sql` is a byte-identical copy of `08_360_assessments.sql` (line endings aside), so there is effectively one migration and no migration history for the 360 tables.
-- **360 data model:** 10 tables (`assessment_cycles`, `_frameworks`, `_competencies`, `_subjects`, `_reviewers`, `_responses`, `_self_assessments`, `_nominations`, `_reports`, `_audit_events`) in `supabase/schema/08_360_assessments.sql`, all with RLS enabled.
-- **Auth boundary:** `src/proxy.ts:5-19` gates `/dashboard, /assessments, /goals, /reports, /appraisal, /team, /hr, /executive, /onboarding, /welcome, /admin, /settings` on a Supabase session. Every `/api/assessments/*` route authenticates the caller with the anon client, then does all reads/writes with a **service-role client**, re-implementing org scoping in application code (e.g. `cycleBelongsToOrg`, `src/app/api/assessments/reports/route.ts:16-25`). The RLS policies are therefore a second line of defence, not the enforcing layer.
-- **Background jobs:** `pg_cron` + `pg_net` (`supabase/schema/06_cron.sql`) firing one job, `weekly-report-reminder`, into a Deno Edge Function (`supabase/functions/send-reminders/index.ts`). No queue, no worker pool.
-- **Email:** Resend, called only from `supabase/functions/send-notification/index.ts:211`. Next.js reaches it via `src/lib/notifications.ts:38`.
-- **AI:** Anthropic SDK (`src/lib/anthropic.ts`), model `claude-sonnet-4-6`, `max_tokens: 1000`, across seven routes in `src/app/api/ai/*`. **None of them touch assessment data.**
-- **Hosting:** no `vercel.json`, `Dockerfile`, or `supabase/config.toml` in the repo. Supabase project ref `yluskblohjdioqmeczsd` (`supabase/.temp/project-ref`); region is not repo-visible.
+### Readiness snapshot
 
-### Build state (material to any delivery date)
+| Area | Current state | Delivery judgement |
+|---|---|---|
+| Tenant isolation | Every assessment root is scoped by `org_id`; service-role routes re-check organisation ownership; RLS remains a second defence | Strong, but exercise cross-tenant tests before every new deployment |
+| Cycle and instrument setup | HR can create and launch cycles, build competencies, and add/remove item-level statements from the Framework tab | Usable for first cycle |
+| Collection | Public, phone-first token route; single-use hashed tokens; autosaved drafts; resume; Unable to Observe; final confirmation | Ready for controlled rehearsal |
+| Rater operations | Internal/external reviewer assignment, relationship checks, bulk CSV/XLSX validation, per-rater load warnings, queue | Ready, with email delivery rehearsal required |
+| Analysis | Scores come from submitted response data; UTO excluded; category and segment suppression; self-versus-others gaps; verbatim pseudonymisation | Strong core logic |
+| Reports | Generate, review, release, individual and aggregate PDFs, CSV/XLSX export | Functional; durable batch persistence remains open |
+| Governance | Role tiers, release gate, audit events, export logging, retention configuration/purge endpoint, clone/provenance | APIs are present; automation and admin UX remain incomplete |
+| Wider Pulse platform | Dashboard work is partially live, but appraisal/goals still show fixture data in places | Separate product-readiness concern |
 
-`npx next build` **fails today**:
+## 2. What a tenant can do today
 
-```
-./src/app/assessments/page.tsx:434:25
-Type error: Cannot find name 'employeeRow'.
-```
+### Configure an assessment
 
-Same error from `npx tsc --noEmit`, plus `Property 'email' does not exist on type 'Assessee'` at `src/app/assessments/page.tsx:589` and `:1054`. The 360 console cannot currently be deployed. The `src/lib/*.test.ts` suites do pass under `node --experimental-strip-types --test`.
+1. HR creates a cycle at `/assessments`, choosing dates, levels, weights and the tenant context.
+2. HR adds participants from existing tenant employees or through the participant import path. Subject creation links the assessment subject to the tenant employee where possible, which supports participant dashboards and report entitlement.
+3. HR uses the Framework tab to add competencies. These are persisted through `/api/assessments/frameworks`; they survive navigation and reload.
+4. Each competency card is expandable. HR adds scale statements directly within that competency. The statements persist through `/api/assessments/items`; their displayed contribution is distributed within the competency's weight. Standalone text items are also supported by the underlying item contract.
+5. The older `/assessments/instrument` page remains available as a secondary instrument-management route. The normal workflow is now the inline Framework experience, so the main page no longer sends HR to a disconnected "Build rating statements" step.
 
----
+### Select raters and launch
 
-## 2. Requirement matrix
+- The reviewer workflow supports `self`, `line_manager`, `direct_report`, `colleague`, and `customer` relationships.
+- For known employees, the UI can use organisation data and relationship validation. Customers remain free-form because they may not have a tenant account.
+- `/assessments/reviewers/bulk` accepts CSV or XLSX. It validates every row before import, identifies missing subjects, invalid groups, duplicate assignments and relationship contradictions, produces a row-level error report, and warns when a rater exceeds the configurable default load cap of six.
+- Participants can nominate raters through `/assessments/nominations`; approval creates the corresponding reviewer assignment rather than requiring HR to type it again. Rejection can carry a substitution.
+- Launching `/api/assessments/cycles/[cycleId]/launch` moves a setup cycle to `collecting`, inserts in-app notifications for the tenant's employees and sends a launch email to each employee with an email address. A participant added to a live cycle also receives the participant notification path.
+- Rater invitations are individual, expiring, SHA-256-hashed tokens. The invitation uses the tenant reply-to address when one is configured, otherwise the tenant HR admin address.
 
-### A. Data model and organisational structure
+### Collect reviews safely
 
-| Ref | Requirement | Status | Evidence | Gap | Effort | Risk if shipped without |
-|---|---|---|---|---|---|---|
-| A1 | Person records: name, email, mobile, grade, function, location | **FULL** | `supabase/schema/01_tables.sql:22-59` — `name`, `email`, `phone`, `department`, `team`, `role`, `cadre`, `band_current`, `work_location`, `staff_id` | — | — | — |
-| A2 | Reporting relationships, queryable both ways | **FULL** | `01_tables.sql:41` `line_manager_id uuid references employees(id)` — self-referencing FK, traversable in both directions | — | — | — |
-| A3 | Cycle entity distinct from participant and instrument | **FULL** | `08_360_assessments.sql:3-18` (`assessment_cycles`), `:45-57` (`assessment_subjects`), `:20-32` (`assessment_frameworks`) | — | — | — |
-| A4 | Rater assignment as (subject, rater, relationship type) | **FULL** | `08_360_assessments.sql:59-78` — `assessment_reviewers` with `subject_id`, `reviewer_email`, `reviewer_group`, `unique (subject_id, reviewer_email, reviewer_group)` | The core primitive is correct. Two caveats: `reviewer_group` has no `self` value (self-assessment is a separate table, `:93-105`), and `direct_report` is used to mean *the subject's line manager* (`src/lib/assessments360.ts:80-84`), which reads backwards and will confuse whoever configures the cycle. No validation ties a claimed `direct_report` to `employees.line_manager_id`. | S (rename/validate) | Relationship types are self-declared by whoever creates the row; a mis-set group silently lands in the wrong rater category and skews that category's mean |
-| A5 | Bulk import of people and reporting lines, with validation and error report | **PARTIAL** | Employees: `src/app/onboarding/page.tsx:79` `parseCSV`, carries `lineManagerEmail`. Participants: `src/lib/assessmentParticipants.ts:48-76`. | Participant CSV has **no line-manager column** and **silently drops** malformed rows (`continue`, `:67`, `:72`) with no error report returned. No XLSX. Critically, **there is no bulk import of rater assignments** — `POST /api/assessments/reviewers` takes one rater at a time (`src/app/api/assessments/reviewers/route.ts:146`), and the UI calls it singly (`src/app/assessments/page.tsx:1186`, `:1235`). | M | 568 assignments entered one-by-one through a form; a silent-skip importer means a participant can be missing from the cycle with nothing shown to the operator |
-| A6 | Multi-tenancy / client isolation | **FULL** | `org_id` FK + RLS on `assessment_cycles`/`_frameworks` (`08:5,22,149-240`); child tables scope via `cycle_id` join (`08:242-513`); API routes re-check org (`reports/route.ts:16-25,70-73`) | Minor: `_responses` and `_reports` carry no `org_id` of their own; isolation depends on the cycle join being applied every time. The employee lookup `.eq("user_id", user.id).maybeSingle()` (e.g. `reports/route.ts:59-63`) is ambiguous if one user ever has employee rows in two orgs. | S | — |
+The rater opens `/review/[token]` without signing in. This route is deliberately public and is not gated by `src/proxy.ts`.
 
-### B. Assessment design
+- The GET contract derives the cycle and subject from the reviewer token. It exposes the subject display name only, the rater relationship, the active instrument, saved draft and expiry. It never exposes subject email, staff ID, or other raters.
+- The review flow shows one competency at a time and is designed for a narrow mobile viewport first.
+- Every scale item has both a 1-5 score and a first-class Unable to Observe control. UTO is stored as `not_observed`, has no numeric rating, and is excluded by scoring.
+- Item comments are optional. Open-text items are handled as narrative questions.
+- PATCH saves drafts, advances the assignment to `in_progress`, records `last_saved_at`, and allows the same token to resume. POST submits the complete review, records an audit event, and closes the assignment.
+- Expired, invalid and already-submitted links return a human explanation and `/review/contact`, rather than a 404 or stack trace.
+- Submission rejects a closed cycle or a cycle past `closes_on`, even where the token itself has not yet expired.
+- `/review/queue/[token]` groups assignments for the same rater and provides a next-up route, avoiding a pile of unrelated links for multi-subject raters.
 
-| Ref | Requirement | Status | Evidence | Gap | Effort | Risk if shipped without |
-|---|---|---|---|---|---|---|
-| B1 | Client-definable competency library | **FULL** | `08:20-32` `assessment_frameworks.competencies jsonb`; `08:34-43` `assessment_competencies` per cycle; `src/lib/assessmentFramework.ts:51-123`; `POST /api/assessments/frameworks` | — | — | — |
-| B2 | Items grouped under a parent competency, rolling up | **ABSENT** | No questions/items table exists anywhere in `supabase/schema/`. `assessment_responses` is `unique (reviewer_id, competency_id)` (`08:90`) — exactly one rating and one comment **per competency**. A `ReviewQuestion` type exists at `src/lib/assessments360.ts:14-19` but `assessmentQuestions` is an empty array (`:113`) consumed by nothing. | Raters rate the competency directly. There is no level at which items exist, so there is nothing to roll up. A conventional instrument (~50 items → 8-10 competencies) cannot be represented. | **L** | The instrument you sell cannot be entered into the product; scores have no item-level evidence, and item-level analysis (the thing that makes a 360 report actionable) is impossible |
-| B3 | Multiple questionnaire variants in one cycle, assignable to groups | **PARTIAL** | `CompetencyDefinition` carries `level` and `function` (`src/lib/assessmentFramework.ts:9-11`); `assessment_frameworks` carries `levels[]`, `business_functions[]` (`08:24-25`) | Fields exist; **no code filters a review form by subject level or function**, and `assessment_competencies` binds to `cycle_id` only — a cycle has exactly one competency set with no variant→participant-group mapping. | M | A single cohort cannot be split by grade or function; either everyone gets one instrument or you run separate cycles and lose cohort-level aggregation |
-| B4 | Configurable 5-point frequency scale **+ "Unable to Observe" excluded from means** | **PARTIAL** | 5-point scale: `08:86` `check (rating >= 1 and rating <= 5)`; `src/lib/reviewSubmission.ts:41` rejects anything outside 1–5 | Scale is **hard-coded**, not configurable, and nowhere labelled as a frequency scale. **"Unable to Observe" does not exist** — a repo-wide grep for `unable to observe / not observed / N/A` returns zero hits. Because the DB check and the payload validator both demand 1–5, non-observation *cannot be recorded at all*, so the exclusion-from-means requirement is moot rather than met. | M | Raters forced to invent a score for behaviour they have not seen. Every competency mean is contaminated by guesses, and the resulting report is indefensible in a feedback conversation |
-| B5 | Open-text alongside scaled items | **PARTIAL** | `08:87` `comment text`; `src/lib/reviewSubmission.ts:47-49` **requires** a non-empty comment on every response | Comments exist only as mandatory per-competency evidence. There are no standalone open-text questions ("what should this person start/stop/continue"), and the mandatory-comment rule will drive rater fatigue and junk text across 568 assessments | S | No place for the narrative feedback that carries most of a 360's value |
-| B6 | In-product authoring by an admin | **PARTIAL** | Framework tab (`src/app/assessments/page.tsx:126`) + `POST /api/assessments/frameworks`; competency drafting state at `page.tsx:368-373` | Competencies are authorable in-product. Items are not, because items do not exist (B2). Rating scale and anchors require a code/schema change. | M | Every instrument change for a new client is a developer task and a deploy |
+### Score, review and release
 
-### C. Rater selection and assignment workflow
+- `src/lib/assessmentScoring.ts` and `assessmentScoringService.ts` compute subject and cohort outputs from persisted responses, not client-supplied numbers.
+- Scores are aggregated by competency, item and reviewer category. UTO is excluded. Categories below the default threshold of three are suppressed rather than rendered as zero.
+- Self-versus-others gaps, blind spots and hidden strengths are calculated from the same scoring service.
+- Narrative analysis reads the pseudonymised verbatim view. Lower tiers cannot join a comment back to reviewer name or email.
+- `/assessments/reports` gives the report operator a console to generate a report, move it from `draft` to `in_review`, and release it. Release is blocked until the data-quality rule is met.
+- Individual report access is released-only for the participant or an enabled line manager. HR sees completion and aggregate outputs, executive view sees aggregate outputs, and super admin has support access. The route layer enforces this despite service-role reads, and the migration adds matching RLS policies.
+- Individual and aggregate PDF output uses `@react-pdf/renderer` on the Node.js runtime. PDF data is loaded through the real scoring service; there are no fabricated score values in the current PDF path.
+- CSV/XLSX exports are permission-gated, include completion, score and aggregate datasets according to the caller tier, exclude raw verbatims and named raters, and create `report_exported` audit events.
 
-| Ref | Requirement | Status | Evidence | Gap | Effort | Risk if shipped without |
-|---|---|---|---|---|---|---|
-| C1 | Participants nominate their own raters in-product | **ABSENT** | `assessment_nominations` table exists (`08:107-122`), but `POST /api/assessments/nominations/route.ts:108-110` requires `platform_role` in `hr_admin`, `super_admin`, `manager`. RLS is `"hr can manage nominations"` (`08:403-425`). The Nominations tab lives inside the HR console at `/assessments`, behind `proxy.ts`. | A `standard`-role participant has no route and no UI to nominate. Nominations are entered *by HR on the participant's behalf*. | M | 71 participants email their nominations to the project team, who retype them — the largest manual-effort item in the engagement after invite distribution |
-| C2 | HR approval step, with substitution/addition before launch | **PARTIAL** | `assessment_nominations.status` `pending`/`approved`/`rejected` (`08:117`); `buildNominationSummary` (`src/lib/assessmentParticipation.ts:88-105`) | The status column exists but **approving a nomination does not create an `assessment_reviewers` row** — no code path promotes a nomination into an assignment. The two tables are disconnected; a rater must be re-entered by hand into the reviewers form. | M | Approval is decorative; the real assignment list is built by hand a second time, with the transcription errors that implies |
-| C3 | **Unique tokenised link per (rater, subject) assignment** | **PARTIAL — and this is the critical finding** | Issuance is correct: `assessment_reviewers.token_hash` + `token_expires_at` (`08:68-69`), unique partial index (`08:169`), SHA-256 hashed at rest (`reviewers/route.ts:21-23`), 14-day expiry (`:161`), one token per reviewer row and therefore **per (subject, rater, relationship type)** — the right primitive. Redemption is correct: `POST /api/assessments/submissions` resolves the token to exactly one reviewer and derives `cycle_id`/`subject_id` from it (`submissions/route.ts:66-73,124-132`), so the rater cannot self-declare the subject. | **The page the link points to does not exist.** Both issuance paths return `secureLink: ${origin}/review/${token}` (`reviewers/route.ts:193`, `:312`), but there is no `src/app/review/` directory — the only `/review` references in the codebase are those two string literals. `https://…/review/<token>` is a 404 today. The one form that can submit a review is the "Review form" tab *inside the authenticated HR console* (`page.tsx:129`, submitting at `:802`), where an admin pastes a token. | **L** | **Nothing can be collected.** To state it plainly: Pulse today does neither "a unique link per assignment" nor "one shared link" — it has no rater-facing surface at all. Raters cannot be reached |
-| C4 | Rater landing page / queue with per-assignment state | **ABSENT** | No route, no query grouping `assessment_reviewers` by `reviewer_email` across subjects | A rater covering 6 subjects receives 6 unrelated tokens with no page listing them. "3 of 6 complete" is not expressible. | M | A rater who does one assessment has no way to discover the other five; completion stalls and chasing is manual |
-| C5 | Cap or control on assessments per rater | **ABSENT** | none found | No count, no warning, no limit | S | Popular colleagues get loaded with 15+ assessments, respond late or carelessly, and drag the whole cohort's completion rate |
-| C6 | External (non-employee) raters | **FULL** | `reviewer_employee_id` nullable (`08:63`), `reviewer_name`/`reviewer_email`/`organisation` as free text (`08:64-67`), `reviewer_group = 'customer'` (`08:66`); token submission path needs no account (`submissions/route.ts`) | Note: the `"reviewers can manage own responses"` RLS policy (`08:427-447`) joins `employees` on `reviewer_employee_id`, so externals can only ever write through the service-role token route — which is the correct design, but it means C6 depends entirely on C3 being built | — | — |
+### Run future cycles and governance operations
 
-### D. Distribution, completion and chasing
+- `/api/assessments/cycles/clone` copies the cycle configuration, competencies, items and participant population. It records `prior_cycle_id` and allows the population to be carried forward or replaced.
+- Reports carry framework provenance. Comparison is flagged when framework versions differ; a suppressed category in either cycle does not produce a delta.
+- Retention is held per cycle in `client_context`, defaulting to 365 days. `/api/assessments/retention` can read/update that configuration and manually purge a cycle, producing a certificate stored in an audit event. A scheduled mode exists and requires `CRON_SECRET`.
 
-| Ref | Requirement | Status | Evidence | Gap | Effort | Risk if shipped without |
-|---|---|---|---|---|---|---|
-| D1 | Automated invitation emails per assignment on launch | **ABSENT** | `reviewers/route.ts:176` sets `invite_status: "sent"` and `:290-301` writes a `reviewer_invite_issued` audit event — but **no email is sent**. The route never calls `src/lib/notifications.ts` or the `send-notification` function; grep for Resend/email in `src/` returns only `notifications.ts:38` (used by other features). The token is returned in the HTTP response for display in the admin UI only. | `invite_status = 'sent'` is a lie in the data — it records issuance, not delivery. No bulk-send action exists. | M | 568 invitations copied and pasted by hand, and the completion dashboard reports "sent" for raters who were never contacted |
-| D2 | Scheduled, configurable, targeted reminders | **ABSENT (for 360)** | One `pg_cron` job, `weekly-report-reminder`, `'0 8 * * 5'` (`06_cron.sql:24-40`) → `send-reminders`, which chases **weekly status reports** (`send-reminders/index.ts:22-46`), not assessment assignments. Cron expression and the 7-day window are hard-coded. | Nothing queries `assessment_reviewers where status != 'submitted'`. No per-cycle reminder schedule, no configurability. | M | Completion chasing is a spreadsheet-and-inbox exercise across 568 assignments in multiple locations |
-| D3 | Non-email channel (WhatsApp/SMS) or an integration point | **PARTIAL** | `invite_channel` enum accepts `'email','sms','whatsapp','portal'` (`08:71`) and is even auto-set to `whatsapp` for customer raters (`reviewers/route.ts:162`) | The column is a **label with no sender behind it**. Resend (email) is the only provider integrated anywhere. Selecting "whatsapp" changes a badge in the UI and nothing else. | M | Worse than absent: the console will show customer raters as invited via WhatsApp when no message was sent |
-| D4 | Live completion dashboard, by subject and by rater | **PARTIAL** | By subject: view `assessment_cycle_dashboard` (`08:515-535`), `completionForAssessee` (`assessments360.ts:188-193`), `completionByGroup` (`:195-200`), function/region progress grouping (`page.tsx:715,724-726`) | **No by-rater view** — nothing groups assignments by `reviewer_email` to show who is behind. Combined with D1, "submitted / not started" is measured against invitations that were never delivered. | M | You can see that a participant is short of responses but not which rater to chase |
-| D5 | Mobile responsiveness of the **rater-facing** form | **ABSENT** | There is no rater-facing form to assess (see C3). The only review form is a tab in the 2,729-line authenticated admin console (`src/app/assessments/page.tsx`). The app shell itself is mobile-aware (Tailwind, `src/components/layout/BottomNav.tsx`, PWA manifest). | Cannot be evaluated because the artefact does not exist | — (rolls into C3) | Raters across Nigerian locations will be predominantly on mobile; this must be designed mobile-first when C3 is built, not retrofitted |
-| D6 | Cycle open/close dates; per-individual extension | **PARTIAL** | `assessment_cycles.starts_on` / `closes_on` (`08:11-12`); per-rater `token_expires_at`, re-issuable +14 days via `PATCH …/reviewers` `action: "issue_invite"` (`reviewers/route.ts:268-284`) | **Neither `closes_on` nor `status` is checked at submission time.** `submissions/route.ts:83-102` validates only token expiry and "already submitted". A cycle marked `closed` will still accept responses if a token is live. | S | Responses land after the reporting cut-off and silently change scores that have already been shown to a client |
-| D7 | Save partial, resume later | **ABSENT** | `status` includes `'in_progress'` (`08:74`) but **no code ever sets it**. `POST /api/assessments/submissions` writes every response and flips to `submitted` in one transaction (`:124-153`); there is no draft endpoint. | All-or-nothing submission | M | A long instrument on a mobile connection, with a mandatory comment on every competency (B5), and no way to save — expect abandonment and repeat data entry |
+## 3. Architecture map for the next agent
 
-### E. Scoring and analysis
+| Concern | Primary ownership | Important files |
+|---|---|---|
+| HR 360 command centre | Assessment setup, participant/reviewer workflows, framework cards | `src/app/assessments/page.tsx` |
+| Public rater experience | Token resolution, drafting, submit/reopen states | `src/app/review/[token]/page.tsx`, `ReviewFlow.tsx`, `src/app/api/assessments/submissions/route.ts` |
+| Rater queue | Multi-assignment landing and secure token hand-off | `src/app/review/queue/[token]/page.tsx` |
+| Instrument persistence | Framework and item CRUD | `src/app/api/assessments/frameworks/route.ts`, `items/route.ts` |
+| Scoring | All score, suppression and comparison rules | `src/lib/assessmentScoring.ts`, `assessmentScoringService.ts`, `assessmentComparison.ts` |
+| Reports | Access, state machine, report generation and operator UI | `src/app/api/assessments/reports/route.ts`, `src/app/assessments/reports/ReportConsole.tsx` |
+| PDFs | PDF data adapter and documents | `src/lib/assessmentPdfData.ts`, `assessmentPdfDocument.ts`, `src/app/api/assessments/reports/pdf/**` |
+| Notifications/email | In-app rows, Resend messages, reply-to resolution | `src/lib/notifications.ts`, `src/lib/pulseEmail.ts`, launch/reviewer routes |
+| Security/retention | Tier rules and governance endpoints | `assessmentReportAccess.ts`, `retention/route.ts`, migrations dated `20260904` onward |
 
-| Ref | Requirement | Status | Evidence | Gap | Effort | Risk if shipped without |
-|---|---|---|---|---|---|---|
-| E1 | Scores per competency **and** per rater category | **ABSENT** | `assessment_responses` is written at `submissions/route.ts:135` and **read by nothing** — that is the only reference to the table in `src/`. `assessment_reports.group_scores` / `competency_scores` are populated exclusively from **client-supplied request body** (`reports/route.ts:159-190`: `body.reviewerScores`, `body.competencyScores`), and no UI code POSTs to that route — `src/app/assessments/page.tsx:481` only ever GETs it. | **There is no aggregation layer.** Collected responses are stored and never read; the reports table is a write-only endpoint nothing calls; the Reports tab renders rows that nothing produces. The pipeline is disconnected at both ends. | **L** | Data goes in and no score comes out. Even the fallback of hand-computing 71 reports is blocked, because there is no export (F5) |
-| E2 | **Minimum-response suppression (n < 3)** | **ABSENT** | Repo-wide grep for suppression/threshold logic in the scoring path returns nothing. `buildAssessmentReportSummary` (`src/lib/assessmentReporting.ts:42-90`) applies no count test. | **Confidentiality-critical.** Worse: `groupScores` at `assessmentReporting.ts:56-59` is a `reduce` that **overwrites** on key collision — passing four colleague scores keeps only the last one. So even the intended path does not average within a rater category; it silently discards raters. | M | A "Subordinate" category built from one respondent is attributable. In a 71-person senior cohort, a single direct report can be identified from their own score. This is the finding most likely to end the engagement |
-| E3 | Self vs others gap, blind spots / hidden strengths | **ABSENT** | `assessment_self_assessments` (`08:93-105`) is written and read only by `src/app/api/assessments/self/route.ts:60,149`. No code compares self scores to reviewer scores. | Self data is captured and never used | M | The single most-expected output of a 360 report is missing |
-| E4 | AI analysis of free text | **ABSENT (for assessments)** | Seven Anthropic routes exist (`src/app/api/ai/*`, model `claude-sonnet-4-6`, `max_tokens: 1000`) but **none reads assessment data** — grep of `assessments/page.tsx` for any `ai/` call returns zero hits. | Nothing implemented. On volume: with a mandatory comment per competency (`reviewSubmission.ts:47`), 568 assessments × ~8 competencies ≈ 4,500 verbatims, well above the ~1,700 assumed. Natural batching is per subject (~64 comments, a few thousand input tokens), 71 calls per pass. That volume is small against context limits, and cost is not the binding constraint here — design is: `max_tokens: 1000` is far too small for a thematic synthesis, and no route accepts assessment input. | **L** | Manual thematic coding of ~4,500 comments, or no verbatim analysis in the deliverable |
-| E5 | Safeguard against AI reproducing an identifying phrase | **ABSENT** | No E4 to safeguard | Note a related exposure that exists **today**: `assessment_responses.reviewer_id` FKs straight to `assessment_reviewers.reviewer_name`/`reviewer_email` (`08:84`, `:64-65`), and `"hr can read assessment responses"` (`08:449-461`) lets any `hr_admin` join every verbatim to a named rater. There is no pseudonymisation. | M | A promised-anonymous rater is attributable by any HR admin through a two-table join, and would be by an AI summary too |
-| E6 | Cohort aggregation segmented by grade, function, location | **PARTIAL** | `assessment_subjects` carries `level`, `function_name`, `region`, `portfolio` (`08:51-54`); UI groups **completion** by function (`page.tsx:715`) and region (`:724-726`); level filter at `:581-582` | Dimensions are modelled and the grouping UI exists, but it aggregates completion, not scores — because scores are never computed (E1) | M (once E1 lands) | No cohort narrative, which is usually the client-facing headline deliverable |
-| E7 | Subject with too few responses to report on | **PARTIAL — wrong shape** | `canReleaseAssessmentReport` (`src/lib/assessmentRelease.ts:3-16`) requires **all four groups present AND every single reviewer submitted** | This is an all-or-nothing 100%-completion gate, not a minimum-N rule. Across 568 assignments, one non-responder permanently blocks that subject's report. It is also unenforced at the API — `reports/route.ts:191` uses `summary.ready` only to decide `released_at`, and writes the report regardless. | M | Either most reports are blocked by a single laggard, or the gate is bypassed and thin-data reports go out |
+## 4. Important operational prerequisites
 
-### F. Reporting, access control and release
+Before a real tenant collection window opens, an operator must confirm all of the following:
 
-| Ref | Requirement | Status | Evidence | Gap | Effort | Risk if shipped without |
-|---|---|---|---|---|---|---|
-| F1 | Individual report as PDF | **ABSENT** | No PDF dependency in `package.json`; no render route; no template. Reports exist only as React in the Reports tab (`page.tsx:2364`, `:2732`) | No rendering approach chosen at all | **L** | The contracted deliverable — 71 individual PDF reports — cannot be produced |
-| F2 | Aggregate/org report, heat-map or matrix | **PARTIAL** | `cohortReportSummaries` (`page.tsx:758`), function/region breakdowns (`:715-726`) | The presentation shell exists but is fed by `assessmentResults`, which is populated from `assessment_reports` — which nothing writes (E1). No heat-map/matrix component. | M | No cohort deliverable |
-| F3 | Four access tiers | **PARTIAL — and inverted** | Roles: `standard`, `manager`, `hr_admin`, `executive_view`, `super_admin` (`src/lib/tenant.ts:3-4,10-29`). Report read policy (`08:463-475`) grants SELECT on `assessment_reports` to `hr_admin`, `super_admin`, **and `executive_view`** — all three see full individual rows including strengths and development areas. `"hr can read assessment responses"` (`08:449-461`) gives HR every raw verbatim. | **Participant tier: absent** — no policy links `assessment_subjects.employee_id` to a self-read; a participant cannot reach their own report. **Line-manager tier: absent** — no per-cycle setting, no policy. **HR tier: over-privileged** — the requirement is completion + aggregate only, explicitly *not* individual reports or verbatims; today HR has both. **Executive tier: over-privileged** — gets individual reports, not aggregate-only. Effectively **two tiers exist (HR/super, and executive_view) and both see more than they should**. | **L** | The confidentiality model you sell is the opposite of the one implemented. Participants cannot see their own report; HR and sponsors can read every named verbatim |
-| F4 | Review-and-release gate | **PARTIAL** | `assessment_reports.released_at` (`08:134`), set only when `body.release && summary.ready` (`reports/route.ts:191`) | The column exists; **nothing enforces it**. `GET /api/assessments/reports` (`:75-86`) returns reports regardless of `released_at`, and no read path filters on it. There is no draft→review→released state machine, and since participants have no read path at all (F3), there is nothing the gate currently gates. | M | Either reports are unreachable, or once a participant path is added they auto-publish on write |
-| F5 | Data export (CSV/XLSX), permission-controlled | **ABSENT** | Import parsers exist (`assessmentParticipants.ts`, `onboarding/page.tsx:79`); no export code anywhere | No export of responses, scores, or completion | S | No way to hand data to the client, no offline analysis, and no fallback while E1 is unbuilt |
+- The assessment migrations have been applied to the target Supabase project, including `20260904_000001_assessment_response_contract.sql`, `20260904_000002_assessment_report_access_tiers.sql`, `20260905_000001_assessment_prior_cycle.sql`, and `20260908_000001_org_reply_to_email.sql`.
+- The deployed Next.js environment has `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_APP_URL`, Resend credentials, and a verified `FROM_EMAIL` address. Do not rely on `.env.local` as evidence of production configuration.
+- The `send-notification` Edge Function has the matching secrets configured and is deployed when it is being used by the notification flow.
+- Each tenant either has `organisations.reply_to_email` set to its HR mailbox or at least one valid `hr_admin` employee email for the fallback.
+- A real framework and active items exist before launch. A cycle with no items technically launches but has nothing useful to collect.
+- One email invitation is rehearsed to an address the project team can inspect in Resend, and one mobile rater completes, resumes, and submits a real test review.
+- The scheduled retention route and reminder infrastructure are intentionally configured or intentionally disabled. An endpoint existing in the repository does not mean a host scheduler is calling it.
 
-### G. Governance, security and compliance
+## 5. Known limitations and risk register
 
-| Ref | Requirement | Status | Evidence | Gap | Effort | Risk if shipped without |
-|---|---|---|---|---|---|---|
-| G1 | Audit log of who accessed which report, when | **PARTIAL** | `assessment_audit_events` (`08:139-147`) exists and captures IP + user-agent. Exactly **three** actions are ever written: `reviewer_invite_issued` (`reviewers/route.ts:294`), `review_token_expired` (`submissions/route.ts:93`), `review_submitted` (`:159`). | **No report-access event is logged.** Neither `GET /api/assessments/reports` nor the Reports tab writes an audit row. The specific requirement — who read which report — is not met. | S | No answer to "who saw this person's feedback", which is the first question asked when a leak is alleged |
-| G2 | Configurable retention + purge routine | **ABSENT** | Repo-wide grep for retention/purge/GDPR/NDPA returns nothing. Only `ON DELETE CASCADE` FKs. | No retention policy, no scheduled purge, no per-cycle deletion job | M | An NDPA obligation with no mechanism; assessment data accumulates indefinitely |
-| G3 | Encryption in transit and at rest; how responses are stored | **PARTIAL** | Supabase provides TLS in transit and at-rest encryption at the platform layer (not repo-visible/configurable). Responses stored as plaintext `rating numeric(3,1)` + `comment text` (`08:86-87`). | No application-layer encryption and **no pseudonymisation**: every response row points at a named, emailed rater (see E5). Confidentiality rests entirely on RLS policies that the API routes bypass with the service-role key. | M | Rater anonymity is a policy promise with no structural backing |
-| G4 | Hosting region, configurable — NDPA | **UNCLEAR** | Supabase project ref `yluskblohjdioqmeczsd` (`supabase/.temp/project-ref`); no `supabase/config.toml`, no `vercel.json`, no `Dockerfile` in the repo | Region is a Supabase dashboard setting and the Next.js host is undetermined from the repo. See Open Questions. | — | Potentially an NDPA data-residency problem that cannot be assessed from code |
-| G5 | Controller/processor separability and extraction | **PARTIAL** | `org_id` FK with `ON DELETE CASCADE` on all assessment roots (`08:5,22,95,109`); child tables cascade via `cycle_id`. Client data is cleanly separable and deletable by org. | **Extraction on request is not possible** — there is no export (F5). Separability: yes. Extractability: no. | S (rides on F5) | Cannot satisfy a client's or a regulator's data-provision request |
+These are current gaps, not historical pre-build findings.
 
-### H. Repeat cycles
+| Priority | Gap | Consequence | Recommended next action |
+|---|---|---|---|
+| P0 | No automated live-environment rehearsal is committed in the repo | Green TypeScript and unit tests cannot prove production secrets, email delivery, RLS application or Edge Function deployment | Run the rehearsal in `REHEARSAL_REPORT.md` against a non-production tenant before inviting a client cohort |
+| P1 | PDF batch jobs are stored in a process-local `Map` | A server restart, serverless instance change, or long-running batch can lose job state and generated buffers; this is not durable/resumable enterprise batch processing | Move batch metadata to Postgres and files to Supabase Storage, then use a durable worker/queue |
+| P1 | Framework save currently creates a new framework snapshot on competency add | It works, but can leave multiple framework versions in the tenant library and needs a clearer edit/version lifecycle | Add explicit framework update/versioning semantics and an operator list/archive view |
+| P1 | Retention has an API but no committed scheduler wiring or management UI | Compliance behaviour depends on external scheduler configuration and manual API use | Add an authenticated scheduler configuration/runbook and a small HR governance screen |
+| P1 | Clone, retention and AI synthesis are largely API-first | The capabilities exist but are not all discoverable in normal HR navigation | Add dedicated surfaces outside the monolithic assessment page |
+| P1 | The main assessment page remains very large | It is harder to test and increases merge conflict risk for parallel agents | Extract setup, framework, reviewer and command tabs into route-level components; preserve current behaviour first |
+| P2 | Reviewer invitation delivery state is based on send attempt/result, not provider webhooks | Bounces and downstream delivery events are not represented | Add Resend webhook handling and a delivery-status model before high-volume rollout |
+| P2 | Reminder policy is not tenant-configurable in the HR UI | HR can send on-demand reminders, but full cadence control is not yet productised | Add per-cycle cadence, audience and escalation controls |
+| P2 | Wider appraisal/goals pages still contain fixture-data journeys | It lowers total-product launch readiness but does not invalidate the 360 collection spine | Treat appraisal integration as a separate delivery stream |
 
-| Ref | Requirement | Status | Evidence | Gap | Effort | Risk if shipped without |
-|---|---|---|---|---|---|---|
-| H1 | Re-run same instrument against same/updated population | **PARTIAL** | `assessment_frameworks` is org-level and reusable (`08:20-32`); cycles are independent entities | `assessment_competencies` binds to `cycle_id` with **no `framework_id` FK** (`08:34-43`) — nothing records which framework version a cycle used, and there is no "clone cycle" action. Competencies are retyped per cycle. | M | Year 2 is not provably the same instrument, which invalidates any comparison |
-| H2 | Year-on-year comparison, individual and cohort | **ABSENT** | Repo-wide grep for baseline/prior-cycle/YoY logic returns nothing outside mock data | No prior-cycle linkage on subjects or reports, no delta computation | M | No movement-against-baseline reporting, which is the commercial case for the second cycle |
+## 6. Recommended next phase
 
----
+### Phase A - Controlled tenant rehearsal (first)
 
-## 3. Blocking assessment
+Run one end-to-end rehearsal with a test cycle and five to ten employees. Validate emails, notifications, permissions for all report roles, draft/resume on a mobile device, scoring and suppression, release, PDF download and exported files. Record actual results in the rehearsal report. This is a delivery activity, not a code rewrite.
 
-### Blocks a pilot — cannot run even a 10-person test
+### Phase B - Operational hardening
 
-1. **Build is broken** (`src/app/assessments/page.tsx:434` — `employeeRow` undefined). Nothing deploys.
-2. **C3 — no `/review/[token]` page.** The link every invitation would carry is a 404. No response can be collected from anyone outside the HR console.
-3. **D1 — no invitation email is sent.** `invite_status` is set to `'sent'` without a message going out.
-4. **E1 — no scoring aggregation.** `assessment_responses` is never read; `assessment_reports` is never written by any caller. Data in, nothing out.
-5. **F1 — no PDF.** No individual report deliverable exists in any format.
-6. **B4 — no "Unable to Observe".** Cannot be added after data collection starts without discarding the responses already gathered.
-7. **E2 — no minimum-response suppression.** Shipping without this exposes individual raters from the first cycle onwards, and the `groupScores` overwrite bug means multi-rater categories are silently reduced to one rater.
+Build durable PDF batching, a real scheduler for reminders and retention, Resend delivery/bounce webhooks, and an HR-facing governance area for retention, clone and reminder settings. This turns a good controlled-cycle product into a repeatable service operation.
 
-### Blocks the 71-person engagement — a pilot would survive these; the real cohort will not
+### Phase C - Product architecture and enterprise scale
 
-8. **A5 — no bulk rater-assignment import.** 568 assignments through a one-at-a-time form.
-9. **C4 — no rater queue.** A rater with 8 subjects gets 8 orphan links and no way to see the rest.
-10. **D2 — no reminder logic for assignments.** Chasing 568 assignments by hand across multiple locations.
-11. **D7 — no save-and-resume**, against a mandatory-comment instrument on mobile.
-12. **C1/C2 — nominations are HR-entered and approval does not create assignments.** 71 nomination sets retyped twice.
-13. **F3 — access tiers are wrong, not just incomplete.** Participants cannot see their own report; HR and the executive sponsor can read individual reports and named verbatims.
-14. **E3 — no self-vs-others gap analysis.** The central content of an individual 360 report.
-15. **E4 — no verbatim analysis** for ~4,500 comments.
-16. **F5 — no export.** Removes the manual fallback for every gap above.
-17. **D4 — no by-rater completion view.**
+Split `src/app/assessments/page.tsx` into maintainable surfaces, add framework version history, role-aware reviewer selection refinements, richer completion-chasing tools, and deployable end-to-end tests. Then address the unrelated appraisal/goals fixture-data journey so the full Pulse platform meets the same standard as 360.
 
-### Can follow later — genuinely deferrable to a second cycle
+## 7. Handover rules
 
-- **B3** questionnaire variants by grade/function (run one instrument for cycle 1).
-- **C5** rater caps (manageable by hand at this size).
-- **D3** WhatsApp/SMS — *but the misleading `invite_channel` labels must be disabled*, not left showing false delivery.
-- **E6/F2** cohort segmentation and heat-maps, if the contract's cohort deliverable can be produced offline from an export.
-- **G1** report-access audit (add before the second client, not necessarily the first).
-- **G2** retention/purge routine.
-- **H1/H2** repeat-cycle linkage and YoY — by definition not needed until cycle 2, but H1's `framework_id` FK is a **cheap schema change worth making now**, because retrofitting provenance onto cycle 1's data later is impossible.
-
----
-
-## 4. The five things to build first
-
-**1. The rater-facing assessment page — `/review/[token]`**
-
-A public (non-`proxy.ts`-gated) route that resolves a token to exactly one assignment, renders the instrument for that subject, and submits it. The backend half already exists and is well built: tokens are hashed with SHA-256, uniquely indexed, expiry-checked, single-use, and the subject is derived server-side from the token rather than declared by the rater (`submissions/route.ts:66-132`). What is missing is a `GET` companion that exchanges a token for `{subject name, competencies, rater's relationship type, any saved draft}`, plus the page itself. It is first because *nothing else in the chain can be tested until data can be collected* — every downstream gap (scoring, suppression, reports) is unverifiable without real responses. Touches: new `src/app/review/[token]/page.tsx`, new `GET` in `src/app/api/assessments/submissions/route.ts`, `src/proxy.ts:5-19` (confirm `/review` stays public). Build it mobile-first and land D7 (draft save, using the existing unused `'in_progress'` status at `08:74`) and B4's "Unable to Observe" in the same pass — both change the response contract, and retrofitting either after collection begins invalidates the data. **Done** = a rater on a phone opens an emailed link, sees one named subject, rates each competency or marks Unable to Observe, saves halfway, returns, submits, and the token is dead afterwards.
-
-**2. The scoring aggregation service**
-
-A server-side module that reads `assessment_responses` for a subject and produces per-competency × per-rater-category means, with three rules the current code lacks: exclude Unable-to-Observe from every denominator; **average within a rater category** (fixing `assessmentReporting.ts:56-59`, which overwrites rather than averages); and suppress or merge any category with fewer than three responses. It is second because `assessment_responses` currently has **no reader at all** — the table is write-only and `assessment_reports` is written only from a client-supplied request body that no UI sends. Until this exists, Pulse collects data it cannot score. Touches: `src/lib/assessmentReporting.ts` (rewrite), `src/app/api/assessments/reports/route.ts:159-190` (compute server-side from `cycleId`+`subjectId`, stop trusting `body.reviewerScores`), and a call site in `src/app/assessments/page.tsx`. **Done** = POST a `cycleId`+`subjectId` and get back competency scores broken out by category, with n<3 categories suppressed and UTO excluded, verified by unit tests alongside the existing `src/lib/*.test.ts` suites.
-
-**3. Invitation and reminder delivery**
-
-Wire `assessment_reviewers` to Resend: a bulk "launch cycle" action that sends one email per assignment carrying that assignment's own link, sets `invite_status` only on a confirmed send, and a `pg_cron` job that queries `status != 'submitted'` and re-sends on a per-cycle configurable schedule. Third because items 1 and 2 are worthless if raters are never reached, and because the current `invite_status: 'sent'` (`reviewers/route.ts:176`) actively misreports delivery — the completion dashboard is lying today. Touches: `src/app/api/assessments/reviewers/route.ts`, `src/lib/notifications.ts`, `supabase/functions/send-notification/index.ts` (new template), a new `supabase/functions/assessment-reminders/`, `supabase/schema/06_cron.sql`. While here, disable the `sms`/`whatsapp` `invite_channel` options (`08:71`) until a provider exists. **Done** = launching a cycle delivers 568 distinct emails, each link opens that rater's own assignment, and non-responders are automatically re-chased on schedule.
-
-**4. Bulk assignment import and the rater queue**
-
-A CSV/XLSX importer taking `subject_email, rater_name, rater_email, relationship_type` that validates every row against the cycle's subjects, rejects unknown relationship types, flags duplicates against the `unique (subject_id, reviewer_email, reviewer_group)` constraint, and **returns a per-row error report** — unlike `assessmentParticipants.ts:67,72`, which silently drops bad rows. Paired with a rater landing page listing every assignment one email address owes, with per-assignment state. Fourth because 568 assignments cannot be typed one at a time through `reviewers/route.ts:146`, and because a rater holding eight separate tokens has no way to find the other seven. Also close C2 here: make approving an `assessment_nominations` row create the corresponding `assessment_reviewers` row, which nothing currently does. Touches: new `src/lib/assessmentAssignmentImport.ts` + tests, new bulk endpoint under `src/app/api/assessments/reviewers/`, new `src/app/review/queue/` (token- or email-addressed), `src/app/api/assessments/nominations/route.ts`, `src/app/assessments/page.tsx`. **Done** = one file upload creates 568 validated assignments with a downloadable error report, and a rater sees "3 of 6 complete" on one page.
-
-**5. Report access tiers and the release gate**
-
-Implement the four tiers properly, because today's model is not merely incomplete — it is inverted. Add a participant self-read of their own **released** report (joining `assessment_subjects.employee_id`, which no policy currently uses); add a line-manager read gated by a per-cycle boolean; **narrow** `hr_admin` from its current full read of individual reports *and* every named verbatim (`08:449-461`) down to completion and aggregate; **narrow** `executive_view` from individual reports (`08:463-475`) to aggregate summary only. Enforce `released_at` on every read path — `reports/route.ts:75-86` currently ignores it. Add a `report_viewed` audit event (G1). Fifth rather than first because it can be built in parallel with collection, but it must land **before any report is released**, and both remaining teams need it: nothing else stops a sponsor reading a named subordinate's verbatim about their own peer. Touches: `supabase/schema/08_360_assessments.sql` policies (new migration file — do not edit `08` in place, it has already been applied), `src/app/api/assessments/reports/route.ts`, `src/lib/tenant.ts`, and — importantly — the API routes' service-role usage, since RLS alone will not enforce this while every route bypasses it. **Done** = each of the four roles, tested against a real cycle, reaches exactly its tier and nothing more; unreleased reports are invisible to participants and managers; every report view is logged.
-
----
-
-## 5. Open questions
-
-- **G4 — hosting region (NDPA).** Not determinable from the repo: no `supabase/config.toml`, `vercel.json`, or `Dockerfile`. **To resolve:** the Supabase dashboard region for project `yluskblohjdioqmeczsd`, and where the Next.js app is deployed. If either sits outside an acceptable jurisdiction, this becomes a contractual blocker independent of every code gap here, and Supabase region is not changeable in place — it requires a project migration.
-- **A4 — `direct_report` semantics.** `src/lib/assessments360.ts:80-84` describes this group as "Line manager or supervising executive feedback", i.e. the rater *is* the subject's manager — the opposite of what the label reads as. **To resolve:** confirm intended meaning with whoever specified it, before any data is collected under an ambiguous label. Check also whether a separate `self` rater group is wanted, given self-assessment currently lives in its own table (`08:93-105`) and is therefore outside all rater-category scoring.
-- **Deployment/runtime state.** This audit is static. **To resolve:** whether `08_360_assessments.sql` has actually been applied to the live project, whether any 360 cycle exists in production data, and whether the `weekly-report-reminder` cron job is actually scheduled (`06_cron.sql` ships with `YOUR_SB_SECRET_KEY` placeholders). Requires dashboard/DB access, which this session does not have — the Supabase MCP server is present but unauthorised, so it needs authorising via `claude mcp` or `/mcp` in an interactive session.
-- **Contracted instrument.** The report assumes a conventional items-under-competencies instrument (B2). **To resolve:** if the actual instrument really is one rating per competency with a mandatory comment, B2 downgrades from L to a non-issue and the estimate below drops by roughly 4-5 days. This is the single largest swing factor in the number.
-- **`src/app/assessments/page.tsx` is 2,729 lines** carrying seven tabs and ~50 pieces of state, and does not currently compile. **To resolve:** whether the intent is to keep extending it or to split the rater-facing and admin surfaces. It affects effort on items 1, 4 and 5, though not the conclusion.
-
----
-
-## 6. Honest assessment
-
-**No. Pulse cannot run this engagement today, and it is not close.** The 360 data model is genuinely good — `assessment_reviewers` is a correct (subject, rater, relationship-type) triple with a properly hashed, uniquely indexed, expiring, single-use token per assignment, which is the hardest thing to get right and the thing most products get wrong. But that foundation sits under a chain with three severed links: the token points at `/review/{token}`, **a page that does not exist**; the invite that would carry it **is never emailed** despite the database recording it as sent; and `assessment_responses` **is never read by any code**, while `assessment_reports` is only ever written from a request body that nothing sends. Data cannot get in, and no score can come out. On top of that, the app does not currently compile, there is no PDF deliverable in any form, there is no "Unable to Observe" option, there is no n<3 suppression — and the access model is inverted, with HR and the executive sponsor able to read individual reports and named verbatims while participants cannot reach their own report at all.
-
-Realistically this is **60 to 75 developer-days** for someone already fluent in the codebase — roughly three months for one developer, or six to eight weeks with two working in parallel, plus a genuine 10-person pilot before the cohort runs. Roughly 30 of those days are the pilot-blockers in §3, and the remainder are what turn a working pilot into something that survives 71 subjects, 568 assignments and a client-facing PDF deliverable. That range assumes the instrument question in §5 resolves favourably and that G4 does not force a Supabase project migration; both could move it.
-
-**The commercial read: this cannot honestly be sold with a committed start date yet.** What exists is a well-shaped skeleton and a real head start on the primitive that matters — not a product that can take a rater's first response. If a date has to be given now, quote the pilot, not the cohort, and make the 71-person engagement conditional on the pilot completing end to end.
+- Do not edit `supabase/schema/08_360_assessments.sql` in place. Add a timestamped migration and update the schema copy only as documentation.
+- Assessment API routes authenticate with an anon client and operate with a service-role client. Every access restriction must exist in route code and RLS policy.
+- Add pure-function tests under `src/lib/*.test.ts` and run `node --experimental-strip-types --test src/lib/*.test.ts`.
+- Finish code work with `npx tsc --noEmit` and `npx next build`.
+- Do not add new 360 features to the large assessment page. Prefer a new route/component unless repairing existing behaviour there.
