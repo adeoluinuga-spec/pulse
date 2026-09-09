@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft, Loader2, Trash2, UserMinus, UserPlus } from "lucide-react";
 
+import CohortBuilder from "./CohortBuilder";
+
 /**
  * Taking people back out of a cycle.
  *
@@ -216,6 +218,10 @@ export default function ParticipantConsole() {
             </select>
           </label>
         </div>
+
+        {cycleId ? (
+          <CohortBuilder cycles={cycles} cycleId={cycleId} onChanged={() => void load(cycleId)} />
+        ) : null}
 
         {notice ? (
           <p className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">

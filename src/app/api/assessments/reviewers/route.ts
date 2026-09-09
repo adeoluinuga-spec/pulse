@@ -6,6 +6,7 @@ import { createHash, randomBytes } from "crypto";
 
 import { assessmentReviewerInviteEmail, resolveOrgReplyTo, sendPulseEmail } from "@/lib/pulseEmail";
 import { resolveRaterRemoval } from "@/lib/assessmentRemoval";
+import { shouldLockRules } from "@/lib/assessmentRaterRules";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,30 @@ async function sendReviewerEmailInvite(input: {
   });
 
   return sendPulseEmail({ to: input.to, subject: mail.subject, html: mail.html, replyTo: input.replyTo });
+}
+
+/**
+ * Freezes the cycle's rater rules on the first invitation that actually sends.
+ *
+ * That email tells the rater their individual answer stays confidential, and the
+ * minimum-per-group setting is what makes that true. Once somebody has been told
+ * it, the rule behind it stops being editable — so the lock is stamped here, at
+ * the moment the promise is first made, and never moved afterwards.
+ */
+async function lockRaterRulesOnFirstInvite(admin: ReturnType<typeof getAdminClient>, cycleId: string) {
+  const { data } = await admin
+    .from("assessment_cycles")
+    .select("rater_rules_locked_at")
+    .eq("id", cycleId)
+    .maybeSingle<{ rater_rules_locked_at: string | null }>();
+
+  if (!data || !shouldLockRules(data.rater_rules_locked_at)) return;
+
+  await admin
+    .from("assessment_cycles")
+    .update({ rater_rules_locked_at: new Date().toISOString() })
+    .eq("id", cycleId)
+    .is("rater_rules_locked_at", null);
 }
 
 async function cycleBelongsToOrg(admin: ReturnType<typeof getAdminClient>, cycleId: string, orgId: string) {
@@ -270,6 +295,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
+  await lockRaterRulesOnFirstInvite(admin, body.cycleId);
+
   return NextResponse.json({
     reviewer: updatedReviewer,
     invite: {
@@ -422,6 +449,8 @@ export async function PATCH(request: NextRequest) {
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
+
+  await lockRaterRulesOnFirstInvite(admin, existing.cycle_id);
 
   await admin.from("assessment_audit_events").insert({
     cycle_id: existing.cycle_id,

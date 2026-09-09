@@ -11,12 +11,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
   aggregateCohort,
+  MINIMUM_RESPONSES_PER_GROUP,
   scoreSubject,
   type CohortSegment,
   type CohortSubject,
   type ScoredResponse,
   type ScoringOptions,
   type SubjectScores,
+  type SuppressionMode,
 } from "./assessmentScoring.ts";
 
 /** Deliberately untyped against a generated Database type — this repo has none. */
@@ -45,6 +47,10 @@ type SubjectRow = {
 export type CycleScoringConfig = {
   weights: Record<string, number>;
   competencyNames: Map<string, string>;
+  /** The cycle's confidentiality floor. A constant until cycles could set it. */
+  minimumResponsesPerGroup: number;
+  /** Whether thin groups pool into a combined bucket or disappear. */
+  suppressionMode: SuppressionMode;
 };
 
 /**
@@ -89,9 +95,15 @@ export async function loadCycleScoringConfig(
   cycleId: string,
 ): Promise<CycleScoringConfig> {
   const [cycleResult, competencyResult] = await Promise.all([
-    admin.from("assessment_cycles").select("reviewer_weights").eq("id", cycleId).maybeSingle<{
-      reviewer_weights: Record<string, number> | null;
-    }>(),
+    admin
+      .from("assessment_cycles")
+      .select("reviewer_weights, min_responses_per_group, suppression_mode")
+      .eq("id", cycleId)
+      .maybeSingle<{
+        reviewer_weights: Record<string, number> | null;
+        min_responses_per_group: number | null;
+        suppression_mode: string | null;
+      }>(),
     admin.from("assessment_competencies").select("id, name").eq("cycle_id", cycleId).returns<
       Array<{ id: string; name: string | null }>
     >(),
@@ -106,11 +118,19 @@ export async function loadCycleScoringConfig(
   // Self never carries weight, whatever the cycle says.
   weights.self = 0;
 
+  // The cycle is the authority on both rules. They back the confidentiality
+  // promise in the invitation email, so a caller that does not pass an override
+  // gets what the cycle actually committed to, never a library default.
+  const mode = cycleResult.data?.suppression_mode;
+
   return {
     weights,
     competencyNames: new Map(
       (competencyResult.data ?? []).map((row) => [row.id, row.name ?? row.id]),
     ),
+    minimumResponsesPerGroup:
+      cycleResult.data?.min_responses_per_group ?? MINIMUM_RESPONSES_PER_GROUP,
+    suppressionMode: mode === "merge" || mode === "suppress" ? mode : "merge",
   };
 }
 
@@ -129,6 +149,8 @@ export async function scoreSubjectFromDatabase(
   const scores = scoreSubject(subjectId, responses, {
     ...options,
     weights: options.weights ?? config.weights,
+    minimumResponsesPerGroup: options.minimumResponsesPerGroup ?? config.minimumResponsesPerGroup,
+    suppressionMode: options.suppressionMode ?? config.suppressionMode,
   });
 
   return { scores, config };
@@ -170,6 +192,9 @@ export async function scoreCohortFromDatabase(
         scores: scoreSubject(row.id, responses, {
           ...options,
           weights: options.weights ?? config.weights,
+          minimumResponsesPerGroup:
+            options.minimumResponsesPerGroup ?? config.minimumResponsesPerGroup,
+          suppressionMode: options.suppressionMode ?? config.suppressionMode,
         }),
       };
     }),

@@ -418,7 +418,10 @@ export async function POST(request: NextRequest) {
   try {
     ({ scores, config } = await scoreSubjectFromDatabase(admin, body.cycleId, body.subjectId, {
       weights: body.weights,
-      suppressionMode: body.suppressionMode ?? "suppress",
+      // Left undefined so the cycle's own setting applies. Hardcoding a default
+      // here overrode it, which is how "merge" could be implemented in the
+      // scorer, correct, tested, and still unreachable from the product.
+      ...(body.suppressionMode ? { suppressionMode: body.suppressionMode } : {}),
     }));
   } catch (thrown) {
     return NextResponse.json(
