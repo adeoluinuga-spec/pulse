@@ -478,7 +478,7 @@ export default function AssessmentsPage() {
   const [isSendingReminders, setIsSendingReminders] = useState(false);
   const [isUpdatingCycleStatus, setIsUpdatingCycleStatus] = useState(false);
 
-  async function handleLaunchCycle() {
+  async function handleLaunchCycle(retryLaunchEmails = false) {
     if (!activeCycle.id) {
       showToast("Create or select an assessment cycle before launching.", "warning");
       return;
@@ -488,9 +488,12 @@ export default function AssessmentsPage() {
     try {
       const response = await fetch(`/api/assessments/cycles/${encodeURIComponent(activeCycle.id)}/launch`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(retryLaunchEmails ? { retryLaunchEmails: true } : {}),
       });
       const result = (await response.json().catch(() => ({}))) as {
         launched?: boolean;
+        retried?: boolean;
         notified?: number;
         emailed?: number;
         failed?: number;
@@ -509,6 +512,14 @@ export default function AssessmentsPage() {
         setActiveCycle(liveCycle);
         setCycleStartsOn(liveCycle.startDate);
         setCycleClosesOn(liveCycle.closeDate);
+      }
+
+      if (result.retried) {
+        const emailed = result.emailed ?? 0;
+        const failed = result.failed ?? 0;
+        const suffix = failed > 0 ? ` ${result.deliveryMessage ?? "Check the email delivery configuration."}` : "";
+        showToast(`Launch emails retried. ${emailed} sent; ${failed} failed.${suffix}`, failed > 0 ? "warning" : "success");
+        return;
       }
 
       if (result.launched === false) {
@@ -1795,12 +1806,12 @@ export default function AssessmentsPage() {
               </Link>
               <button
                 type="button"
-                onClick={handleLaunchCycle}
-                disabled={isLaunchingCycle || !canManageAssessments || !activeCycle.id || activeCycle.status !== "setup"}
+                onClick={() => void handleLaunchCycle(activeCycle.status === "collecting")}
+                disabled={isLaunchingCycle || !canManageAssessments || !activeCycle.id || (activeCycle.status !== "setup" && activeCycle.status !== "collecting")}
                 className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-sm transition hover:bg-pulse-dark disabled:cursor-not-allowed disabled:opacity-55"
               >
                 <Rocket size={16} />
-                {isLaunchingCycle ? "Launching..." : activeCycle.status === "setup" ? "Launch cycle" : "Cycle launched"}
+                {isLaunchingCycle ? "Sending..." : activeCycle.status === "setup" ? "Launch cycle" : activeCycle.status === "collecting" ? "Retry launch emails" : "Cycle launched"}
               </button>
               <button
                 type="button"

@@ -48,6 +48,8 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const body = (await request.json().catch(() => ({}))) as { retryLaunchEmails?: boolean };
+
   const { data: cycle, error: cycleError } = await admin
     .from("assessment_cycles")
     .select("id, org_id, name, status, starts_on, closes_on, client_context, reviewer_weights, levels")
@@ -72,7 +74,7 @@ export async function POST(
     return NextResponse.json({ error: "Closed cycles cannot be launched again." }, { status: 409 });
   }
 
-  if (cycle.status === "collecting") {
+  if (cycle.status === "collecting" && !body.retryLaunchEmails) {
     return NextResponse.json({
       launched: false,
       notified: 0,
@@ -83,19 +85,24 @@ export async function POST(
     });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
-  const { data: launchedCycle, error: updateError } = await admin
-    .from("assessment_cycles")
-    .update({
-      status: "collecting",
-      starts_on: cycle.starts_on ?? today,
-    })
-    .eq("id", cycle.id)
-    .eq("org_id", employee.org_id)
-    .select("id, name, status, starts_on, closes_on, reviewer_weights, levels, client_context")
-    .single();
+  const retryingLaunchEmails = cycle.status === "collecting";
+  let launchedCycle = cycle;
+  if (!retryingLaunchEmails) {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data, error: updateError } = await admin
+      .from("assessment_cycles")
+      .update({
+        status: "collecting",
+        starts_on: cycle.starts_on ?? today,
+      })
+      .eq("id", cycle.id)
+      .eq("org_id", employee.org_id)
+      .select("id, org_id, name, status, starts_on, closes_on, reviewer_weights, levels, client_context")
+      .single();
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    launchedCycle = data;
+  }
 
   const [employeesResult, orgResult, hrResult] = await Promise.all([
     admin
@@ -128,7 +135,7 @@ export async function POST(
   }));
 
   let notified = 0;
-  if (notificationRows.length > 0) {
+  if (!retryingLaunchEmails && notificationRows.length > 0) {
     const { error: notificationError } = await admin.from("notifications").insert(notificationRows);
     if (!notificationError) notified = notificationRows.length;
   }
@@ -165,7 +172,8 @@ export async function POST(
   const firstFailure = emailResults.find((result) => !result.ok);
 
   return NextResponse.json({
-    launched: true,
+    launched: !retryingLaunchEmails,
+    retried: retryingLaunchEmails,
     notified,
     emailed,
     failed,
