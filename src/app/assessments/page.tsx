@@ -1788,7 +1788,7 @@ export default function AssessmentsPage() {
                 className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40"
               >
                 <UserMinus size={16} />
-                Remove people
+                Manage cohort
               </Link>
               <button
                 type="button"
