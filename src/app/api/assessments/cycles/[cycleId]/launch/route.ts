@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHash, randomBytes } from "crypto";
 
 import { getRouteUser } from "@/lib/apiAuth";
-import { assessmentCycleLaunchEmail, emailDeliveryFailureMessage, resolveReplyTo, sendPulseEmail } from "@/lib/pulseEmail";
+import {
+  assessmentCycleLaunchEmail,
+  assessmentReviewerInviteEmail,
+  emailDeliveryFailureMessage,
+  resolveReplyTo,
+  sendPulseEmail,
+} from "@/lib/pulseEmail";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +31,22 @@ type EmployeeRow = {
   name: string | null;
   email: string | null;
 };
+
+type PendingReviewer = {
+  id: string;
+  subject_id: string;
+  reviewer_name: string;
+  reviewer_email: string;
+  reviewer_group: string;
+};
+
+function createInviteToken(): string {
+  return randomBytes(24).toString("base64url");
+}
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 function canLaunchAssessmentCycle(role?: string | null) {
   return role === "hr_admin" || role === "super_admin";
@@ -146,30 +169,127 @@ export async function POST(
   });
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin;
 
-  const emailResults = await Promise.all(
-    employees
-      .filter((row) => Boolean(row.email?.trim()))
-      .map(async (row) => {
-        const message = assessmentCycleLaunchEmail({
-          employeeName: row.name ?? "there",
-          cycleName,
-          organisationName,
-          closesOn: launchedCycle.closes_on,
-          appUrl,
-        });
-        const sent = await sendPulseEmail({
-          to: row.email!.trim(),
-          subject: message.subject,
-          html: message.html,
-          replyTo,
-        });
-        return sent;
-      }),
-  );
+  // A retry is for outstanding reviewer assignments, not an excuse to mail the
+  // whole organisation that the cycle started for a second time.
+  const emailResults = retryingLaunchEmails
+    ? []
+    : await Promise.all(
+      employees
+        .filter((row) => Boolean(row.email?.trim()))
+        .map(async (row) => {
+          const message = assessmentCycleLaunchEmail({
+            employeeName: row.name ?? "there",
+            cycleName,
+            organisationName,
+            closesOn: launchedCycle.closes_on,
+            appUrl,
+          });
+          const sent = await sendPulseEmail({
+            to: row.email!.trim(),
+            subject: message.subject,
+            html: message.html,
+            replyTo,
+          });
+          return sent;
+        }),
+    );
 
   const emailed = emailResults.filter((result) => result.ok).length;
   const failed = emailResults.length - emailed;
   const firstFailure = emailResults.find((result) => !result.ok);
+
+  // Assigning raters is deliberately a reversible planning step. Launching is
+  // the irreversible hand-off: every draft reviewer receives a fresh token and
+  // the invitation that carries it. A token created during planning is only a
+  // hash at rest, so issuing here also rotates it to a usable secret.
+  const [{ data: pendingReviewers, error: pendingReviewersError }, { data: subjects }] = await Promise.all([
+    admin
+      .from("assessment_reviewers")
+      .select("id, subject_id, reviewer_name, reviewer_email, reviewer_group")
+      .eq("cycle_id", cycle.id)
+      .eq("invite_status", "draft")
+      .neq("status", "submitted")
+      .returns<PendingReviewer[]>(),
+    admin
+      .from("assessment_subjects")
+      .select("id, name")
+      .eq("cycle_id", cycle.id)
+      .returns<Array<{ id: string; name: string }>>(),
+  ]);
+
+  if (pendingReviewersError) {
+    return NextResponse.json({ error: pendingReviewersError.message }, { status: 500 });
+  }
+
+  const subjectNames = new Map((subjects ?? []).map((subject) => [subject.id, subject.name]));
+  const invitationResults = await Promise.all((pendingReviewers ?? []).map(async (reviewer) => {
+    const subjectName = subjectNames.get(reviewer.subject_id);
+    if (!subjectName) return { ok: false as const, reviewer, error: "Assessment participant was not found" };
+
+    const token = createInviteToken();
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString();
+    const { error: tokenError } = await admin
+      .from("assessment_reviewers")
+      .update({
+        token_hash: hashToken(token),
+        token_expires_at: expiresAt,
+        invite_status: "draft",
+        invite_channel: "email",
+      })
+      .eq("id", reviewer.id)
+      .eq("invite_status", "draft");
+
+    if (tokenError) return { ok: false as const, reviewer, error: tokenError.message };
+
+    const mail = assessmentReviewerInviteEmail({
+      reviewerName: reviewer.reviewer_name,
+      subjectName,
+      isSelfAssessment: reviewer.reviewer_group === "self",
+      secureLink: `${request.nextUrl.origin}/review/${token}`,
+      queueLink: `${request.nextUrl.origin}/review/queue/${token}`,
+      expiresAt,
+    });
+    const sent = await sendPulseEmail({
+      to: reviewer.reviewer_email,
+      subject: mail.subject,
+      html: mail.html,
+      replyTo,
+    });
+    if (!sent.ok) return { ok: false as const, reviewer, error: sent.error };
+
+    const { error: sentUpdateError } = await admin
+      .from("assessment_reviewers")
+      .update({ invite_status: "sent" })
+      .eq("id", reviewer.id);
+    if (sentUpdateError) return { ok: false as const, reviewer, error: sentUpdateError.message };
+
+    return { ok: true as const, reviewer, expiresAt };
+  }));
+
+  const issuedReviewerInvites = invitationResults.filter((result) => result.ok).length;
+  const failedReviewerInvites = invitationResults.length - issuedReviewerInvites;
+  const firstReviewerFailure = invitationResults.find((result) => !result.ok);
+
+  if (issuedReviewerInvites > 0) {
+    await Promise.all([
+      admin
+        .from("assessment_cycles")
+        .update({ rater_rules_locked_at: new Date().toISOString() })
+        .eq("id", cycle.id)
+        .is("rater_rules_locked_at", null),
+      admin.from("assessment_audit_events").insert(
+        invitationResults
+          .filter((result): result is Extract<typeof result, { ok: true }> => result.ok)
+          .map((result) => ({
+            cycle_id: cycle.id,
+            subject_id: result.reviewer.subject_id,
+            reviewer_id: result.reviewer.id,
+            action: "reviewer_invite_issued",
+            metadata: { channel: "email", scope: "launch", issuedBy: user.id, expiresAt: result.expiresAt },
+          })),
+      ),
+    ]);
+  }
 
   return NextResponse.json({
     launched: !retryingLaunchEmails,
@@ -178,6 +298,14 @@ export async function POST(
     emailed,
     failed,
     deliveryMessage: firstFailure && !firstFailure.ok ? emailDeliveryFailureMessage(firstFailure.error) : undefined,
+    reviewerInvites: {
+      issued: issuedReviewerInvites,
+      failed: failedReviewerInvites,
+      pending: (pendingReviewers ?? []).length,
+      deliveryMessage: firstReviewerFailure && !firstReviewerFailure.ok
+        ? emailDeliveryFailureMessage(firstReviewerFailure.error)
+        : undefined,
+    },
     cycle: launchedCycle,
   });
 }

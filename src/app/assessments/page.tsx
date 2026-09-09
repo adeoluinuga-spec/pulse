@@ -498,6 +498,7 @@ export default function AssessmentsPage() {
         emailed?: number;
         failed?: number;
         deliveryMessage?: string;
+        reviewerInvites?: { issued?: number; failed?: number; pending?: number; deliveryMessage?: string };
         cycle?: ApiCycle;
         message?: string;
         error?: string;
@@ -517,8 +518,15 @@ export default function AssessmentsPage() {
       if (result.retried) {
         const emailed = result.emailed ?? 0;
         const failed = result.failed ?? 0;
-        const suffix = failed > 0 ? ` ${result.deliveryMessage ?? "Check the email delivery configuration."}` : "";
-        showToast(`Launch emails retried. ${emailed} sent; ${failed} failed.${suffix}`, failed > 0 ? "warning" : "success");
+        const invites = result.reviewerInvites?.issued ?? 0;
+        const inviteFailures = result.reviewerInvites?.failed ?? 0;
+        const suffix = failed > 0 || inviteFailures > 0
+          ? ` ${result.reviewerInvites?.deliveryMessage ?? result.deliveryMessage ?? "Check the email delivery configuration."}`
+          : "";
+        showToast(
+          `Cycle notice: ${emailed} sent; ${failed} failed. Reviewer invitations: ${invites} sent; ${inviteFailures} failed.${suffix}`,
+          failed > 0 || inviteFailures > 0 ? "warning" : "success",
+        );
         return;
       }
 
@@ -530,10 +538,15 @@ export default function AssessmentsPage() {
       const notified = result.notified ?? 0;
       const emailed = result.emailed ?? 0;
       const failed = result.failed ?? 0;
+      const reviewerInvites = result.reviewerInvites?.issued ?? 0;
+      const reviewerInviteFailures = result.reviewerInvites?.failed ?? 0;
       const suffix = failed > 0
         ? ` ${failed} email${failed === 1 ? "" : "s"} failed. ${result.deliveryMessage ?? "Check the email delivery configuration."}`
         : "";
-      showToast(`Cycle launched. ${notified} dashboard notification${notified === 1 ? "" : "s"} created and ${emailed} email${emailed === 1 ? "" : "s"} sent.${suffix}`, failed > 0 ? "warning" : "success");
+      showToast(
+        `Cycle launched. ${notified} dashboard notification${notified === 1 ? "" : "s"} created, ${emailed} cycle notice${emailed === 1 ? "" : "s"} sent, and ${reviewerInvites} reviewer invitation${reviewerInvites === 1 ? "" : "s"} issued.${suffix}`,
+        failed > 0 || reviewerInviteFailures > 0 ? "warning" : "success",
+      );
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Unable to launch assessment cycle", "error");
     } finally {
@@ -1811,7 +1824,7 @@ export default function AssessmentsPage() {
                 className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-sm transition hover:bg-pulse-dark disabled:cursor-not-allowed disabled:opacity-55"
               >
                 <Rocket size={16} />
-                {isLaunchingCycle ? "Sending..." : activeCycle.status === "setup" ? "Launch cycle" : activeCycle.status === "collecting" ? "Retry launch emails" : "Cycle launched"}
+                {isLaunchingCycle ? "Sending..." : activeCycle.status === "setup" ? "Launch cycle" : activeCycle.status === "collecting" ? "Send outstanding invitations" : "Cycle launched"}
               </button>
               <button
                 type="button"
