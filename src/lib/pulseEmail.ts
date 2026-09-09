@@ -155,6 +155,64 @@ export function assessmentParticipantEmail(input: {
   };
 }
 
+/**
+ * The invitation a rater receives, carrying their single-use link.
+ *
+ * This lived inline in the reviewers route with its own copy of the Resend call
+ * and its own `?? "notifications@usepulse.app"` sender fallback — an unverified
+ * domain, so every invite was rejected at the provider whenever FROM_EMAIL was
+ * unset, and the route dutifully reverted the rater to draft. Moving it here
+ * puts every Pulse message behind one sender that reports a missing FROM_EMAIL
+ * instead of guessing at one.
+ *
+ * `subjectName` is the person being assessed, which is not the same as the
+ * reader — except for a self-assessment, which is spelled out rather than
+ * inviting someone to give feedback on themselves in the third person.
+ */
+export function assessmentReviewerInviteEmail(input: {
+  reviewerName: string;
+  subjectName: string;
+  isSelfAssessment?: boolean;
+  secureLink: string;
+  /** The rater queue for this assignment. Omitted rather than sent broken. */
+  queueLink?: string;
+  expiresAt: string;
+}): { subject: string; html: string } {
+  const reviewerName = safeText(input.reviewerName, "there");
+  const subjectName = safeText(input.subjectName, "a colleague");
+  const firstName = reviewerName.split(/\s+/)[0] || "there";
+  const closesOn = new Date(input.expiresAt).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const ask = input.isSelfAssessment
+    ? "You have been asked to complete your own self-assessment. It takes roughly 10–15 minutes."
+    : `You have been invited to give feedback on <strong>${escapeHtml(subjectName)}</strong>. This is a developmental assessment and takes roughly 10–15 minutes.`;
+
+  return {
+    subject: input.isSelfAssessment
+      ? "Your Pulse 360 self-assessment"
+      : `Your Pulse 360 feedback on ${subjectName}`,
+    html: pulseEmailShell(`
+      <h2 style="margin:0 0 16px;font-size:24px;">Your assessment is ready</h2>
+      <p style="margin:0 0 12px;line-height:1.6;">Hi ${escapeHtml(firstName)},</p>
+      <p style="margin:0 0 12px;line-height:1.6;">${ask}</p>
+      <p style="margin:0 0 12px;line-height:1.6;">Your link expires on <strong>${closesOn}</strong>.</p>
+      <p style="margin:0 0 24px;line-height:1.6;">Responses are confidential and should reflect your honest observations.</p>
+      <p style="margin:0 0 24px;">
+        <a href="${input.secureLink}" style="display:inline-block;padding:12px 20px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;">Open assessment</a>
+      </p>
+      ${input.queueLink
+        ? `<p style="margin:0 0 8px;line-height:1.6;">Asked to review more than one person? Your full list is here:</p>
+      <p style="margin:0 0 12px;"><a href="${input.queueLink}" style="color:#111827;">Open your review queue</a></p>`
+        : ""}
+      <p style="margin:0;line-height:1.6;color:#6b7280;font-size:13px;">This link is unique to you — please do not forward it. Replies to this message reach the HR team running the assessment.</p>
+    `),
+  };
+}
+
 export function assessmentReminderEmail(input: {
   reviewerName: string;
   subjectName: string;

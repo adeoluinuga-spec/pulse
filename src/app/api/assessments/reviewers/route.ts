@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 import { createHash, randomBytes } from "crypto";
 
-import { resolveOrgReplyTo } from "@/lib/pulseEmail";
+import { assessmentReviewerInviteEmail, resolveOrgReplyTo, sendPulseEmail } from "@/lib/pulseEmail";
 
 export const dynamic = "force-dynamic";
 
@@ -24,62 +24,33 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
+/**
+ * Sends one rater invitation through the shared Pulse sender.
+ *
+ * The body and the Resend call used to live here in full, behind a sender that
+ * fell back to an unverified domain. Both now come from pulseEmail, so a missing
+ * FROM_EMAIL is reported rather than silently rejected at the provider.
+ */
 async function sendReviewerEmailInvite(input: {
   to: string;
-  subject: string;
   reviewerName: string;
   subjectName: string;
+  isSelfAssessment: boolean;
   secureLink: string;
-  /** The rater queue for this assignment. Omitted rather than sent broken. */
   queueLink?: string;
   expiresAt: string;
-  /** Where a rater's reply should land — their own HR team, not Pulse. */
   replyTo?: string;
 }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.FROM_EMAIL ?? "notifications@usepulse.app";
-
-  if (!apiKey) {
-    return { ok: false, status: "delivery_failed" as const, error: "RESEND_API_KEY is not configured" };
-  }
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      ...(input.replyTo ? { reply_to: [input.replyTo] } : {}),
-      from: fromEmail,
-      to: [input.to],
-      subject: input.subject,
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111827;">
-          <p style="margin:0 0 16px;color:#6b7280;">Pulse 360 assessment</p>
-          <h2 style="margin:0 0 16px;font-size:24px;">Your assessment is ready</h2>
-          <p style="margin:0 0 12px;line-height:1.6;">Hi ${input.reviewerName},</p>
-          <p style="margin:0 0 12px;line-height:1.6;">You have been invited to provide feedback for <strong>${input.subjectName}</strong>. This is a developmental assessment and should take roughly 10–15 minutes.</p>
-          <p style="margin:0 0 12px;line-height:1.6;">The window closes on <strong>${new Date(input.expiresAt).toLocaleString()}</strong>.</p>
-          <p style="margin:0 0 24px;line-height:1.6;">Responses are confidential and should reflect your honest observations.</p>
-          <p style="margin:0 0 24px;">
-            <a href="${input.secureLink}" style="display:inline-block;padding:12px 20px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;">Open assessment</a>
-          </p>
-          ${input.queueLink
-            ? `<p style="margin:0 0 8px;line-height:1.6;">Need the full list? Visit the queue here:</p>
-          <p style="margin:0;"><a href="${input.queueLink}" style="color:#111827;">Pulse review queue</a></p>`
-            : ""}
-        </div>
-      `,
-    }),
+  const mail = assessmentReviewerInviteEmail({
+    reviewerName: input.reviewerName,
+    subjectName: input.subjectName,
+    isSelfAssessment: input.isSelfAssessment,
+    secureLink: input.secureLink,
+    queueLink: input.queueLink,
+    expiresAt: input.expiresAt,
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    return { ok: false, status: "delivery_failed" as const, error: text || "Resend rejected the invite" };
-  }
-
-  return { ok: true, status: "sent" as const };
+  return sendPulseEmail({ to: input.to, subject: mail.subject, html: mail.html, replyTo: input.replyTo });
 }
 
 async function cycleBelongsToOrg(admin: ReturnType<typeof getAdminClient>, cycleId: string, orgId: string) {
@@ -93,15 +64,27 @@ async function cycleBelongsToOrg(admin: ReturnType<typeof getAdminClient>, cycle
   return Boolean(data);
 }
 
-async function subjectBelongsToCycle(admin: ReturnType<typeof getAdminClient>, subjectId: string, cycleId: string) {
+/**
+ * Confirms the subject is in this cycle and returns their name.
+ *
+ * The name is returned rather than a bare boolean because the invitation has to
+ * say who is being assessed. Both call sites previously passed the rater's own
+ * name in that slot, so every invite read "give feedback on <yourself>" and the
+ * rater was never told whose assessment they had been sent.
+ */
+async function findSubjectInCycle(
+  admin: ReturnType<typeof getAdminClient>,
+  subjectId: string,
+  cycleId: string,
+): Promise<{ id: string; name: string } | null> {
   const { data } = await admin
     .from("assessment_subjects")
-    .select("id")
+    .select("id, name")
     .eq("id", subjectId)
     .eq("cycle_id", cycleId)
-    .maybeSingle();
+    .maybeSingle<{ id: string; name: string }>();
 
-  return Boolean(data);
+  return data ?? null;
 }
 
 export async function GET(request: NextRequest) {
@@ -212,8 +195,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
   }
 
-  const hasSubjectAccess = await subjectBelongsToCycle(admin, body.subjectId, body.cycleId);
-  if (!hasSubjectAccess) {
+  const subject = await findSubjectInCycle(admin, body.subjectId, body.cycleId);
+  if (!subject) {
     return NextResponse.json({ error: "Subject not found" }, { status: 404 });
   }
 
@@ -247,9 +230,9 @@ export async function POST(request: NextRequest) {
 
   const sendResult = await sendReviewerEmailInvite({
     to: body.reviewerEmail.trim(),
-    subject: `Pulse 360 assessment for ${body.reviewerName.trim()}`,
     reviewerName: body.reviewerName.trim(),
-    subjectName: body.reviewerName.trim(),
+    subjectName: subject.name,
+    isSelfAssessment: (body.reviewerGroup ?? "colleague") === "self",
     secureLink: `${request.nextUrl.origin}/review/${token}`,
     queueLink: `${request.nextUrl.origin}/review/queue/${token}`,
     replyTo: await resolveOrgReplyTo(admin, orgId),
@@ -389,11 +372,16 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const subject = await findSubjectInCycle(admin, existing.subject_id, existing.cycle_id);
+  if (!subject) {
+    return NextResponse.json({ error: "Subject not found" }, { status: 404 });
+  }
+
   const sendResult = await sendReviewerEmailInvite({
     to: existing.reviewer_email,
-    subject: `Pulse 360 assessment for ${existing.reviewer_name}`,
     reviewerName: existing.reviewer_name,
-    subjectName: existing.reviewer_name,
+    subjectName: subject.name,
+    isSelfAssessment: existing.reviewer_group === "self",
     secureLink: `${request.nextUrl.origin}/review/${token}`,
     queueLink: `${request.nextUrl.origin}/review/queue/${token}`,
     replyTo: await resolveOrgReplyTo(admin, orgId),

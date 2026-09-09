@@ -5,6 +5,7 @@ import {
   assessmentCycleLaunchEmail,
   assessmentParticipantEmail,
   assessmentReminderEmail,
+  assessmentReviewerInviteEmail,
   resolveReplyTo,
 } from "./pulseEmail.ts";
 
@@ -70,4 +71,57 @@ test("assessmentCycleLaunchEmail separates launch notice from secure review invi
   assert.equal(email.subject, "Stuart Davidson Leadership 360 has started");
   assert.match(email.html, /separate secure invitation/);
   assert.match(email.html, /https:\/\/pulse\.example\/dashboard/);
+});
+
+test("a rater invitation names the person being assessed, not the rater", () => {
+  const mail = assessmentReviewerInviteEmail({
+    reviewerName: "Adeolu Osinuga",
+    subjectName: "Taiwo Ogba",
+    secureLink: "https://pulse.example/review/tok",
+    queueLink: "https://pulse.example/review/queue/tok",
+    expiresAt: "2026-09-22T12:00:00Z",
+  });
+
+  assert.equal(mail.subject, "Your Pulse 360 feedback on Taiwo Ogba");
+  assert.match(mail.html, /give feedback on <strong>Taiwo Ogba<\/strong>/);
+  assert.match(mail.html, /Hi Adeolu,/);
+  assert.match(mail.html, /https:\/\/pulse\.example\/review\/tok/);
+  assert.match(mail.html, /22 September 2026/);
+});
+
+test("a self-assessment is not phrased as feedback on somebody else", () => {
+  const mail = assessmentReviewerInviteEmail({
+    reviewerName: "Iyanu Maza",
+    subjectName: "Iyanu Maza",
+    isSelfAssessment: true,
+    secureLink: "https://pulse.example/review/tok",
+    expiresAt: "2026-09-22T12:00:00Z",
+  });
+
+  assert.equal(mail.subject, "Your Pulse 360 self-assessment");
+  assert.match(mail.html, /your own self-assessment/);
+  assert.doesNotMatch(mail.html, /give feedback on/);
+});
+
+test("the queue link is omitted rather than rendered empty", () => {
+  const mail = assessmentReviewerInviteEmail({
+    reviewerName: "Kehinde White",
+    subjectName: "Taiwo Ogba",
+    secureLink: "https://pulse.example/review/tok",
+    expiresAt: "2026-09-22T12:00:00Z",
+  });
+
+  assert.doesNotMatch(mail.html, /review queue/i);
+});
+
+test("a name carrying markup cannot break out of the invitation body", () => {
+  const mail = assessmentReviewerInviteEmail({
+    reviewerName: "Ada",
+    subjectName: '<script>alert("x")</script>',
+    secureLink: "https://pulse.example/review/tok",
+    expiresAt: "2026-09-22T12:00:00Z",
+  });
+
+  assert.doesNotMatch(mail.html, /<script>/);
+  assert.match(mail.html, /&lt;script&gt;/);
 });
