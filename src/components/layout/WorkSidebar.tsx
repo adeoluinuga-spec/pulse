@@ -1,38 +1,63 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState, type ComponentType } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import {
   BarChart3,
+  Banknote,
   BriefcaseBusiness,
   Building2,
+  ChevronDown,
   ClipboardList,
   FileText,
+  GitBranch,
+  GraduationCap,
   HeartPulse,
   Home,
-  GitBranch,
-  Settings2,
+  ShieldAlert,
   ShieldCheck,
+  Settings2,
+  Star,
   Target,
   Users,
+  type LucideProps,
 } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 import { useUser } from "@/context/UserContext";
 
-const primaryItems = [
-  { label: "Home", href: "/dashboard", icon: Home },
-  { label: "Profile", href: "/dashboard/profile", icon: BriefcaseBusiness },
-  { label: "Performance", href: "/dashboard/performance", icon: BarChart3 },
-  { label: "Goals", href: "/goals", icon: Target },
-  { label: "360 Assessments", href: "/assessments", icon: ClipboardList },
-  { label: "Reports", href: "/dashboard/reports", icon: FileText },
-  { label: "AI & Wellbeing", href: "/dashboard/ai-wellbeing", icon: HeartPulse },
-];
+type Icon = ComponentType<LucideProps>;
+
+type NavigationItem = {
+  label: string;
+  href?: string;
+  icon: Icon;
+  comingSoon?: boolean;
+  description?: string;
+};
+
+type NavigationGroup = {
+  id: string;
+  label: string;
+  icon: Icon;
+  items: NavigationItem[];
+};
 
 function active(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function itemIsActive(item: NavigationItem, pathname: string, searchParams: ReturnType<typeof useSearchParams>) {
+  if (!item.href || item.comingSoon) return false;
+  if (item.href === "/dashboard/hr?mode=setup") {
+    return pathname === "/dashboard/hr" && searchParams.get("mode") === "setup";
+  }
+  if (item.href === "/dashboard/hr") {
+    return pathname === "/dashboard/hr" && searchParams.get("mode") !== "setup";
+  }
+  return active(pathname, item.href);
 }
 
 export default function WorkSidebar() {
@@ -43,20 +68,81 @@ function SidebarContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user, profileImages } = useUser();
+  const { showToast } = useToast();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const profileImage = profileImages[user.id];
   const teamEnabled = user.peopleResponsibility !== "none";
-  const assessmentHref = user.platformRole === "hr_admin" || user.platformRole === "super_admin"
-    ? "/assessments"
-    : "/dashboard/360";
-  const portalItems = [
-    ...(teamEnabled ? [{ label: "Team", href: "/dashboard/team", icon: Users }] : []),
-    ...(user.platformRole === "hr_admin" || user.platformRole === "super_admin" ? [
-      { label: "HR Dashboard", href: "/dashboard/hr", icon: ShieldCheck },
-      { label: "Org Setup", href: "/dashboard/hr?mode=setup", icon: Settings2 },
-      { label: "Org Structure", href: "/dashboard/organisation", icon: GitBranch },
-    ] : []),
-    ...(user.platformRole === "executive_view" || user.platformRole === "super_admin" ? [{ label: "Executive", href: "/executive", icon: Building2 }] : []),
+  const isHr = user.platformRole === "hr_admin" || user.platformRole === "super_admin";
+  const assessmentHref = isHr ? "/assessments" : "/dashboard/360";
+
+  const workspaceGroups: NavigationGroup[] = [
+    {
+      id: "performance",
+      label: "Performance management",
+      icon: BarChart3,
+      items: [
+        { label: "Performance", href: "/dashboard/performance", icon: BarChart3 },
+        { label: "Goals", href: "/goals", icon: Target },
+        { label: "Reports", href: "/dashboard/reports", icon: FileText },
+        { label: "Performance improvement", icon: ShieldAlert, comingSoon: true, description: "Performance improvement plans are being prepared for a future Pulse release." },
+      ],
+    },
+    {
+      id: "reviews",
+      label: "Reviews & appraisals",
+      icon: ClipboardList,
+      items: [
+        { label: "360 assessments", href: assessmentHref, icon: ClipboardList },
+        { label: "Performance appraisal", href: "/appraisal", icon: Star },
+      ],
+    },
+    {
+      id: "people-operations",
+      label: "People operations",
+      icon: Users,
+      items: [
+        { label: "Leave", icon: BriefcaseBusiness, comingSoon: true, description: "Leave management is being prepared for a future Pulse release." },
+        { label: "Payroll", icon: Banknote, comingSoon: true, description: "Payroll is being prepared for a future Pulse release." },
+      ],
+    },
+    {
+      id: "talent-development",
+      label: "Talent development",
+      icon: GraduationCap,
+      items: [
+        { label: "Learning & development", icon: GraduationCap, comingSoon: true, description: "Learning and development planning is being prepared for a future Pulse release." },
+        { label: "Development plans", icon: Target, comingSoon: true, description: "Individual development plans are being prepared for a future Pulse release." },
+      ],
+    },
   ];
+
+  const hrGroup: NavigationGroup | null = isHr ? {
+    id: "hr-dashboard",
+    label: "HR dashboard",
+    icon: ShieldCheck,
+    items: [
+      { label: "Dashboard", href: "/dashboard/hr", icon: ShieldCheck },
+      { label: "Organisation setup", href: "/dashboard/hr?mode=setup", icon: Settings2 },
+      { label: "Organisation structure", href: "/dashboard/organisation", icon: GitBranch },
+    ],
+  } : null;
+
+  const activeGroupIds = [...workspaceGroups, ...(hrGroup ? [hrGroup] : [])]
+    .filter((group) => group.items.some((item) => itemIsActive(item, pathname, searchParams)))
+    .map((group) => group.id);
+
+  useEffect(() => {
+    if (!activeGroupIds.length) return;
+    setExpanded((current) => {
+      const next = { ...current };
+      activeGroupIds.forEach((id) => { next[id] = true; });
+      return next;
+    });
+  }, [pathname, searchParams, activeGroupIds.join(",")]);
+
+  function openComingSoon(item: NavigationItem) {
+    showToast(item.description ?? `${item.label} is being prepared for a future Pulse release.`, "info");
+  }
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-paper-200 bg-paper-50 text-ink md:flex md:flex-col">
@@ -68,55 +154,44 @@ function SidebarContent() {
         </div>
       </Link>
 
-      <nav className="flex-1 overflow-y-auto px-3 pb-6 pt-2">
+      <nav className="flex-1 overflow-y-auto px-3 pb-6 pt-2" aria-label="Workspace navigation">
         <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-300">Workspace</p>
         <div className="space-y-0.5">
-        {primaryItems.map((item) => {
-          const Icon = item.icon;
-          const href = item.href === "/assessments" ? assessmentHref : item.href;
-          const isActive = active(pathname, href);
-          return (
-            <Link
-              key={item.href}
-              href={href}
-              className={clsx(
-                "group flex min-h-9 items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
-                isActive ? "bg-cobalt-light font-semibold text-cobalt-dark" : "text-ink-500 hover:bg-paper-100 hover:text-ink",
-              )}
-            >
-              <Icon size={16} className={isActive ? "text-cobalt" : "text-ink-300 group-hover:text-ink-500"} />
-              <span className="min-w-0 flex-1 truncate">{item.label}</span>
-            </Link>
-          );
-        })}
+          <SidebarLink item={{ label: "Home", href: "/dashboard", icon: Home }} pathname={pathname} searchParams={searchParams} />
+          <SidebarLink item={{ label: "Profile", href: "/dashboard/profile", icon: BriefcaseBusiness }} pathname={pathname} searchParams={searchParams} />
+          {workspaceGroups.map((group) => (
+            <NavigationGroupView
+              key={group.id}
+              group={group}
+              expanded={expanded[group.id] ?? false}
+              onToggle={() => setExpanded((current) => ({ ...current, [group.id]: !current[group.id] }))}
+              pathname={pathname}
+              searchParams={searchParams}
+              onComingSoon={openComingSoon}
+            />
+          ))}
+          <SidebarLink item={{ label: "AI & wellbeing", href: "/dashboard/ai-wellbeing", icon: HeartPulse }} pathname={pathname} searchParams={searchParams} />
         </div>
       </nav>
 
-      {portalItems.length > 0 && (
+      {(teamEnabled || hrGroup || user.platformRole === "executive_view" || user.platformRole === "super_admin") && (
         <div className="border-t border-paper-200 px-3 py-4">
           <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-300">Adaptive access</p>
           <div className="space-y-0.5">
-            {portalItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = item.href === "/dashboard/hr?mode=setup"
-                ? pathname === "/dashboard/hr" && searchParams.get("mode") === "setup"
-                : item.href === "/dashboard/hr"
-                  ? pathname === "/dashboard/hr" && searchParams.get("mode") !== "setup"
-                  : active(pathname, item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={clsx(
-                    "flex min-h-9 items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
-                    isActive ? "bg-cobalt-light font-semibold text-cobalt-dark" : "text-ink-500 hover:bg-paper-100 hover:text-ink",
-                  )}
-                >
-                  <Icon size={16} className={isActive ? "text-cobalt" : "text-ink-300"} />
-                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                </Link>
-              );
-            })}
+            {teamEnabled && <SidebarLink item={{ label: "Team", href: "/dashboard/team", icon: Users }} pathname={pathname} searchParams={searchParams} />}
+            {hrGroup && (
+              <NavigationGroupView
+                group={hrGroup}
+                expanded={expanded[hrGroup.id] ?? false}
+                onToggle={() => setExpanded((current) => ({ ...current, [hrGroup.id]: !current[hrGroup.id] }))}
+                pathname={pathname}
+                searchParams={searchParams}
+                onComingSoon={openComingSoon}
+              />
+            )}
+            {(user.platformRole === "executive_view" || user.platformRole === "super_admin") && (
+              <SidebarLink item={{ label: "Executive", href: "/executive", icon: Building2 }} pathname={pathname} searchParams={searchParams} />
+            )}
           </div>
         </div>
       )}
@@ -135,4 +210,71 @@ function SidebarContent() {
       </div>
     </aside>
   );
+}
+
+function NavigationGroupView({ group, expanded, onToggle, pathname, searchParams, onComingSoon }: {
+  group: NavigationGroup;
+  expanded: boolean;
+  onToggle: () => void;
+  pathname: string;
+  searchParams: ReturnType<typeof useSearchParams>;
+  onComingSoon: (item: NavigationItem) => void;
+}) {
+  const Icon = group.icon;
+  const groupActive = group.items.some((item) => itemIsActive(item, pathname, searchParams));
+  const panelId = `${group.id}-navigation`;
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        className={clsx(
+          "group flex min-h-9 w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-left text-[13px] font-medium transition-colors",
+          groupActive ? "bg-cobalt-light font-semibold text-cobalt-dark" : "text-ink-500 hover:bg-paper-100 hover:text-ink",
+        )}
+      >
+        <Icon size={16} className={groupActive ? "text-cobalt" : "text-ink-300 group-hover:text-ink-500"} />
+        <span className="min-w-0 flex-1 truncate">{group.label}</span>
+        <ChevronDown size={15} className={clsx("shrink-0 transition-transform duration-150", expanded && "rotate-180", groupActive ? "text-cobalt" : "text-ink-300")} />
+      </button>
+      {expanded && (
+        <div id={panelId} className="ml-5 mt-0.5 space-y-0.5 border-l border-paper-200 pl-2">
+          {group.items.map((item) => (
+            <SidebarLink key={item.label} item={item} pathname={pathname} searchParams={searchParams} nested onComingSoon={onComingSoon} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SidebarLink({ item, pathname, searchParams, nested = false, onComingSoon }: {
+  item: NavigationItem;
+  pathname: string;
+  searchParams: ReturnType<typeof useSearchParams>;
+  nested?: boolean;
+  onComingSoon?: (item: NavigationItem) => void;
+}) {
+  const Icon = item.icon;
+  const isActive = itemIsActive(item, pathname, searchParams);
+  const className = clsx(
+    "group flex min-h-9 w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
+    nested && "min-h-8 py-1 text-[12px]",
+    isActive ? "bg-cobalt-light font-semibold text-cobalt-dark" : "text-ink-500 hover:bg-paper-100 hover:text-ink",
+    item.comingSoon && "text-ink-400",
+  );
+  const content = <>
+    <Icon size={nested ? 15 : 16} className={isActive ? "text-cobalt" : "text-ink-300 group-hover:text-ink-500"} />
+    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+    {item.comingSoon && <span className="text-[9px] font-semibold uppercase tracking-[0.08em] text-ink-300">Soon</span>}
+  </>;
+
+  if (item.comingSoon) {
+    return <button type="button" className={className} onClick={() => onComingSoon?.(item)}>{content}</button>;
+  }
+
+  return <Link href={item.href ?? "/dashboard"} className={className}>{content}</Link>;
 }
