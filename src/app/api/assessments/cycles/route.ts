@@ -78,7 +78,13 @@ export async function GET() {
         .select("id", { count: "exact", head: true })
         .eq("cycle_id", cycle.id)
         .eq("report_status", "released"),
-      admin.from("assessment_subjects").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),
+      admin
+        .from("assessment_subjects")
+        .select("id", { count: "exact", head: true })
+        .eq("cycle_id", cycle.id)
+        // The clone summary counts who a clone would actually carry, so a
+        // withdrawn participant is not offered for copying into a new cycle.
+        .is("withdrawn_at", null),
       admin.from("assessment_competencies").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),
       admin.from("assessment_items").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),
       admin.from("assessment_reviewers").select("id", { count: "exact", head: true }).eq("cycle_id", cycle.id),

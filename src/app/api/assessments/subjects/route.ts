@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { assessmentParticipantEmail, resolveReplyTo, sendPulseEmail } from "@/lib/pulseEmail";
 import { escapeLikePattern } from "@/lib/reviewQueue";
+import { canReinstateParticipant, resolveParticipantRemoval } from "@/lib/assessmentRemoval";
 
 function getAdminClient() {
   return createClient(
@@ -51,9 +52,12 @@ export async function GET(request: NextRequest) {
   const orgId = (employee as { org_id?: string } | null)?.org_id;
   if (!orgId) return NextResponse.json({ subjects: [] }, { status: 200 });
 
+  // Withdrawn participants are returned, not hidden: the administrator has to
+  // be able to see who was taken out and put them back. Every *cohort* read —
+  // scoring, reports, exports, completion — filters them out instead.
   const { data: subjects } = await admin
     .from("assessment_subjects")
-    .select("id, cycle_id, name, email, level, function_name, region, portfolio")
+    .select("id, cycle_id, name, email, level, function_name, region, portfolio, withdrawn_at, withdrawn_reason")
     .eq("cycle_id", cycleId)
     .order("name", { ascending: true });
 
@@ -255,4 +259,222 @@ async function notifyParticipant(input: {
       error: thrown instanceof Error ? thrown.message : "Notification failed",
     };
   }
+}
+
+/**
+ * Authenticates the caller and confirms they may administer this cycle.
+ *
+ * Written out here rather than shared with the GET above because these two
+ * verbs change data: the anon client establishes who is asking, and everything
+ * after it runs as service-role, which bypasses RLS entirely. The org check is
+ * therefore the only thing standing between one tenant and another's cohort.
+ */
+async function requireCycleAdmin(cycleId: string): Promise<
+  | { ok: true; admin: ReturnType<typeof getAdminClient>; orgId: string; userId: string }
+  | { ok: false; response: NextResponse }
+> {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+        },
+      },
+    },
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+
+  const admin = getAdminClient();
+  const { data: employee } = await admin
+    .from("employees")
+    .select("org_id, platform_role")
+    .eq("user_id", user.id)
+    .maybeSingle<{ org_id: string | null; platform_role: string | null }>();
+
+  const orgId = employee?.org_id;
+  const role = employee?.platform_role;
+  if (!orgId || (role !== "hr_admin" && role !== "super_admin")) {
+    return { ok: false, response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+
+  const { data: cycle } = await admin
+    .from("assessment_cycles")
+    .select("id")
+    .eq("id", cycleId)
+    .eq("org_id", orgId)
+    .maybeSingle();
+
+  if (!cycle) {
+    return { ok: false, response: NextResponse.json({ error: "Cycle not found" }, { status: 404 }) };
+  }
+
+  return { ok: true, admin, orgId, userId: user.id };
+}
+
+/** What has been collected about one participant, for the removal decision. */
+async function participantEvidence(
+  admin: ReturnType<typeof getAdminClient>,
+  subject: { id: string; withdrawn_at: string | null },
+) {
+  const [responses, submitted, released] = await Promise.all([
+    admin.from("assessment_responses").select("id", { count: "exact", head: true }).eq("subject_id", subject.id),
+    admin
+      .from("assessment_reviewers")
+      .select("id", { count: "exact", head: true })
+      .eq("subject_id", subject.id)
+      .eq("status", "submitted"),
+    admin
+      .from("assessment_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("subject_id", subject.id)
+      .eq("report_status", "released"),
+  ]);
+
+  if (responses.error || submitted.error || released.error) return null;
+
+  return {
+    responseCount: responses.count ?? 0,
+    submittedReviewers: submitted.count ?? 0,
+    releasedReports: released.count ?? 0,
+    alreadyWithdrawn: Boolean(subject.withdrawn_at),
+  };
+}
+
+/**
+ * Takes a participant out of a cycle.
+ *
+ * The verb is chosen from the evidence, never from the caller: resolveParticipantRemoval
+ * decides whether this is a deletion or a withdrawal, and the caller cannot ask
+ * for the destructive one. A dry run is available so the console can say what
+ * pressing the button will do before it is pressed.
+ */
+export async function DELETE(request: NextRequest) {
+  const subjectId = request.nextUrl.searchParams.get("id");
+  const cycleId = request.nextUrl.searchParams.get("cycleId");
+  const dryRun = request.nextUrl.searchParams.get("dryRun") === "true";
+  const reason = request.nextUrl.searchParams.get("reason")?.trim() || null;
+
+  if (!subjectId || !cycleId) {
+    return NextResponse.json({ error: "id and cycleId are required" }, { status: 400 });
+  }
+
+  const auth = await requireCycleAdmin(cycleId);
+  if (!auth.ok) return auth.response;
+  const { admin, userId } = auth;
+
+  const { data: subject } = await admin
+    .from("assessment_subjects")
+    .select("id, cycle_id, name, withdrawn_at")
+    .eq("id", subjectId)
+    .eq("cycle_id", cycleId)
+    .maybeSingle<{ id: string; cycle_id: string; name: string; withdrawn_at: string | null }>();
+
+  if (!subject) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
+
+  const evidence = await participantEvidence(admin, subject);
+  if (!evidence) {
+    // Failing open would delete a participant we could not prove was untouched.
+    return NextResponse.json(
+      { error: "Could not confirm what has been collected about this participant, so nothing was changed." },
+      { status: 503 },
+    );
+  }
+
+  const decision = resolveParticipantRemoval(evidence);
+
+  if (dryRun) {
+    return NextResponse.json({ decision, evidence, participant: { id: subject.id, name: subject.name } });
+  }
+
+  if (decision.action === "blocked") {
+    return NextResponse.json({ error: decision.explanation, decision, evidence }, { status: 409 });
+  }
+
+  if (decision.action === "withdraw") {
+    const { error } = await admin
+      .from("assessment_subjects")
+      .update({ withdrawn_at: new Date().toISOString(), withdrawn_reason: reason })
+      .eq("id", subject.id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    await admin.from("assessment_audit_events").insert({
+      cycle_id: subject.cycle_id,
+      subject_id: subject.id,
+      action: "assessment_participant_withdrawn",
+      metadata: { actorId: userId, reason, ...evidence },
+    });
+
+    return NextResponse.json({ decision, evidence, withdrawn: true });
+  }
+
+  // Deletion. The rater assignments go with them by cascade, but the count is
+  // read first so the response can say what went with them.
+  const { count: raterCount } = await admin
+    .from("assessment_reviewers")
+    .select("id", { count: "exact", head: true })
+    .eq("subject_id", subject.id);
+
+  const { error } = await admin.from("assessment_subjects").delete().eq("id", subject.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await admin.from("assessment_audit_events").insert({
+    cycle_id: subject.cycle_id,
+    action: "assessment_participant_deleted",
+    metadata: { actorId: userId, participantName: subject.name, ratersRemoved: raterCount ?? 0 },
+  });
+
+  return NextResponse.json({ decision, evidence, deleted: true, ratersRemoved: raterCount ?? 0 });
+}
+
+/** Puts a withdrawn participant back into the cycle. */
+export async function PATCH(request: NextRequest) {
+  const body = (await request.json()) as { cycleId?: string; subjectId?: string; action?: string };
+
+  if (!body.cycleId || !body.subjectId || body.action !== "reinstate") {
+    return NextResponse.json({ error: "cycleId, subjectId and the reinstate action are required" }, { status: 400 });
+  }
+
+  const auth = await requireCycleAdmin(body.cycleId);
+  if (!auth.ok) return auth.response;
+  const { admin, userId } = auth;
+
+  const { data: subject } = await admin
+    .from("assessment_subjects")
+    .select("id, cycle_id, name, withdrawn_at")
+    .eq("id", body.subjectId)
+    .eq("cycle_id", body.cycleId)
+    .maybeSingle<{ id: string; cycle_id: string; name: string; withdrawn_at: string | null }>();
+
+  if (!subject) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
+
+  if (!canReinstateParticipant({ withdrawnAt: subject.withdrawn_at })) {
+    return NextResponse.json({ error: "This participant is already active in the cycle." }, { status: 409 });
+  }
+
+  const { error } = await admin
+    .from("assessment_subjects")
+    .update({ withdrawn_at: null, withdrawn_reason: null })
+    .eq("id", subject.id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await admin.from("assessment_audit_events").insert({
+    cycle_id: subject.cycle_id,
+    subject_id: subject.id,
+    action: "assessment_participant_reinstated",
+    metadata: { actorId: userId },
+  });
+
+  return NextResponse.json({ reinstated: true });
 }

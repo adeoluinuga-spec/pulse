@@ -149,6 +149,9 @@ export async function scoreCohortFromDatabase(
       .from("assessment_subjects")
       .select("id, level, function_name, region, portfolio")
       .eq("cycle_id", cycleId)
+      // Withdrawn participants are out of the cohort: they must not appear in
+      // aggregates, nor contribute to the counts that gate suppression.
+      .is("withdrawn_at", null)
       .returns<SubjectRow[]>(),
     loadCycleScoringConfig(admin, cycleId),
   ]);

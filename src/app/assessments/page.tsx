@@ -24,6 +24,7 @@ import {
   Star,
   Target,
   Trash2,
+  UserMinus,
   Users,
 } from "lucide-react";
 import {
@@ -1781,6 +1782,13 @@ export default function AssessmentsPage() {
               >
                 <RefreshCw size={16} />
                 Reopen or clone
+              </Link>
+              <Link
+                href="/assessments/participants"
+                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40"
+              >
+                <UserMinus size={16} />
+                Remove people
               </Link>
               <button
                 type="button"

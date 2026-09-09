@@ -32,6 +32,7 @@ type SubjectRow = {
   level: string | null;
   function_name: string | null;
   region: string | null;
+  withdrawn_at?: string | null;
 };
 
 type ReportRow = {
@@ -118,7 +119,7 @@ async function loadCycle(admin: Admin, cycleId: string, orgId: string) {
 async function loadSubject(admin: Admin, cycleId: string, subjectId: string) {
   const { data } = await admin
     .from("assessment_subjects")
-    .select("id, employee_id, name, level, function_name, region")
+    .select("id, employee_id, name, level, function_name, region, withdrawn_at")
     .eq("id", subjectId)
     .eq("cycle_id", cycleId)
     .maybeSingle<SubjectRow>();
@@ -279,6 +280,8 @@ export async function GET(request: NextRequest) {
         .from("assessment_subjects")
         .select("id, employee_id, name, level, function_name, region")
         .eq("cycle_id", cycleId)
+        // Withdrawn participants drop out of the report console and every count on it.
+        .is("withdrawn_at", null)
         .returns<SubjectRow[]>(),
       admin
         .from("assessment_reports")
@@ -310,6 +313,8 @@ export async function GET(request: NextRequest) {
         .from("assessment_subjects")
         .select("id, employee_id, name, level, function_name, region")
         .eq("cycle_id", cycleId)
+        // Withdrawn participants drop out of the report console and every count on it.
+        .is("withdrawn_at", null)
         .returns<SubjectRow[]>(),
       admin
         .from("assessment_reports")
@@ -393,6 +398,19 @@ export async function POST(request: NextRequest) {
   const subject = await loadSubject(admin, body.cycleId, body.subjectId);
   if (!subject) {
     return NextResponse.json({ error: "Subject not found" }, { status: 404 });
+  }
+
+  // A withdrawn participant is out of the cohort, so producing a report for
+  // them would contradict the withdrawal — and releasing it would hand a
+  // document to somebody the organisation has taken out of the assessment.
+  if (subject.withdrawn_at) {
+    return NextResponse.json(
+      {
+        error:
+          "This participant has been withdrawn from the cycle, so no report can be generated for them. Reinstate them first if that was a mistake.",
+      },
+      { status: 409 },
+    );
   }
 
   let scores;

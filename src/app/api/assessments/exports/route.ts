@@ -261,7 +261,7 @@ export async function GET(request: NextRequest) {
   }
 
   const [{ data: subjects }, { data: reviewers }, { data: reports }] = await Promise.all([
-    admin.from("assessment_subjects").select("id, name, level, function_name, region").eq("cycle_id", cycleId).returns<SubjectRow[]>(),
+    admin.from("assessment_subjects").select("id, name, level, function_name, region").eq("cycle_id", cycleId).is("withdrawn_at", null).returns<SubjectRow[]>(),
     admin.from("assessment_reviewers").select("subject_id, status").eq("cycle_id", cycleId).returns<ReviewerRow[]>(),
     admin
       .from("assessment_reports")

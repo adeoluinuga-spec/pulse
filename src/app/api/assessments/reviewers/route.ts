@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createHash, randomBytes } from "crypto";
 
 import { assessmentReviewerInviteEmail, resolveOrgReplyTo, sendPulseEmail } from "@/lib/pulseEmail";
+import { resolveRaterRemoval } from "@/lib/assessmentRemoval";
 
 export const dynamic = "force-dynamic";
 
@@ -449,4 +450,135 @@ export async function PATCH(request: NextRequest) {
       status: updatedReviewer.invite_status,
     },
   });
+}
+
+/**
+ * Takes a rater off an assessment.
+ *
+ * As with participants, the verb comes from the evidence rather than from the
+ * caller. A rater who has answered is never deleted: their responses feed the
+ * subject's report, and removing them would change the per-group counts that
+ * decide which cells are suppressed — a report could silently start showing a
+ * group that was correctly hidden a moment before. Their link is revoked
+ * instead, which stops further answering and leaves the arithmetic alone.
+ */
+export async function DELETE(request: NextRequest) {
+  const reviewerId = request.nextUrl.searchParams.get("id");
+  const dryRun = request.nextUrl.searchParams.get("dryRun") === "true";
+
+  if (!reviewerId) {
+    return NextResponse.json({ error: "id is required" }, { status: 400 });
+  }
+
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+        },
+      },
+    },
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const admin = getAdminClient();
+  const { data: employee } = await admin
+    .from("employees")
+    .select("org_id, platform_role")
+    .eq("user_id", user.id)
+    .maybeSingle<{ org_id: string | null; platform_role: string | null }>();
+
+  const orgId = employee?.org_id;
+  const role = employee?.platform_role;
+  if (!orgId || (role !== "hr_admin" && role !== "super_admin")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { data: existing } = await admin
+    .from("assessment_reviewers")
+    .select("id, cycle_id, subject_id, reviewer_name, reviewer_email, status, invite_status")
+    .eq("id", reviewerId)
+    .maybeSingle<{
+      id: string;
+      cycle_id: string;
+      subject_id: string;
+      reviewer_name: string;
+      reviewer_email: string;
+      status: string;
+      invite_status: string;
+    }>();
+
+  if (!existing) return NextResponse.json({ error: "Rater not found" }, { status: 404 });
+
+  // Tenant boundary. This route runs as service-role from here on, so nothing
+  // below is protected by policy.
+  const hasCycleAccess = await cycleBelongsToOrg(admin, existing.cycle_id, orgId);
+  if (!hasCycleAccess) {
+    return NextResponse.json({ error: "Rater not found" }, { status: 404 });
+  }
+
+  const { count: responseCount, error: countError } = await admin
+    .from("assessment_responses")
+    .select("id", { count: "exact", head: true })
+    .eq("reviewer_id", existing.id);
+
+  if (countError) {
+    // Failing open would delete answers we could not prove were absent.
+    return NextResponse.json(
+      { error: "Could not confirm whether this rater has answered, so nothing was changed." },
+      { status: 503 },
+    );
+  }
+
+  const decision = resolveRaterRemoval({ status: existing.status, responseCount: responseCount ?? 0 });
+  const evidence = { status: existing.status, responseCount: responseCount ?? 0 };
+
+  if (dryRun) {
+    return NextResponse.json({
+      decision,
+      evidence,
+      rater: { id: existing.id, name: existing.reviewer_name, email: existing.reviewer_email },
+    });
+  }
+
+  if (decision.action === "revoke") {
+    // Expire the token rather than clearing it: an expired link tells the rater
+    // their window has closed, whereas a missing one looks like a broken invite.
+    const { error } = await admin
+      .from("assessment_reviewers")
+      .update({ token_expires_at: new Date().toISOString(), invite_status: "expired" })
+      .eq("id", existing.id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    await admin.from("assessment_audit_events").insert({
+      cycle_id: existing.cycle_id,
+      subject_id: existing.subject_id,
+      reviewer_id: existing.id,
+      action: "assessment_rater_revoked",
+      metadata: { actorId: user.id, ...evidence },
+    });
+
+    return NextResponse.json({ decision, evidence, revoked: true });
+  }
+
+  const { error } = await admin.from("assessment_reviewers").delete().eq("id", existing.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await admin.from("assessment_audit_events").insert({
+    cycle_id: existing.cycle_id,
+    subject_id: existing.subject_id,
+    action: "assessment_rater_deleted",
+    metadata: { actorId: user.id, raterName: existing.reviewer_name, raterEmail: existing.reviewer_email },
+  });
+
+  return NextResponse.json({ decision, evidence, deleted: true });
 }

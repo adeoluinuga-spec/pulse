@@ -83,6 +83,8 @@ export async function loadPdfReportData(admin: Admin, cycleId: string, options: 
       .from("assessment_subjects")
       .select("id, employee_id, name, email, level, function_name, region")
       .eq("cycle_id", cycleId)
+      // A withdrawn participant gets no report and appears in no aggregate.
+      .is("withdrawn_at", null)
       .order("name", { ascending: true })
       .returns<SubjectRow[]>(),
     admin

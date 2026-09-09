@@ -83,8 +83,15 @@ export async function POST(request: NextRequest) {
   }
 
   const subjectIds = Array.from(new Set((reviewers ?? []).map((row) => row.subject_id)));
+  // Only participants still in the cycle. Chasing someone for feedback on a
+  // person who has been withdrawn is the most visible way a withdrawal can leak.
   const { data: subjects } = subjectIds.length
-    ? await admin.from("assessment_subjects").select("id, name").in("id", subjectIds).returns<SubjectRow[]>()
+    ? await admin
+        .from("assessment_subjects")
+        .select("id, name")
+        .in("id", subjectIds)
+        .is("withdrawn_at", null)
+        .returns<SubjectRow[]>()
     : { data: [] as SubjectRow[] };
   const subjectById = new Map((subjects ?? []).map((subject) => [subject.id, subject.name]));
 
@@ -108,8 +115,15 @@ export async function POST(request: NextRequest) {
   });
 
   const contactUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin}/review/contact`;
+  // A rater whose participant is no longer in the map is one assigned to a
+  // withdrawn participant. They are dropped rather than emailed: the template
+  // falls back to "this assessment" when it cannot name a subject, so leaving
+  // them in would send a real chaser for someone who is no longer being assessed.
+  const dueReviewers = (reviewers ?? []).filter((reviewer) => subjectById.has(reviewer.subject_id));
+  const skippedWithdrawn = (reviewers ?? []).length - dueReviewers.length;
+
   const results = await Promise.all(
-    (reviewers ?? []).map(async (reviewer) => {
+    dueReviewers.map(async (reviewer) => {
       const message = assessmentReminderEmail({
         reviewerName: reviewer.reviewer_name ?? "there",
         subjectName: subjectById.get(reviewer.subject_id) ?? "this assessment",
@@ -137,6 +151,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     reminded: results.length - failed,
     failed,
+    skippedWithdrawn,
     results,
   });
 }

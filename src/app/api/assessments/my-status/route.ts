@@ -101,6 +101,8 @@ export async function GET() {
       .select("id, employee_id, name, email")
       .eq("cycle_id", cycle.id)
       .eq("employee_id", employee.id)
+      // Somebody withdrawn should stop being told they are being assessed.
+      .is("withdrawn_at", null)
       .returns<SubjectRow[]>(),
   ];
   if (employee.email?.trim()) {
@@ -110,6 +112,7 @@ export async function GET() {
         .select("id, employee_id, name, email")
         .eq("cycle_id", cycle.id)
         .ilike("email", escapeLikePattern(employee.email.trim()))
+        .is("withdrawn_at", null)
         .returns<SubjectRow[]>(),
     );
   }
