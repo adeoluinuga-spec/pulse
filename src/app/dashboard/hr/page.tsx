@@ -1608,7 +1608,7 @@ function AppraisalSetup({ org }: { org: OrgRow | null }) {
         ))}
       </div>
       <div className="border-t border-border p-4">
-        <Link href="/settings" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-xs font-black text-white"><Settings2 size={15} />Configure review rules</Link>
+        <Link href="/appraisal" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-xs font-black text-white"><Settings2 size={15} />Open appraisal cycles and review rules</Link>
       </div>
     </div>
   );

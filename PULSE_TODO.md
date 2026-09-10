@@ -46,7 +46,8 @@
 - [x] Implement organisation structure editor: existing staff assignment, reporting lines, department/team positions, templates/themes, draft/review/publish, and transactional employee integration. See `ORGANISATION_STRUCTURE.md` for validation and deployment status.
 - [ ] Apply `20260909_000001_organisation_structure.sql` to the target environment and rehearse structure publication with real tenant roles.
 - [x] Employee/manager/executive dashboard routes have a 360-aware status card
-- [ ] Appraisal and goals pages consume the real appraisal API rather than fixture data
+- [x] Appraisal page uses the authenticated review workflow (database activation pending; see PERFORMANCE_APPRAISAL.md).
+- [ ] Replace the separate goals-page fixture journey with live data.
 - [ ] Platform-wide end-to-end tests cover the primary role journeys
 - [ ] Production observability, incident runbook and support/admin tooling are complete
 
@@ -94,7 +95,8 @@
 - [ ] Add browser-level tests for public review, release gate, tenant isolation and notification/email presentation.
 - [ ] Add monitoring for failed assessment sends, failed PDF jobs, failed scheduled purges and cross-tenant access denials.
 - [ ] Decide and document the definitive meaning of `direct_report` in every UI label, import template and report category.
-- [ ] Replace mock-data appraisal and goals journeys with live API-backed ones.
+- [x] Replace the mock appraisal journey with the live API-backed workflow; see PERFORMANCE_APPRAISAL.md.
+- [ ] Replace the separate mock goals journey.
 
 ## 4. Explicit non-goals for the next 360 hardening pass
 

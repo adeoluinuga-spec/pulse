@@ -113,3 +113,5 @@ After migration/deployment, rehearse with an actual HR account: edit/save/reload
 publish a controlled reporting change, verify the affected manager dashboard and
 360 relationship resolution, then attempt access as a standard employee and HR
 from another tenant. Record deployment evidence before marking it live.
+
+SQL Editor handover: supabase/schema/09_organisation_structure.sql contains the transactional run-once script. Linked CLI migration attempts failed with LegacyDbConfigLoginRoleNetworkError / TransportError; live application remains unverified.

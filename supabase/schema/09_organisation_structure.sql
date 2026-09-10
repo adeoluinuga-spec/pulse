@@ -7,6 +7,7 @@
 -- This file mirrors that migration for operators who need to run it directly
 -- in the Supabase SQL Editor. Future changes must be new migrations first.
 
+BEGIN;
 -- Visual organisation editor. Publishing is one transaction, including the
 -- live employee fields consumed by dashboards, 360 and report access checks.
 create table public.organisation_structures (
@@ -183,3 +184,4 @@ end;
 $$;
 revoke all on function public.save_organisation_structure(uuid,uuid,bigint,jsonb,jsonb,boolean) from public, anon, authenticated;
 grant execute on function public.save_organisation_structure(uuid,uuid,bigint,jsonb,jsonb,boolean) to service_role;
+COMMIT;

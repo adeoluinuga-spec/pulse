@@ -1,0 +1,5 @@
+import type { AppraisalCycleRow, AppraisalEmployee, AppraisalRecord, AppraisalSnapshot, GoalEvidence, KpiEvidence } from "@/lib/appraisalEngine";
+export type AppraisalDetail = { row:AppraisalRecord; snapshot:AppraisalSnapshot; availableGoals:GoalEvidence[]; availableKpis:KpiEvidence[]; peers:Array<{reviewer_id:string;submitted_at:string|null}>; events:Array<{action:string;created_at:string;reason:string|null}> };
+export type AppraisalWorkspaceData = { viewer:{id:string;isHr:boolean}; cycles:AppraisalCycleRow[]; cycle:AppraisalCycleRow|null; people:AppraisalEmployee[]; records:AppraisalRecord[]; peerTasks:Array<{id:string;appraisal_id:string;employeeName:string;submitted_at:string|null;open:boolean}>; detail:AppraisalDetail|null };
+export type Command = (action:string,payload:Record<string,unknown>,appraisalId?:string,revision?:number)=>Promise<boolean>;
+export const stageLabels:Record<string,string>={self_review:"Employee reflection",manager_review:"Manager review",calibration:"HR calibration",released:"Released",acknowledged:"Acknowledged"};

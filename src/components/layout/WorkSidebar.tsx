@@ -82,6 +82,7 @@ function SidebarContent() {
       icon: BarChart3,
       items: [
         { label: "Performance", href: "/dashboard/performance", icon: BarChart3 },
+  { label: "Appraisal", href: "/appraisal", icon: ClipboardList },
         { label: "Goals", href: "/goals", icon: Target },
         { label: "Reports", href: "/dashboard/reports", icon: FileText },
         { label: "Performance improvement", icon: ShieldAlert, comingSoon: true, description: "Performance improvement plans are being prepared for a future Pulse release." },
