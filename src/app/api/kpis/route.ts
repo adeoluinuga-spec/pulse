@@ -97,6 +97,16 @@ function rights(actor: Actor, row: KpiRow) {
   });
 }
 
+async function validateReferences(admin: Admin, orgId: string, actor: Actor, kpi: { employeeId: string; strategyNodeId: string | null }) {
+  if (!canCreateGoal(actor, { ownerId: kpi.employeeId, goalType: "individual" })) return "You cannot assign a KPI to that owner.";
+  const owner = await admin.from("employees").select("id").eq("id", kpi.employeeId).eq("org_id", orgId).maybeSingle();
+  if (owner.error || !owner.data) return "That owner is not in your organisation.";
+  if (kpi.strategyNodeId) {
+    const node = await admin.from("strategy_nodes").select("id").eq("id", kpi.strategyNodeId).eq("org_id", orgId).maybeSingle();
+    if (node.error || !node.data) return "That strategy level is not in your organisation.";
+  }
+  return null;
+}
 export async function GET(request: NextRequest) {
   const ctx = await context();
   if (!ctx.ok) return ctx.response;
@@ -215,17 +225,17 @@ export async function PATCH(request: NextRequest) {
 
   const validation = validateKpi({
     name: body.name ?? existing.name,
-    description: body.description ?? existing.description,
+    description: Object.hasOwn(body, "description") ? body.description : existing.description,
     employeeId: body.employeeId ?? existing.employee_id,
-    strategyNodeId: body.strategyNodeId ?? existing.strategy_node_id,
-    unit: body.unit ?? existing.unit,
-    baselineValue: body.baselineValue ?? existing.baseline_value,
+    strategyNodeId: Object.hasOwn(body, "strategyNodeId") ? body.strategyNodeId : existing.strategy_node_id,
+    unit: Object.hasOwn(body, "unit") ? body.unit : existing.unit,
+    baselineValue: Object.hasOwn(body, "baselineValue") ? body.baselineValue : existing.baseline_value,
     targetValue: body.targetValue ?? existing.target_value,
     currentValue: body.currentValue ?? existing.current_value,
     weight: body.weight ?? existing.weight ?? 0,
     measureDirection: body.measureDirection ?? existing.measure_direction ?? "higher",
     frequency: body.frequency ?? existing.frequency ?? "monthly",
-    cycle: body.cycle ?? existing.cycle,
+    cycle: Object.hasOwn(body, "cycle") ? body.cycle : existing.cycle,
     isActive: body.isActive ?? existing.is_active ?? true,
   });
 
@@ -233,6 +243,8 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "This change is not valid.", errors: validation.errors }, { status: 422 });
   }
   const kpi = validation.kpi;
+  const referenceError = await validateReferences(admin, orgId, actor, kpi);
+  if (referenceError) return NextResponse.json({ error: referenceError }, { status: 403 });
 
   const { data, error } = await admin
     .from("kpis")
@@ -298,8 +310,9 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: decision.reason ?? "You cannot delete this KPI." }, { status: 403 });
   }
 
-  const { error } = await admin.from("kpis").delete().eq("id", existing.id).eq("org_id", orgId).is("appraisal_cycle_id", null);
+  const { data: deleted, error } = await admin.from("kpis").delete().eq("id", existing.id).eq("org_id", orgId).is("appraisal_cycle_id", null).select("id");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  if (!deleted?.length) return NextResponse.json({ error: "This KPI was attached to appraisal while you were editing. Reload." }, { status: 409 });
   return NextResponse.json({ deleted: true });
 }

@@ -170,6 +170,7 @@ export async function GET() {
     );
   }
 
+  if (goals.error || kpis.error || people.error) return NextResponse.json({ error: "Could not load strategy evidence. Retry before relying on progress." }, { status: 503 });
   const domain = (nodes.data ?? []).map(toDomain);
   const rollup = rollupCascade({
     nodes: domain,
@@ -212,6 +213,12 @@ async function parentKindOf(admin: Admin, orgId: string, parentId: string | null
   return data?.kind ?? null;
 }
 
+async function validatePeople(admin: Admin, orgId: string, node: { ownerId: string | null; strategies: Array<{ responsibleId: string | null }> }) {
+ const ids = [...new Set([node.ownerId, ...node.strategies.map(a => a.responsibleId)].filter((id): id is string => Boolean(id)))];
+ if (!ids.length) return null;
+ const { data, error } = await admin.from("employees").select("id").eq("org_id", orgId).in("id", ids);
+ return error || data?.length !== ids.length ? "Every accountable and responsible person must belong to your organisation." : null;
+}
 export async function POST(request: NextRequest) {
   const ctx = await context();
   if (!ctx.ok) return ctx.response;
@@ -239,6 +246,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "This is not complete yet.", errors: validation.errors }, { status: 422 });
   }
   const node = validation.node;
+  if (body.status !== undefined && !["draft","on_track","at_risk","behind","completed"].includes(String(body.status))) return NextResponse.json({ error: "Choose a valid planning status." }, { status: 422 });
+  const peopleError = await validatePeople(admin, orgId, node);
+  if (peopleError) return NextResponse.json({ error: peopleError }, { status: 422 });
 
   const { data, error } = await admin
     .from("strategy_nodes")
@@ -263,6 +273,7 @@ export async function POST(request: NextRequest) {
       weight: node.weight,
       period_label: node.periodLabel,
       created_by: employeeId,
+      status: typeof body.status === "string" ? body.status : "on_track",
     })
     .select(COLUMNS)
     .single<NodeRow>();
@@ -280,7 +291,19 @@ export async function PATCH(request: NextRequest) {
   if (!isHr) return NextResponse.json({ error: "Strategy levels are set by HR." }, { status: 403 });
 
   const body = (await request.json()) as { id?: string } & Record<string, unknown>;
+  if (body.action === "link_goal") {
+    if (typeof body.goalId !== "string" || !(body.nodeId === null || typeof body.nodeId === "string")) return NextResponse.json({ error: "Choose a goal and a strategy level." }, { status: 422 });
+    if (body.nodeId) {
+      const node = await admin.from("strategy_nodes").select("id").eq("id", body.nodeId).eq("org_id", orgId).maybeSingle();
+      if (!node.data || node.error) return NextResponse.json({ error: "Strategy level not found." }, { status: 404 });
+    }
+    const { data, error } = await admin.from("goals").update({ strategy_node_id: body.nodeId }).eq("id", body.goalId).eq("org_id", orgId).is("appraisal_cycle_id", null).select("id").maybeSingle();
+    if (error) return NextResponse.json({ error: "Could not update this goal link." }, { status: 422 });
+    if (!data) return NextResponse.json({ error: "Goal not found or already attached to appraisal. Reload before linking." }, { status: 409 });
+    return NextResponse.json({ linked: true });
+  }
   if (!body.id) return NextResponse.json({ error: "id is required" }, { status: 400 });
+
 
   const { data: existing } = await admin
     .from("strategy_nodes")
@@ -296,23 +319,23 @@ export async function PATCH(request: NextRequest) {
   const validation = validateNode(
     {
       kind: body.kind ?? existing.kind,
-      customKindLabel: body.customKindLabel ?? existing.custom_kind_label,
+      customKindLabel: Object.hasOwn(body, "customKindLabel") ? body.customKindLabel : existing.custom_kind_label,
       title: body.title ?? existing.title,
-      description: body.description ?? existing.description,
-      ownerId: body.ownerId ?? existing.owner_id,
+      description: Object.hasOwn(body, "description") ? body.description : existing.description,
+      ownerId: Object.hasOwn(body, "ownerId") ? body.ownerId : existing.owner_id,
       parentId,
-      measure: body.measure ?? existing.measure,
+      measure: Object.hasOwn(body, "measure") ? body.measure : existing.measure,
       measureType: body.measureType ?? existing.measure_type,
       measureDirection: body.measureDirection ?? existing.measure_direction,
-      baselineValue: body.baselineValue ?? existing.baseline_value,
-      targetValue: body.targetValue ?? existing.target_value,
-      currentValue: body.currentValue ?? existing.current_value,
-      unit: body.unit ?? existing.unit,
+      baselineValue: Object.hasOwn(body, "baselineValue") ? body.baselineValue : existing.baseline_value,
+      targetValue: Object.hasOwn(body, "targetValue") ? body.targetValue : existing.target_value,
+      currentValue: Object.hasOwn(body, "currentValue") ? body.currentValue : existing.current_value,
+      unit: Object.hasOwn(body, "unit") ? body.unit : existing.unit,
       strategies: body.strategies ?? existing.strategies,
-      startDate: body.startDate ?? existing.start_date,
-      dueDate: body.dueDate ?? existing.due_date,
+      startDate: Object.hasOwn(body, "startDate") ? body.startDate : existing.start_date,
+      dueDate: Object.hasOwn(body, "dueDate") ? body.dueDate : existing.due_date,
       weight: body.weight ?? existing.weight,
-      periodLabel: body.periodLabel ?? existing.period_label,
+      periodLabel: Object.hasOwn(body, "periodLabel") ? body.periodLabel : existing.period_label,
     },
     { parentKind: await parentKindOf(admin, orgId, parentId) },
   );
@@ -321,6 +344,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "This change is not valid.", errors: validation.errors }, { status: 422 });
   }
   const node = validation.node;
+  if (body.status !== undefined && !["draft","on_track","at_risk","behind","completed"].includes(String(body.status))) return NextResponse.json({ error: "Choose a valid planning status." }, { status: 422 });
+  const peopleError = await validatePeople(admin, orgId, node);
+  if (peopleError) return NextResponse.json({ error: peopleError }, { status: 422 });
 
   const { data, error } = await admin
     .from("strategy_nodes")

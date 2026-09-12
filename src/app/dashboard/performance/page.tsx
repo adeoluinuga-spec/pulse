@@ -1,5 +1,6 @@
 "use client";
 
+import PlanningNav from "@/components/planning/PlanningNav";
 import { useState } from "react";
 import clsx from "clsx";
 import {
@@ -796,6 +797,7 @@ export default function PerformancePage() {
 
   return (
     <div className="dashboard-page space-y-5">
+      <PlanningNav />
       <section className="px-4">
         <Segmented value={activeSection} items={sections} onChange={setActiveSection} />
       </section>

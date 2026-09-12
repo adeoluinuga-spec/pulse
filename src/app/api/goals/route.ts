@@ -283,10 +283,12 @@ export async function PATCH(request: NextRequest) {
   }
   const goal = validation.goal;
 
-  if (goal.ownerId !== existing.owner_id && !canCreateGoal(actor, { ownerId: goal.ownerId, goalType: goal.goalType })) {
+  if (!canCreateGoal(actor, { ownerId: goal.ownerId, goalType: goal.goalType })) {
     return NextResponse.json({ error: "You cannot reassign this goal to that owner." }, { status: 403 });
   }
 
+  const owner = await admin.from("employees").select("id").eq("id", goal.ownerId).eq("org_id", orgId).maybeSingle();
+  if (owner.error || !owner.data) return NextResponse.json({ error: "That owner is not in your organisation." }, { status: 403 });
   const { data, error } = await admin
     .from("goals")
     .update({
@@ -352,14 +354,15 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: decision.reason ?? "You cannot delete this goal." }, { status: 403 });
   }
 
-  const { error } = await admin
+  const { data: deleted, error } = await admin
     .from("goals")
     .delete()
     .eq("id", existing.id)
     .eq("org_id", orgId)
-    .is("appraisal_cycle_id", null);
+    .is("appraisal_cycle_id", null).select("id");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  if (!deleted?.length) return NextResponse.json({ error: "This goal was attached to appraisal while you were editing. Reload." }, { status: 409 });
   return NextResponse.json({ deleted: true });
 }

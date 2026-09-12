@@ -6,6 +6,8 @@ import { Loader2, Lock, Plus, Target, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { GOAL_STATUS_LABEL, GOAL_TYPE_LABEL, GOAL_TYPES, type GoalType } from "@/lib/goalRules";
 import styles from "./goals.module.css";
+import PlanningNav from "@/components/planning/PlanningNav";
+import Dialog from "@/components/appraisal/AppraisalDialog";
 
 /**
  * Authoring goals.
@@ -85,6 +87,9 @@ export default function GoalsWorkspace() {
   const [errors, setErrors] = useState<string[]>([]);
   const [scope, setScope] = useState<Scope>("mine");
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<Goal | null>(null);
+  const [deleting, setDeleting] = useState<Goal | null>(null);
+  const [search, setSearch] = useState("");
   const [draft, setDraft] = useState(blankDraft());
 
   const load = useCallback(async () => {
@@ -104,7 +109,7 @@ export default function GoalsWorkspace() {
   }, []);
 
   useEffect(() => {
-    void load();
+    void Promise.resolve().then(load);
   }, [load]);
 
   const create = useCallback(async () => {
@@ -113,16 +118,17 @@ export default function GoalsWorkspace() {
     setError("");
     try {
       const response = await fetch("/api/goals", {
-        method: "POST",
+        method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(draft),
+        body: JSON.stringify({ ...draft, id: editing?.id }),
       });
       const body = await response.json();
       if (!response.ok) {
         setErrors(body.errors ?? []);
         throw new Error(body.error ?? "Could not create this goal.");
       }
-      showToast("Goal created.", "success");
+      showToast(editing ? "Goal updated." : "Goal created.", "success");
+      setEditing(null);
       setCreating(false);
       setDraft({ ...blankDraft(), ownerId: draft.ownerId });
       await load();
@@ -131,7 +137,7 @@ export default function GoalsWorkspace() {
     } finally {
       setBusy("");
     }
-  }, [draft, load, showToast]);
+  }, [draft, editing, load, showToast]);
 
   const updateProgress = useCallback(
     async (goal: Goal, percentComplete: number) => {
@@ -164,6 +170,7 @@ export default function GoalsWorkspace() {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error ?? "Could not delete this goal.");
         showToast("Goal deleted.", "success");
+        setDeleting(null);
         await load();
       } catch (thrown) {
         setError(thrown instanceof Error ? thrown.message : "Could not delete this goal.");
@@ -213,17 +220,17 @@ export default function GoalsWorkspace() {
 
   return (
     <div className={styles.workspace}>
+      <PlanningNav />
       <div className={styles.header}>
         <div>
           <p className={styles.eyebrow}>Goals</p>
           <h1>Objectives and progress</h1>
           <p className={styles.muted}>
-            Goals carry 35% of a performance appraisal. Set them here, keep the progress figure current,
-            then attach them to an appraisal cycle when the period closes.
+            Set objectives, keep progress current and connect the work to your strategy. Goal achievement uses the weights agreed for each appraisal cycle.
           </p>
         </div>
         <div className={styles.row}>
-          <button type="button" className={styles.primary} onClick={() => setCreating((open) => !open)}>
+          <button type="button" className={styles.primary} disabled={!data || loading || Boolean(busy)} onClick={() => { setEditing(null); setDraft({ ...blankDraft(), ownerId: data?.viewer.employeeId ?? "" }); setCreating((open) => !open); }}>
             <Plus size={15} /> {creating ? "Close" : "New goal"}
           </button>
         </div>
@@ -244,9 +251,9 @@ export default function GoalsWorkspace() {
 
       {creating ? (
         <div className={styles.panel}>
-          <h2>New goal</h2>
+          <h2>{editing ? "Edit goal" : "New goal"}</h2>
           <p className={styles.muted}>
-            An owner, a weight, a progress figure and a period. Those four are what an appraisal reads.
+            Define the outcome, its owner, period and measure of success.
           </p>
 
           <label className={styles.field}>
@@ -348,7 +355,7 @@ export default function GoalsWorkspace() {
 
           <div className={styles.row}>
             <button type="button" className={styles.primary} onClick={() => void create()} disabled={busy === "create"}>
-              {busy === "create" ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Create goal
+              {busy === "create" ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} {editing ? "Save goal" : "Create goal"}
             </button>
             <button type="button" className={styles.button} onClick={() => setCreating(false)}>
               Cancel
@@ -377,6 +384,7 @@ export default function GoalsWorkspace() {
       </div>
 
       <div className={styles.toolbar}>
+        <input className={styles.input} style={{maxWidth:300}} aria-label="Search goals" placeholder="Find a goal or owner" value={search} onChange={e=>setSearch(e.target.value)} />
         <div className={styles.tabs}>
           {(
             [
@@ -403,7 +411,7 @@ export default function GoalsWorkspace() {
               ? "Set your first objective. Until a goal exists, goal achievement cannot be scored in an appraisal."
               : "Nobody in this view has objectives set for the current period."}
           </p>
-          <button type="button" className={styles.primary} onClick={() => setCreating(true)}>
+          <button type="button" className={styles.primary} disabled={!data || loading} onClick={() => { setEditing(null); setDraft({ ...blankDraft(), ownerId: data?.viewer.employeeId ?? "" }); setCreating(true); }}>
             <Plus size={15} /> New goal
           </button>
         </div>
@@ -422,7 +430,7 @@ export default function GoalsWorkspace() {
               </tr>
             </thead>
             <tbody>
-              {visible.map((goal) => (
+              {visible.filter(goal => (goal.title + " " + nameOf(goal.owner_id)).toLowerCase().includes(search.toLowerCase())).map((goal) => (
                 <tr key={goal.id}>
                   <td>
                     <strong>{goal.title}</strong>
@@ -465,17 +473,17 @@ export default function GoalsWorkspace() {
                   <td>
                     {goal.appraisal_cycle_id ? (
                       <span className={styles.badge} data-locked="true" title={goal.editable.reason}>
-                        <Lock size={10} /> Scored
+                        <Lock size={10} /> Attached to appraisal
                       </span>
                     ) : goal.editable.allowed ? (
-                      <button
+                      <div className={styles.row}><button type="button" className={styles.small} disabled={Boolean(busy)} onClick={() => { setEditing(goal); setDraft({title:goal.title,description:goal.description??"",goalType:goal.goal_type as GoalType,ownerId:goal.owner_id??"",weight:goal.weight??0,percentComplete:goal.percent_complete??0,startDate:goal.start_date??today(),dueDate:goal.due_date??inNinetyDays(),targetMetric:goal.target_metric??"",cycle:goal.cycle??""});setCreating(true);window.scrollTo({top:0,behavior:"smooth"}); }}>Edit goal</button><button
                         type="button"
                         className={`${styles.small} ${styles.danger}`}
-                        onClick={() => void remove(goal)}
+                        onClick={() => setDeleting(goal)}
                         disabled={busy === goal.id}
                       >
                         <Trash2 size={12} /> Delete
-                      </button>
+                      </button></div>
                     ) : null}
                   </td>
                 </tr>
@@ -484,6 +492,7 @@ export default function GoalsWorkspace() {
           </table>
         </div>
       )}
+      <Dialog open={Boolean(deleting)} title="Delete this goal?" busy={Boolean(busy)} error={error} onClose={()=>setDeleting(null)}><p className={styles.muted}>Delete “{deleting?.title}”? This removes the objective and its progress.</p><button className={styles.danger} disabled={Boolean(busy)} onClick={()=>{if(deleting)void remove(deleting);}}>Confirm delete goal</button></Dialog>
     </div>
   );
 }
