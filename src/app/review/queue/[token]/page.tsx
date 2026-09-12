@@ -125,11 +125,11 @@ export default async function ReviewQueuePage({
   return (
     <main className="min-h-screen bg-background px-4 py-8 text-ink">
       <section className="mx-auto w-full max-w-md">
-        <div className="grid h-12 w-12 place-items-center rounded-lg bg-pulse-soft text-lg font-black text-pulse">
+        <div className="grid h-12 w-12 place-items-center rounded-lg bg-pulse-soft text-lg font-semibold text-pulse">
           P
         </div>
 
-        <h1 className="mt-5 text-2xl font-black leading-tight">
+        <h1 className="mt-5 text-2xl font-semibold leading-tight">
           {firstName ? `${firstName}, your assessments` : "Your assessments"}
         </h1>
         <p className="mt-2 text-sm leading-6 text-muted">
@@ -139,7 +139,7 @@ export default async function ReviewQueuePage({
 
         {/* Progress — the headline number. */}
         <div className="mt-5 rounded-lg border border-border bg-card p-5 shadow-sm">
-          <p className="text-3xl font-black leading-none tabular-nums">{queue.progressLabel}</p>
+          <p className="text-3xl font-semibold leading-none tabular-nums">{queue.progressLabel}</p>
           <div
             className="mt-4 h-2 w-full overflow-hidden rounded-full bg-ink/10"
             role="progressbar"
@@ -161,7 +161,7 @@ export default async function ReviewQueuePage({
           ) : queue.nextUp ? (
             <Link
               href={`/review/queue/${encodeURIComponent(trimmed)}/open/${queue.nextUp.reviewerId}`}
-              className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-ink px-4 text-sm font-black text-white"
+              className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-ink px-4 text-sm font-semibold text-white"
             >
               {queue.nextUp.status === "in_progress" ? "Resume" : "Start"} {queue.nextUp.subjectName}
             </Link>
@@ -172,7 +172,7 @@ export default async function ReviewQueuePage({
           )}
         </div>
 
-        <h2 className="mt-7 text-xs font-black uppercase tracking-wide text-muted">
+        <h2 className="mt-7 text-xs font-semibold uppercase tracking-wide text-muted">
           Everyone you are rating
         </h2>
 
@@ -191,11 +191,11 @@ export default async function ReviewQueuePage({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-base font-black leading-6">{assignment.subjectName}</p>
-                    <p className="mt-0.5 text-xs font-bold text-muted">{assignment.relationshipLabel}</p>
+                    <p className="truncate text-base font-semibold leading-6">{assignment.subjectName}</p>
+                    <p className="mt-0.5 text-xs font-semibold text-muted">{assignment.relationshipLabel}</p>
                   </div>
                   <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ring-1 ${
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${
                       STATUS_TONE[label] ?? "bg-ink/5 text-muted ring-ink/10"
                     }`}
                   >
@@ -210,7 +210,7 @@ export default async function ReviewQueuePage({
                 {openable ? (
                   <Link
                     href={`/review/queue/${encodeURIComponent(trimmed)}/open/${assignment.reviewerId}`}
-                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-ink/15 px-4 text-sm font-black text-ink"
+                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-ink/15 px-4 text-sm font-semibold text-ink"
                   >
                     {assignment.status === "in_progress" ? "Resume assessment" : "Start assessment"}
                   </Link>
@@ -233,7 +233,7 @@ export default async function ReviewQueuePage({
         <p className="mt-7 text-xs leading-5 text-muted">
           Your individual ratings are confidential and are never shown to the people you are
           rating. Need help?{" "}
-          <Link href="/review/contact" className="font-bold text-ink underline">
+          <Link href="/review/contact" className="font-semibold text-ink underline">
             Contact HR
           </Link>
           .

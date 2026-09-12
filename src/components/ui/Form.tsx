@@ -21,4 +21,4 @@ export function Field({
 }
 
 export const fieldInput =
-  "mt-1.5 h-10 w-full rounded-md border border-paper-300 bg-surface px-3 text-sm text-ink outline-none transition focus:border-cobalt focus:shadow-[0_0_0_3px_var(--pulse-soft)]";
+  "mt-1.5 h-10 w-full rounded-md border border-paper-300 bg-surface px-3 text-xs text-ink outline-none transition focus:border-cobalt focus:shadow-[0_0_0_3px_var(--pulse-soft)]";

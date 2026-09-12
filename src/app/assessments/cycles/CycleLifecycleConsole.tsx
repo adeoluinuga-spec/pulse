@@ -171,11 +171,11 @@ export default function CycleLifecycleConsole() {
   return (
     <main className="min-h-screen bg-background px-4 py-8 text-ink">
       <section className="mx-auto w-full max-w-4xl">
-        <Link href="/assessments" className="inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-ink">
+        <Link href="/assessments" className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink">
           <ArrowLeft className="h-4 w-4" /> Back to the 360 console
         </Link>
 
-        <h1 className="mt-4 text-2xl font-black leading-tight">Cycle lifecycle</h1>
+        <h1 className="mt-4 text-2xl font-semibold leading-tight">Cycle lifecycle</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted">
           Reopen a cycle that was closed before anyone answered, or clone any cycle into a fresh one.
           A clone always copies the competencies and statements, and never copies raters, responses or
@@ -183,7 +183,7 @@ export default function CycleLifecycleConsole() {
         </p>
 
         {notice ? (
-          <p className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+          <p className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
             {notice}
           </p>
         ) : null}
@@ -204,8 +204,8 @@ export default function CycleLifecycleConsole() {
                 <li key={cycle.id} className="rounded-lg border border-border bg-card p-4 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-base font-black leading-6">{cycle.name}</p>
-                      <p className="mt-0.5 text-xs font-bold text-muted">
+                      <p className="truncate text-base font-semibold leading-6">{cycle.name}</p>
+                      <p className="mt-0.5 text-xs font-semibold text-muted">
                         {cycle.starts_on ?? "no start date"} → {cycle.closes_on ?? "no close date"}
                       </p>
                       <p className="mt-1 text-xs text-muted">
@@ -218,7 +218,7 @@ export default function CycleLifecycleConsole() {
                       </p>
                     </div>
                     <span
-                      className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${STATUS_TONE[cycle.status] ?? STATUS_TONE.setup}`}
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_TONE[cycle.status] ?? STATUS_TONE.setup}`}
                     >
                       {STATUS_LABEL[cycle.status] ?? cycle.status}
                     </span>
@@ -231,7 +231,7 @@ export default function CycleLifecycleConsole() {
                         onClick={() => void reopen(cycle)}
                         disabled={!canReopen || rowBusy}
                         title={cycle.reopenBlockedReason ?? undefined}
-                        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {rowBusy && busy?.action === "reopen" ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -248,7 +248,7 @@ export default function CycleLifecycleConsole() {
                         setCloneName(`${cycle.name} (copy)`);
                       }}
                       disabled={rowBusy}
-                      className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-black disabled:opacity-40"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-semibold disabled:opacity-40"
                     >
                       <Copy className="h-4 w-4" /> Clone into a new cycle
                     </button>
@@ -271,7 +271,7 @@ export default function CycleLifecycleConsole() {
                     <div className="mt-3 rounded-lg border border-border bg-background p-3">
                       <div className="grid gap-3 sm:grid-cols-3">
                         <label className="text-xs sm:col-span-3">
-                          <span className="mb-1 block font-bold text-muted">New cycle name</span>
+                          <span className="mb-1 block font-semibold text-muted">New cycle name</span>
                           <input
                             value={cloneName}
                             onChange={(e) => setCloneName(e.target.value)}
@@ -279,7 +279,7 @@ export default function CycleLifecycleConsole() {
                           />
                         </label>
                         <label className="text-xs">
-                          <span className="mb-1 block font-bold text-muted">Starts on</span>
+                          <span className="mb-1 block font-semibold text-muted">Starts on</span>
                           <input
                             type="date"
                             value={cloneStarts}
@@ -288,7 +288,7 @@ export default function CycleLifecycleConsole() {
                           />
                         </label>
                         <label className="text-xs">
-                          <span className="mb-1 block font-bold text-muted">Closes on</span>
+                          <span className="mb-1 block font-semibold text-muted">Closes on</span>
                           <input
                             type="date"
                             value={cloneCloses}
@@ -303,7 +303,7 @@ export default function CycleLifecycleConsole() {
                           what the new cycle will contain when they press the
                           button, so each option says it. */}
                       <fieldset className="mt-4">
-                        <legend className="mb-2 text-xs font-bold text-muted">Who is assessed in the new cycle</legend>
+                        <legend className="mb-2 text-xs font-semibold text-muted">Who is assessed in the new cycle</legend>
                         <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-card p-3 text-xs">
                           <input
                             type="radio"
@@ -313,7 +313,7 @@ export default function CycleLifecycleConsole() {
                             className="mt-0.5 h-4 w-4"
                           />
                           <span>
-                            <span className="block font-black">
+                            <span className="block font-semibold">
                               Assess the same {plural(contents.subjects, "person", "people")} again
                             </span>
                             <span className="block text-muted">
@@ -330,7 +330,7 @@ export default function CycleLifecycleConsole() {
                             className="mt-0.5 h-4 w-4"
                           />
                           <span>
-                            <span className="block font-black">Start with nobody</span>
+                            <span className="block font-semibold">Start with nobody</span>
                             <span className="block text-muted">
                               The new cycle has no participants. You add them on the Participants tab.
                             </span>
@@ -339,27 +339,27 @@ export default function CycleLifecycleConsole() {
                       </fieldset>
 
                       <div className="mt-4 rounded-lg border border-border bg-card p-3 text-xs leading-5">
-                        <p className="font-black">What the new cycle will contain</p>
+                        <p className="font-semibold">What the new cycle will contain</p>
                         <ul className="mt-1 space-y-0.5 text-muted">
                           <li>
-                            <span className="font-bold text-ink">
+                            <span className="font-semibold text-ink">
                               {plural(contents.competencies, "competency", "competencies")} and{" "}
                               {plural(contents.items, "statement")}
                             </span>{" "}
                             — copied
                           </li>
                           <li>
-                            <span className="font-bold text-ink">
+                            <span className="font-semibold text-ink">
                               {carryForward ? plural(contents.subjects, "participant") : "No participants"}
                             </span>{" "}
                             — {carryForward ? "copied" : "you add them yourself"}
                           </li>
                           <li>
-                            <span className="font-bold text-ink">No raters</span> — never copied. Every rater is
+                            <span className="font-semibold text-ink">No raters</span> — never copied. Every rater is
                             assigned and invited fresh, so nobody keeps an old link.
                           </li>
                           <li>
-                            <span className="font-bold text-ink">No responses or reports</span> — the old cycle keeps
+                            <span className="font-semibold text-ink">No responses or reports</span> — the old cycle keeps
                             those, untouched.
                           </li>
                         </ul>
@@ -369,7 +369,7 @@ export default function CycleLifecycleConsole() {
                         type="button"
                         onClick={() => void clone(cycle)}
                         disabled={rowBusy}
-                        className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-black text-white disabled:opacity-40"
+                        className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white disabled:opacity-40"
                       >
                         {rowBusy && busy?.action === "clone" ? (
                           <Loader2 className="h-4 w-4 animate-spin" />

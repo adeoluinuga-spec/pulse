@@ -273,7 +273,7 @@ export default function ExecutiveDashboard() {
       <main className="dashboard-page grid min-h-[60vh] place-items-center px-4">
         <div className="max-w-sm rounded-lg border border-border bg-card p-5 text-center shadow-[var(--shadow-lg)]">
           <ShieldCheck className="mx-auto text-muted" size={24} />
-          <p className="mt-3 text-sm font-bold text-ink">Executive access is restricted.</p>
+          <p className="mt-3 text-sm font-semibold text-ink">Executive access is restricted.</p>
           <p className="mt-1 text-xs leading-relaxed text-muted">Your profile is not configured for executive view.</p>
         </div>
       </main>
@@ -285,7 +285,7 @@ export default function ExecutiveDashboard() {
       <main className="dashboard-page grid min-h-[60vh] place-items-center px-4">
         <div className="text-center">
           <Loader2 className="mx-auto animate-spin text-muted" size={24} />
-          <p className="mt-3 text-sm font-bold text-muted">Loading executive workspace...</p>
+          <p className="mt-3 text-sm font-semibold text-muted">Loading executive workspace...</p>
         </div>
       </main>
     );
@@ -296,23 +296,23 @@ export default function ExecutiveDashboard() {
       <section className="rounded-lg bg-ink p-5 text-white md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-white/40">Executive workspace</p>
-            <h1 className="mt-2 font-syne text-3xl font-bold leading-tight">
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/65">Executive workspace</p>
+            <h1 className="mt-2 font-syne text-3xl font-semibold leading-tight">
               {state.org?.name ?? "Organisation"} strategy view
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/58">
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
               This dashboard stays grounded in live organisation data. It will fill up as HR adds employees, teams, goals, and appraisal settings.
             </p>
           </div>
           <div className="rounded-lg border border-white/10 bg-white/[0.06] px-4 py-3 text-right">
-            <p className="text-3xl font-bold">{metrics.readiness}%</p>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-white/42">data ready</p>
+            <p className="text-3xl font-semibold">{metrics.readiness}%</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/42">data ready</p>
           </div>
         </div>
       </section>
 
       {error ? (
-        <section className="rounded-lg border border-red/20 bg-red-soft px-4 py-3 text-sm font-bold text-red">
+        <section className="rounded-lg border border-red/20 bg-red-soft px-4 py-3 text-sm font-semibold text-red">
           {error}
         </section>
       ) : null}
@@ -342,7 +342,7 @@ export default function ExecutiveDashboard() {
                 key={tab.key}
                 onClick={() => setActive(tab.key)}
                 className={clsx(
-                  "h-10 flex-shrink-0 rounded-full border px-4 text-xs font-bold transition",
+                  "h-10 flex-shrink-0 rounded-full border px-4 text-xs font-semibold transition",
                   active === tab.key ? "border-pulse bg-pulse-soft text-pulse" : "border-border bg-card text-muted hover:text-ink",
                 )}
               >
@@ -359,13 +359,13 @@ export default function ExecutiveDashboard() {
           <section className="rounded-lg border border-border bg-card p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-sm font-black text-ink">AI executive briefing</p>
+                <p className="text-sm font-semibold text-ink">AI executive briefing</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted">Generate a briefing from the live data currently available.</p>
               </div>
               <button
                 onClick={generateBriefing}
                 disabled={briefingLoading}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-xs font-black text-white disabled:opacity-50"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-xs font-semibold text-white disabled:opacity-50"
               >
                 {briefingLoading ? <Loader2 className="animate-spin" size={15} /> : <Sparkles size={15} />}
                 Generate briefing
@@ -406,7 +406,7 @@ function ExecutiveEmptyState({
         <span className="grid h-12 w-12 place-items-center rounded-full bg-pulse-soft text-pulse">
           <BriefcaseBusiness size={23} />
         </span>
-        <h2 className="mt-4 font-syne text-2xl font-bold text-ink">
+        <h2 className="mt-4 font-syne text-2xl font-semibold text-ink">
           {orgName ?? "This organisation"} is still being set up.
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
@@ -416,17 +416,17 @@ function ExecutiveEmptyState({
           {items.map((item) => (
             <div key={item.label} className="rounded-lg border border-border bg-paper p-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted">{item.label}</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted">{item.label}</p>
                 {item.done ? <CheckCircle2 size={16} className="text-green" /> : <span className="h-2 w-2 rounded-full bg-muted/35" />}
               </div>
-              <p className="mt-3 text-3xl font-bold text-ink">{item.value}</p>
+              <p className="mt-3 text-3xl font-semibold text-ink">{item.value}</p>
             </div>
           ))}
         </div>
       </div>
       <div className="rounded-lg border border-border bg-card p-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-muted">Data readiness</p>
-        <p className="mt-3 text-4xl font-bold text-ink">{readiness}%</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted">Data readiness</p>
+        <p className="mt-3 text-4xl font-semibold text-ink">{readiness}%</p>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-border">
           <div className="h-full rounded-full bg-pulse" style={{ width: `${readiness}%` }} />
         </div>
@@ -439,7 +439,7 @@ function ExecutiveEmptyState({
           ].map((item) => (
             <div key={item} className="flex items-center gap-2 rounded-lg bg-paper px-3 py-2">
               <ClipboardList size={15} className="text-pulse" />
-              <span className="text-xs font-bold text-ink">{item}</span>
+              <span className="text-xs font-semibold text-ink">{item}</span>
             </div>
           ))}
         </div>
@@ -452,7 +452,7 @@ function Overview({ metrics }: { metrics: ExecutiveMetrics }) {
   return (
     <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
       <div className="rounded-lg border border-border bg-card p-4">
-        <p className="text-sm font-black text-ink">Department picture</p>
+        <p className="text-sm font-semibold text-ink">Department picture</p>
         <div className="mt-4 space-y-3">
           {metrics.departments.length ? metrics.departments.map((department) => {
             const people = metrics.staff.filter((employee) => employee.department === department);
@@ -460,8 +460,8 @@ function Overview({ metrics }: { metrics: ExecutiveMetrics }) {
             return (
               <div key={department}>
                 <div className="mb-1 flex items-center justify-between gap-3">
-                  <span className="text-sm font-bold text-ink">{department}</span>
-                  <span className={clsx("text-sm font-black", scoreTone(score))}>{score || "Pending"}</span>
+                  <span className="text-sm font-semibold text-ink">{department}</span>
+                  <span className={clsx("text-sm font-semibold", scoreTone(score))}>{score || "Pending"}</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-border">
                   <div className={clsx("h-full rounded-full", barTone(score))} style={{ width: `${score || 8}%` }} />
@@ -475,7 +475,7 @@ function Overview({ metrics }: { metrics: ExecutiveMetrics }) {
         </div>
       </div>
       <div className="rounded-lg border border-border bg-card p-4">
-        <p className="text-sm font-black text-ink">Watch list</p>
+        <p className="text-sm font-semibold text-ink">Watch list</p>
         <div className="mt-4 space-y-3">
           <WatchRow label="At-risk goals" value={metrics.atRiskGoals.length} />
           <WatchRow label="Talent risk flags" value={metrics.riskEmployees.length} />
@@ -491,7 +491,7 @@ function Goals({ goals }: { goals: GoalRow[] }) {
   return (
     <section className="rounded-lg border border-border bg-card">
       <div className="border-b border-border px-4 py-3">
-        <p className="text-sm font-black text-ink">Organisation goals</p>
+        <p className="text-sm font-semibold text-ink">Organisation goals</p>
         <p className="mt-1 text-xs text-muted">{goals.length ? `${goals.length} live goals` : "No goals configured yet"}</p>
       </div>
       {goals.length ? (
@@ -502,10 +502,10 @@ function Goals({ goals }: { goals: GoalRow[] }) {
               <div key={goal.id} className="px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-bold text-ink">{goal.title}</p>
+                    <p className="text-sm font-semibold text-ink">{goal.title}</p>
                     <p className="mt-1 text-xs text-muted">{goal.goal_type} · {goal.department || goal.team || "Organisation wide"}</p>
                   </div>
-                  <span className="text-sm font-black text-ink">{progress}%</span>
+                  <span className="text-sm font-semibold text-ink">{progress}%</span>
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-border">
                   <div className={clsx("h-full rounded-full", barTone(progress))} style={{ width: `${progress}%` }} />
@@ -526,21 +526,21 @@ function Talent({ employees }: { employees: EmployeeRow[] }) {
   return (
     <section className="rounded-lg border border-border bg-card">
       <div className="border-b border-border px-4 py-3">
-        <p className="text-sm font-black text-ink">Talent view</p>
+        <p className="text-sm font-semibold text-ink">Talent view</p>
         <p className="mt-1 text-xs text-muted">Live employee performance appears after appraisal data exists.</p>
       </div>
       {sorted.length ? (
         <div className="divide-y divide-border">
           {sorted.slice(0, 12).map((employee) => (
             <div key={employee.id} className="flex items-center gap-3 px-4 py-3">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-ink text-xs font-bold text-white">
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-ink text-xs font-semibold text-white">
                 {initials(employee.name)}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-bold text-ink">{employee.name}</span>
+                <span className="block truncate text-sm font-semibold text-ink">{employee.name}</span>
                 <span className="block truncate text-xs text-muted">{employee.role || "Role pending"} · {employee.department || "Department pending"}</span>
               </span>
-              <span className={clsx("text-sm font-black", scoreTone(employee.performance_score ?? 0))}>
+              <span className={clsx("text-sm font-semibold", scoreTone(employee.performance_score ?? 0))}>
                 {employee.performance_score ?? "Pending"}
               </span>
             </div>
@@ -565,11 +565,11 @@ function Readiness({ metrics, org }: { metrics: ExecutiveMetrics; org: OrgRow | 
 
   return (
     <section className="rounded-lg border border-border bg-card p-4">
-      <p className="text-sm font-black text-ink">Executive data readiness</p>
+      <p className="text-sm font-semibold text-ink">Executive data readiness</p>
       <div className="mt-4 grid gap-2 md:grid-cols-2">
         {rows.map(([label, done]) => (
           <div key={String(label)} className="flex items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2">
-            <span className="text-xs font-bold text-ink">{label}</span>
+            <span className="text-xs font-semibold text-ink">{label}</span>
             {done ? <CheckCircle2 size={16} className="text-green" /> : <span className="h-2 w-2 rounded-full bg-muted/40" />}
           </div>
         ))}
@@ -599,12 +599,12 @@ function MetricCard({
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-muted">{label}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
         <span className={clsx("grid h-8 w-8 place-items-center rounded-full", toneClass)}>
           <Icon size={16} />
         </span>
       </div>
-      <p className="mt-4 text-3xl font-bold text-ink">{value}</p>
+      <p className="mt-4 text-3xl font-semibold text-ink">{value}</p>
     </div>
   );
 }
@@ -612,8 +612,8 @@ function MetricCard({
 function WatchRow({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2">
-      <span className="text-xs font-bold text-muted">{label}</span>
-      <span className="text-sm font-black text-ink">{value}</span>
+      <span className="text-xs font-semibold text-muted">{label}</span>
+      <span className="text-sm font-semibold text-ink">{value}</span>
     </div>
   );
 }
@@ -625,7 +625,7 @@ function EmptyBlock({ title, body }: { title: string; body: string }) {
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-paper text-muted">
           <BarChart3 size={22} />
         </span>
-        <p className="mt-3 text-sm font-black text-ink">{title}</p>
+        <p className="mt-3 text-sm font-semibold text-ink">{title}</p>
         <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted">{body}</p>
       </div>
     </div>

@@ -146,16 +146,16 @@ function SidebarContent() {
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-paper-200 bg-paper-50 text-ink md:flex md:flex-col">
-      <Link href="/dashboard" className="flex h-16 items-center gap-2.5 px-5">
-        <span className="grid h-8 w-8 place-items-center rounded-md bg-cobalt text-sm font-semibold text-white">P</span>
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-paper-200 bg-surface text-ink md:flex md:flex-col">
+      <Link href="/dashboard" className="flex h-20 items-center gap-2.5 border-b border-paper-100 px-5">
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-ink text-sm font-semibold text-white">P</span>
         <div className="leading-tight">
           <p className="font-display text-[15px] font-semibold text-ink">Pulse</p>
           <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted">Work OS</p>
         </div>
       </Link>
 
-      <nav className="flex-1 overflow-y-auto px-3 pb-6 pt-2" aria-label="Workspace navigation">
+      <nav className="flex-1 overflow-y-auto px-3 pb-6 pt-5" aria-label="Workspace navigation">
         <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-300">Workspace</p>
         <div className="space-y-0.5">
           <SidebarLink item={{ label: "Home", href: "/dashboard", icon: Home }} pathname={pathname} searchParams={searchParams} />

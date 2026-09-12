@@ -125,7 +125,7 @@ function CompletionRing({
 }) {
   return (
     <button onClick={onUpload} className="group relative flex h-28 w-28 items-center justify-center rounded-full shadow-[0_18px_40px_rgba(13,13,13,0.14)]" style={{ background: `conic-gradient(var(--pulse) ${percent * 3.6}deg, var(--border) 0deg)` }}>
-      <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-card text-xl font-bold text-white ring-4 ring-white/60" style={{ backgroundColor: color }}>
+      <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-card text-xl font-semibold text-white ring-4 ring-white/60" style={{ backgroundColor: color }}>
         {imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" /> : initials}
       </div>
       <span className="absolute bottom-1 right-1 grid h-9 w-9 place-items-center rounded-full bg-ink text-white shadow-lg transition group-hover:bg-pulse">
@@ -279,7 +279,7 @@ export default function ProfilePage() {
               key={section.key}
               onClick={() => setActive(section.key)}
               className={clsx(
-                "flex-1 rounded-md px-2 py-2 text-xs font-bold transition-colors md:text-sm",
+                "flex-1 rounded-md px-2 py-2 text-xs font-semibold transition-colors md:text-sm",
                 active === section.key ? "bg-ink text-white" : "text-muted hover:text-ink",
               )}
             >
@@ -295,7 +295,7 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center">
               <CompletionRing initials={user.initials} color={user.avatarColor} percent={profilePercent} imageUrl={profileImages[user.id]} onUpload={() => profileImageInputRef.current?.click()} />
               <input ref={profileImageInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => handleProfileImage(event.target.files?.[0])} />
-              <h1 className="mt-3 text-2xl font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>
+              <h1 className="mt-3 text-2xl font-semibold text-ink" style={{ fontFamily: "var(--font-syne)" }}>
                 {user.name}
               </h1>
               <p className="mt-1 text-sm text-muted">
@@ -306,21 +306,21 @@ export default function ProfilePage() {
           </section>
 
           <section className="px-4">
-            <div className="rounded-[20px] border border-green/15 bg-green-soft/70 p-4 pulse-success-glow">
-              <p className="text-xs font-bold uppercase tracking-widest text-green">Recognition Timeline</p>
+            <div className="rounded-lg border border-green/15 bg-green-soft/70 p-4 pulse-success-glow">
+              <p className="text-xs font-semibold uppercase tracking-widest text-green">Recognition Timeline</p>
               <div className="mt-3 grid gap-2 md:grid-cols-3">
                 {[
                   user.performanceScore >= 80 ? "Momentum Rising" : "Stable",
                   user.weekStreak >= 4 ? "Consistency Streak" : "Strong Alignment",
                   user.aiRec.recommendation === "promote" ? "Promotion Ready" : "Team Impact Recognition",
-                ].map((item) => <span key={item} className="rounded-full bg-card px-3 py-2 text-xs font-bold text-green">{item}</span>)}
+                ].map((item) => <span key={item} className="rounded-full bg-card px-3 py-2 text-xs font-semibold text-green">{item}</span>)}
               </div>
             </div>
           </section>
 
           <section className="space-y-4 px-4">
             <div>
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">Managed by Organization</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">Managed by Organization</p>
               <div className="grid gap-3 md:grid-cols-2">
                 <LockedCard label="Full name" value={user.name} />
                 <LockedCard label="Employee ID" value={user.id.toUpperCase()} />
@@ -331,7 +331,7 @@ export default function ProfilePage() {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">Editable by You</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">Editable by You</p>
               <div className="grid gap-3 md:grid-cols-2">
                 <EditableCard label="Phone number" field="phone" value={profile.phone} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
                 <EditableCard label="Home address" field="homeAddress" value={profile.homeAddress} editing={editing} draft={draft} onBegin={beginEdit} onDraft={setDraft} onSave={saveEdit} onCancel={() => setEditing(null)} />
@@ -355,10 +355,10 @@ export default function ProfilePage() {
             <div className="rounded-lg border border-border bg-card p-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-bold text-ink">7 of 9 required documents submitted</p>
+                  <p className="text-sm font-semibold text-ink">7 of 9 required documents submitted</p>
                   <p className="mt-1 text-xs text-muted">Keep required documents current for HR compliance.</p>
                 </div>
-                <span className="text-xl font-bold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>
+                <span className="text-xl font-semibold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>
                   {requiredPercent}%
                 </span>
               </div>
@@ -369,7 +369,7 @@ export default function ProfilePage() {
                 {requiredDocuments.map((doc) => (
                   <div key={doc.type} className="flex items-center justify-between gap-2 rounded-lg bg-paper px-3 py-2">
                     <span className="truncate text-xs font-semibold text-ink">{doc.type}</span>
-                    <span className={clsx("rounded-full border px-2 py-0.5 text-[10px] font-bold", docStatus(doc.status))}>
+                    <span className={clsx("rounded-full border px-2 py-0.5 text-[10px] font-semibold", docStatus(doc.status))}>
                       {statusLabel(doc.status)}
                     </span>
                   </div>
@@ -448,8 +448,8 @@ export default function ProfilePage() {
         <>
           <section className="px-4">
             <div className="rounded-lg bg-ink p-5 text-white">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/35">Band & Cadre</p>
-              <h2 className="mt-2 text-xl font-bold" style={{ fontFamily: "var(--font-syne)" }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/65">Band & Cadre</p>
+              <h2 className="mt-2 text-xl font-semibold" style={{ fontFamily: "var(--font-syne)" }}>
                 {user.band.current.replace("–", "—")}
               </h2>
               <div className="mt-6 flex items-center">
@@ -459,7 +459,7 @@ export default function ProfilePage() {
                     <div key={step} className="flex flex-1 items-center last:flex-none">
                       <div className="flex flex-col items-center">
                         <div className={clsx("rounded-full border-2", activeNode ? "h-5 w-5 border-pulse bg-pulse" : "h-3.5 w-3.5 border-white/25 bg-white/10")} />
-                        <span className={clsx("mt-2 max-w-[70px] text-center text-[10px]", activeNode ? "font-bold text-pulse" : "text-white/45")}>
+                        <span className={clsx("mt-2 max-w-[70px] text-center text-[10px]", activeNode ? "font-semibold text-pulse" : "text-white/65")}>
                           {step}
                         </span>
                       </div>
@@ -473,7 +473,7 @@ export default function ProfilePage() {
 
           <section className="px-4">
             <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-sm font-bold text-ink">Path to {user.band.next.replace("–", "—")}</p>
+              <p className="text-sm font-semibold text-ink">Path to {user.band.next.replace("–", "—")}</p>
               <div className="mt-4 space-y-3">
                 {requirements.map((item) => (
                   <div key={item.label} className="flex items-start gap-3">
@@ -492,7 +492,7 @@ export default function ProfilePage() {
               </p>
               <button
                 onClick={() => document.getElementById("training-suggestions")?.scrollIntoView({ behavior: "smooth" })}
-                className="mt-3 w-full rounded-lg bg-pulse px-4 py-3 text-sm font-bold text-white"
+                className="mt-3 w-full rounded-lg bg-pulse px-4 py-3 text-sm font-semibold text-white"
               >
                 See training suggestions
               </button>
@@ -502,7 +502,7 @@ export default function ProfilePage() {
           <section className="grid gap-3 px-4 lg:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-4">
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-bold text-ink">Compensation Package</p>
+                <p className="text-sm font-semibold text-ink">Compensation Package</p>
                 <button onClick={() => setHideAmounts((prev) => !prev)} className="flex items-center gap-1.5 text-xs font-semibold text-muted">
                   {hideAmounts ? <Eye size={14} /> : <EyeOff size={14} />}
                   {hideAmounts ? "Show amounts" : "Hide amounts"}
@@ -517,8 +517,8 @@ export default function ProfilePage() {
               ))}
               <div className="my-3 border-t border-border" />
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-bold text-ink">Total Gross</span>
-                <span className="text-2xl font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>
+                <span className="text-sm font-semibold text-ink">Total Gross</span>
+                <span className="text-2xl font-semibold text-ink" style={{ fontFamily: "var(--font-syne)" }}>
                   {formatMoney(user.compensation.totalGross, hideAmounts)}
                 </span>
               </div>
@@ -527,12 +527,12 @@ export default function ProfilePage() {
             <div className="rounded-lg bg-ink p-5 text-white">
               <div className="mb-4 flex items-center gap-2">
                 <span className="h-4 w-1 rounded-full bg-pulse" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-pulse">Performance-linked bonus</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-pulse">Performance-linked bonus</p>
               </div>
               <p className="text-sm text-white/60">
                 At your current score of {user.performanceScore}%, your Q2 bonus is
               </p>
-              <p className="mt-2 text-4xl font-bold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>
+              <p className="mt-2 text-4xl font-semibold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>
                 {formatMoney(currentTier.bonusAmount, hideAmounts)}
               </p>
               <div className="mt-5 divide-y divide-white/10 rounded-lg border border-white/10">
@@ -543,7 +543,7 @@ export default function ProfilePage() {
                     return (
                       <div key={tier.scoreThreshold} className={clsx("flex items-center justify-between px-3 py-3 text-sm", isCurrent && "bg-pulse/15 text-pulse")}>
                         <span>Score ≥ {tier.scoreThreshold}%</span>
-                        <span className="font-bold">{formatMoney(tier.bonusAmount, hideAmounts)}</span>
+                        <span className="font-semibold">{formatMoney(tier.bonusAmount, hideAmounts)}</span>
                       </div>
                     );
                   })}
@@ -558,7 +558,7 @@ export default function ProfilePage() {
 
           <section id="training-suggestions" className="px-4">
             <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-sm font-bold text-ink">Training Suggestions</p>
+              <p className="text-sm font-semibold text-ink">Training Suggestions</p>
               <div className="mt-3 space-y-2">
                 {user.trainingSuggestions.slice(0, 3).map((training) => (
                   <div key={training.id} className="rounded-lg bg-paper px-3 py-2">
@@ -575,15 +575,15 @@ export default function ProfilePage() {
       {managerOpen && managerName && (
         <BottomSheet onClose={() => setManagerOpen(false)}>
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-sm font-bold text-white">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-sm font-semibold text-white">
               {managerName.split(" ").map((p) => p[0]).join("").toUpperCase().slice(0, 2)}
             </div>
             <div className="min-w-0">
-              <p className="text-base font-bold text-ink">{managerName}</p>
+              <p className="text-base font-semibold text-ink">{managerName}</p>
               <p className="truncate text-sm text-muted">Line Manager</p>
             </div>
           </div>
-          <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-pulse px-4 py-3 text-sm font-bold text-white">
+          <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-pulse px-4 py-3 text-sm font-semibold text-white">
             <Mail size={15} />
             Send message
           </button>
@@ -592,7 +592,7 @@ export default function ProfilePage() {
 
       {rejectReason && (
         <BottomSheet onClose={() => setRejectReason(null)}>
-          <p className="text-base font-bold text-ink">Rejected document</p>
+          <p className="text-base font-semibold text-ink">Rejected document</p>
           <p className="mt-2 text-sm text-muted">{rejectReason}</p>
         </BottomSheet>
       )}
@@ -602,13 +602,13 @@ export default function ProfilePage() {
           <div className="flex items-start gap-3">
             <Lock size={18} className="mt-0.5 text-pulse" />
             <div>
-              <p className="text-base font-bold text-ink">Confirm to view</p>
+              <p className="text-base font-semibold text-ink">Confirm to view</p>
               <p className="mt-2 text-sm text-muted">
                 {confirmDoc.name} is a sensitive organisation-issued document. Confirm you want to view it.
               </p>
             </div>
           </div>
-          <button onClick={() => setConfirmDoc(null)} className="mt-4 w-full rounded-lg bg-ink px-4 py-3 text-sm font-bold text-white">
+          <button onClick={() => setConfirmDoc(null)} className="mt-4 w-full rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white">
             Confirm and view
           </button>
         </BottomSheet>
@@ -618,7 +618,7 @@ export default function ProfilePage() {
 }
 
 function SectionHeader({ title }: { title: string }) {
-  return <p className="text-[11px] font-bold uppercase tracking-widest text-muted">{title}</p>;
+  return <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">{title}</p>;
 }
 
 function EditableCard({
@@ -646,7 +646,7 @@ function EditableCard({
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted">{label}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">{label}</p>
         {!isEditing && (
           <button onClick={() => onBegin(field)} className="text-muted hover:text-pulse" aria-label={`Edit ${label}`}>
             <PenLine size={14} />
@@ -678,7 +678,7 @@ function LockedCard({ label, value, onClick }: { label: string; value: string; o
   const content = (
     <div className="rounded-lg border border-border bg-card p-4 text-left">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted">{label}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">{label}</p>
         {onClick ? <ChevronRight size={14} className="text-muted" /> : <Lock size={13} className="text-muted" />}
       </div>
       <p className="text-sm font-semibold leading-5 text-ink">{value}</p>
@@ -698,7 +698,7 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <div className="rounded-lg border border-dashed border-border bg-card p-6 text-center">
       <UserRound size={28} className="mx-auto text-muted" />
-      <p className="mt-3 text-sm font-bold text-ink">{title}</p>
+      <p className="mt-3 text-sm font-semibold text-ink">{title}</p>
       <p className="mt-1 text-xs text-muted">{body}</p>
     </div>
   );
@@ -729,12 +729,12 @@ function DocumentRow({
         </div>
         <p className="text-xs text-muted">{formatDate(doc.uploadDate)}{doc.size ? ` · ${doc.size}` : ""}</p>
       </div>
-      <span className={clsx("flex-shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold", docStatus(doc.status))}>
+      <span className={clsx("flex-shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold", docStatus(doc.status))}>
         {doc.status === "verified" && <Check size={10} className="mr-1 inline" />}
         {statusLabel(doc.status)}
       </span>
       {!org && doc.status !== "verified" && (
-        <button onClick={onUpload} className="flex-shrink-0 rounded-lg bg-pulse px-3 py-1.5 text-xs font-bold text-white">
+        <button onClick={onUpload} className="flex-shrink-0 rounded-lg bg-pulse px-3 py-1.5 text-xs font-semibold text-white">
           Upload
         </button>
       )}
@@ -757,10 +757,10 @@ function MissingRow({ name, onUpload }: { name: string; onUpload: () => void }) 
         <p className="truncate text-sm font-semibold text-ink">{name}</p>
         <p className="text-xs text-muted">Not submitted</p>
       </div>
-      <span className="flex-shrink-0 rounded-full border border-red/35 px-2.5 py-1 text-[10px] font-bold text-red">
+      <span className="flex-shrink-0 rounded-full border border-red/35 px-2.5 py-1 text-[10px] font-semibold text-red">
         Missing
       </span>
-      <button onClick={onUpload} className="flex flex-shrink-0 items-center gap-1 rounded-lg bg-pulse px-3 py-1.5 text-xs font-bold text-white">
+      <button onClick={onUpload} className="flex flex-shrink-0 items-center gap-1 rounded-lg bg-pulse px-3 py-1.5 text-xs font-semibold text-white">
         <Upload size={12} />
         Upload
       </button>
@@ -772,7 +772,7 @@ function MoneyRow({ label, value, hidden }: { label: string; value: number; hidd
   return (
     <div className="flex items-center justify-between gap-3 py-2">
       <span className="text-sm text-muted">{label}</span>
-      <span className="text-sm font-bold text-ink">{formatMoney(value, hidden)}</span>
+      <span className="text-sm font-semibold text-ink">{formatMoney(value, hidden)}</span>
     </div>
   );
 }

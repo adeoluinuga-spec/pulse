@@ -35,12 +35,12 @@ export default function DashboardPage() {
 
   if (!loading && !DEV_AUTH_BYPASS && session && user.id === "unlinked") {
     return (
-      <main className="min-h-screen bg-paper px-4 py-10">
-        <section className="mx-auto max-w-md rounded-2xl border border-border bg-card p-6 text-center">
+      <main className="min-h-screen bg-background px-4 py-10">
+        <section className="mx-auto max-w-md rounded-lg border border-border bg-card p-6 text-center">
           <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-pulse-soft text-pulse">
             <ShieldAlert size={20} />
           </div>
-          <h1 className="text-lg font-bold text-ink">Workspace not linked</h1>
+          <h1 className="text-lg font-semibold text-ink">Workspace not linked</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             This account is signed in, but it is not attached to an organisation
             employee record yet. Ask your HR admin or super admin to resend the
@@ -48,7 +48,7 @@ export default function DashboardPage() {
           </p>
           <Link
             href="/auth/login"
-            className="mt-5 inline-flex rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white"
+            className="mt-5 inline-flex rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white"
           >
             Return to login
           </Link>
@@ -58,8 +58,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-paper px-4 py-10">
-      <section className="mx-auto flex max-w-md items-center justify-center gap-3 rounded-2xl border border-border bg-card p-6 text-sm text-muted">
+    <main className="min-h-screen bg-background px-4 py-10">
+      <section className="mx-auto flex max-w-md items-center justify-center gap-3 rounded-lg border border-border bg-card p-6 text-sm text-muted">
         <Loader2 size={18} className="animate-spin text-pulse" />
         Opening your workspace...
       </section>

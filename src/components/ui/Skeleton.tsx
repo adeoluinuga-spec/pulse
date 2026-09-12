@@ -29,7 +29,7 @@ export function SkeletonRows({ count = 3, className }: { count?: number; classNa
   return (
     <div className={clsx("space-y-3", className)}>
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} className="rounded-xl border border-border bg-card p-4">
+        <div key={index} className="rounded-lg border border-border bg-card p-4">
           <Skeleton width="70%" height={14} />
           <Skeleton width="100%" height={8} className="mt-3" />
           <Skeleton width="45%" height={10} className="mt-3" />

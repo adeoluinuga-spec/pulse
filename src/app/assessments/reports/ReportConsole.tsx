@@ -159,14 +159,14 @@ export default function ReportConsole() {
       <section className="mx-auto w-full max-w-5xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black leading-tight">Reports</h1>
+            <h1 className="text-2xl font-semibold leading-tight">Reports</h1>
             <p className="mt-1 text-sm text-muted">
               Generate a report from collected responses, review it, then release it. Nothing is visible
               to a participant until it is released.
             </p>
           </div>
           <label className="text-sm">
-            <span className="mb-1 block font-bold text-muted">Cycle</span>
+            <span className="mb-1 block font-semibold text-muted">Cycle</span>
             <select
               value={cycleId}
               onChange={(e) => setCycleId(e.target.value)}
@@ -183,7 +183,7 @@ export default function ReportConsole() {
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
           {(["none", "draft", "in_review", "released"] as const).map((k) => (
-            <span key={k} className={`rounded-full px-3 py-1 text-xs font-black ${STATE_LABEL[k].tone}`}>
+            <span key={k} className={`rounded-full px-3 py-1 text-xs font-semibold ${STATE_LABEL[k].tone}`}>
               {STATE_LABEL[k].label}: {counts[k] ?? 0}
             </span>
           ))}
@@ -192,13 +192,13 @@ export default function ReportConsole() {
                 it already scopes itself to whatever the caller's tier permits. */}
             <a
               href={cycleId ? `/api/assessments/exports?cycleId=${encodeURIComponent(cycleId)}&format=csv` : "#"}
-              className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-4 text-sm font-black ${cycleId ? "" : "pointer-events-none opacity-40"}`}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-4 text-sm font-semibold ${cycleId ? "" : "pointer-events-none opacity-40"}`}
             >
               <Download className="h-4 w-4" /> Export CSV
             </a>
             <a
               href={cycleId ? `/api/assessments/exports?cycleId=${encodeURIComponent(cycleId)}&format=xlsx` : "#"}
-              className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-4 text-sm font-black ${cycleId ? "" : "pointer-events-none opacity-40"}`}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-4 text-sm font-semibold ${cycleId ? "" : "pointer-events-none opacity-40"}`}
             >
               <Download className="h-4 w-4" /> Export XLSX
             </a>
@@ -206,7 +206,7 @@ export default function ReportConsole() {
               type="button"
               onClick={generateAll}
               disabled={bulkBusy || loading || !rows.some((r) => !r.generated_at)}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-black text-white disabled:opacity-40"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white disabled:opacity-40"
             >
               {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Generate all outstanding
@@ -231,14 +231,14 @@ export default function ReportConsole() {
                 <li key={row.subject_id} className="rounded-lg border border-border bg-card p-4 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-base font-black leading-6">
+                      <p className="truncate text-base font-semibold leading-6">
                         {row.subject_name ?? "Participant"}
                       </p>
-                      <p className="mt-0.5 text-xs font-bold text-muted">
+                      <p className="mt-0.5 text-xs font-semibold text-muted">
                         {[row.level, row.function_name, row.region].filter(Boolean).join(" · ") || "—"}
                       </p>
                     </div>
-                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${meta.tone}`}>
+                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${meta.tone}`}>
                       {meta.label}
                     </span>
                   </div>
@@ -248,7 +248,7 @@ export default function ReportConsole() {
                       type="button"
                       onClick={() => act(row.subject_id, "generate")}
                       disabled={state.busy}
-                      className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-black disabled:opacity-40"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-semibold disabled:opacity-40"
                     >
                       {state.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                       {row.generated_at ? "Regenerate" : "Generate"}
@@ -256,7 +256,7 @@ export default function ReportConsole() {
                     {row.generated_at ? (
                       <Link
                         href={`/assessments/reports/${row.subject_id}`}
-                        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-black"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-semibold"
                       >
                         <Eye className="h-4 w-4" /> Read it
                       </Link>
@@ -266,7 +266,7 @@ export default function ReportConsole() {
                         type="button"
                         onClick={() => act(row.subject_id, "review")}
                         disabled={state.busy}
-                        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-black disabled:opacity-40"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-semibold disabled:opacity-40"
                       >
                         <Send className="h-4 w-4" /> Send to review
                       </button>
@@ -276,7 +276,7 @@ export default function ReportConsole() {
                         type="button"
                         onClick={() => act(row.subject_id, "release")}
                         disabled={state.busy}
-                        className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-3 text-sm font-black text-white disabled:opacity-40"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-3 text-sm font-semibold text-white disabled:opacity-40"
                       >
                         <CheckCircle2 className="h-4 w-4" /> Release
                       </button>
@@ -285,7 +285,7 @@ export default function ReportConsole() {
 
                   {state.error ? (
                     <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                      <p className="flex items-center gap-2 text-sm font-bold text-amber-800">
+                      <p className="flex items-center gap-2 text-sm font-semibold text-amber-800">
                         <AlertTriangle className="h-4 w-4" /> {state.error}
                       </p>
                       {state.reasons?.length ? (
@@ -299,7 +299,7 @@ export default function ReportConsole() {
                   ) : null}
 
                   {state.note ? (
-                    <p className="mt-3 text-xs font-bold text-emerald-700">{state.note}</p>
+                    <p className="mt-3 text-xs font-semibold text-emerald-700">{state.note}</p>
                   ) : null}
                 </li>
               );

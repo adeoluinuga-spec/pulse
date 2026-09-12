@@ -170,14 +170,14 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
       <section className="mx-auto w-full max-w-4xl">
         <Link
           href="/assessments/reports"
-          className="inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-ink"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink"
         >
           <ArrowLeft className="h-4 w-4" /> Back to reports
         </Link>
 
         <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black leading-tight">{subjectName || "360 report"}</h1>
+            <h1 className="text-2xl font-semibold leading-tight">{subjectName || "360 report"}</h1>
             {report ? (
               <p className="mt-1 text-sm text-muted">
                 Generated{" "}
@@ -196,7 +196,7 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
           </div>
           {cycles.length > 1 ? (
             <label className="text-sm">
-              <span className="mb-1 block font-bold text-muted">Cycle</span>
+              <span className="mb-1 block font-semibold text-muted">Cycle</span>
               <select
                 value={cycleId}
                 onChange={(e) => setCycleId(e.target.value)}
@@ -225,13 +225,13 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
           <>
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <span
-                className={`rounded-full px-3 py-1 text-xs font-black ${STATE_TONE[report.report_status] ?? STATE_TONE.draft}`}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${STATE_TONE[report.report_status] ?? STATE_TONE.draft}`}
               >
                 {STATE_LABEL[report.report_status] ?? report.report_status}
               </span>
               <a
                 href={`/api/assessments/exports?cycleId=${encodeURIComponent(cycleId)}&format=csv`}
-                className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-4 text-sm font-black"
+                className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-4 text-sm font-semibold"
               >
                 <Download className="h-4 w-4" /> Export cycle data
               </a>
@@ -239,8 +239,8 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
 
             {/* Headline */}
             <div className="mt-5 rounded-lg border border-border bg-card p-5 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-wide text-muted">Overall weighted score</p>
-              <p className="mt-1 text-4xl font-black leading-none">{fmt(report.weighted_score)}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Overall weighted score</p>
+              <p className="mt-1 text-4xl font-semibold leading-none">{fmt(report.weighted_score)}</p>
               <p className="mt-1 text-xs text-muted">
                 Out of 5, weighted across the rater groups that met the confidentiality minimum. Self is
                 scored but carries no weight.
@@ -249,18 +249,18 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {Object.entries(report.group_scores ?? {}).map(([group, score]) => (
                   <div key={group} className="flex items-center gap-3 text-sm">
-                    <span className="w-36 shrink-0 font-bold">{GROUP_LABEL[group] ?? group}</span>
+                    <span className="w-36 shrink-0 font-semibold">{GROUP_LABEL[group] ?? group}</span>
                     <span className="h-2 flex-1 overflow-hidden rounded-full bg-ink/10">
                       <span className="block h-full rounded-full bg-pulse" style={{ width: `${pct(score)}%` }} />
                     </span>
-                    <span className="w-10 shrink-0 text-right font-black tabular-nums">{fmt(score)}</span>
+                    <span className="w-10 shrink-0 text-right font-semibold tabular-nums">{fmt(score)}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Competencies */}
-            <h2 className="mt-7 text-sm font-black uppercase tracking-wide text-muted">By competency</h2>
+            <h2 className="mt-7 text-sm font-semibold uppercase tracking-wide text-muted">By competency</h2>
             <ul className="mt-3 space-y-3">
               {report.competency_scores.map((competency) => {
                 const open = expanded.has(competency.competencyId);
@@ -268,7 +268,7 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
                   <li key={competency.competencyId} className="rounded-lg border border-border bg-card p-4 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-base font-black leading-6">{competency.competencyName}</p>
+                        <p className="text-base font-semibold leading-6">{competency.competencyName}</p>
                         <p className="mt-0.5 text-xs text-muted">
                           Others {fmt(competency.mean)} · Self {fmt(competency.selfMean)}
                           {competency.gap !== null ? ` · gap ${competency.gap > 0 ? "+" : ""}${competency.gap.toFixed(2)}` : ""}
@@ -276,23 +276,23 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         {competency.blindSpot ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-800">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
                             <TrendingDown className="h-3 w-3" /> Blind spot
                           </span>
                         ) : null}
                         {competency.hiddenStrength ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
                             <TrendingUp className="h-3 w-3" /> Hidden strength
                           </span>
                         ) : null}
-                        <span className="text-xl font-black tabular-nums">{fmt(competency.mean)}</span>
+                        <span className="text-xl font-semibold tabular-nums">{fmt(competency.mean)}</span>
                       </div>
                     </div>
 
                     <div className="mt-3 space-y-1.5">
                       {competency.byGroup.map((cell) => (
                         <div key={cell.raterGroup} className="flex items-center gap-3 text-xs">
-                          <span className="w-32 shrink-0 font-bold">{GROUP_LABEL[cell.raterGroup] ?? cell.raterGroup}</span>
+                          <span className="w-32 shrink-0 font-semibold">{GROUP_LABEL[cell.raterGroup] ?? cell.raterGroup}</span>
                           {cell.suppressed ? (
                             <span className="flex flex-1 items-center gap-1.5 text-muted">
                               <Lock className="h-3 w-3" />
@@ -310,7 +310,7 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
                               <span className="w-24 shrink-0 text-right text-muted">
                                 {cell.raterCount} {cell.raterCount === 1 ? "rater" : "raters"}
                               </span>
-                              <span className="w-10 shrink-0 text-right font-black tabular-nums">{fmt(cell.mean)}</span>
+                              <span className="w-10 shrink-0 text-right font-semibold tabular-nums">{fmt(cell.mean)}</span>
                             </>
                           )}
                         </div>
@@ -322,7 +322,7 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
                         <button
                           type="button"
                           onClick={() => toggle(competency.competencyId)}
-                          className="mt-3 inline-flex items-center gap-1.5 text-xs font-black text-muted hover:text-ink"
+                          className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-ink"
                         >
                           <Eye className="h-3.5 w-3.5" />
                           {open ? "Hide" : "Show"} the {competency.items.length} statements
@@ -350,7 +350,7 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
             {/* Narrative */}
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div className="rounded-lg border border-border bg-card p-4">
-                <h3 className="text-sm font-black">Strengths</h3>
+                <h3 className="text-sm font-semibold">Strengths</h3>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6">
                   {report.strengths.map((entry) => (
                     <li key={entry}>{entry}</li>
@@ -358,7 +358,7 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
                 </ul>
               </div>
               <div className="rounded-lg border border-border bg-card p-4">
-                <h3 className="text-sm font-black">Development areas</h3>
+                <h3 className="text-sm font-semibold">Development areas</h3>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6">
                   {report.development_areas.map((entry) => (
                     <li key={entry}>{entry}</li>
@@ -368,7 +368,7 @@ export default function ReportView({ subjectId }: { subjectId: string }) {
             </div>
 
             <div className="mt-4 rounded-lg border border-border bg-card p-4">
-              <h3 className="flex items-center gap-2 text-sm font-black">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
                 <AlertTriangle className="h-4 w-4" /> How to read this report
               </h3>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-6 text-muted">

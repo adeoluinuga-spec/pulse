@@ -18,7 +18,7 @@ export default function RoleSwitcher() {
               "px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200",
               isActive
                 ? "bg-pulse text-white shadow-sm"
-                : "bg-transparent text-white/50 border border-white/20 hover:text-white hover:border-white/50"
+                : "bg-transparent text-white/65 border border-white/20 hover:text-white hover:border-white/50"
             )}
           >
             {r.label}

@@ -67,15 +67,15 @@ export default function NotificationPanel() {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 bg-ink flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <Bell size={15} className="text-white/50" />
+            <Bell size={15} className="text-white/65" />
             <h2
-              className="text-sm font-bold text-white"
+              className="text-sm font-semibold text-white"
               style={{ fontFamily: "var(--font-syne)" }}
             >
               Notifications
             </h2>
             {unreadCount > 0 && (
-              <span className="bg-pulse text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+              <span className="bg-pulse text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
                 {unreadCount}
               </span>
             )}
@@ -139,7 +139,7 @@ export default function NotificationPanel() {
 
                   {/* Action badge */}
                   {!n.read && LABEL[n.type] && (
-                    <span className="flex-shrink-0 self-start mt-0.5 text-[9px] font-bold uppercase tracking-widest text-pulse bg-pulse-soft px-2 py-0.5 rounded-full">
+                    <span className="flex-shrink-0 self-start mt-0.5 text-[9px] font-semibold uppercase tracking-widest text-pulse bg-pulse-soft px-2 py-0.5 rounded-full">
                       {LABEL[n.type]}
                     </span>
                   )}

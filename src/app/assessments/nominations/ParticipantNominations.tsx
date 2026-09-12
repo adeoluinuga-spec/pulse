@@ -147,8 +147,8 @@ export default function ParticipantNominations() {
       <section className="rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.08em] text-muted">360 nominations</p>
-            <h1 className="mt-1 text-2xl font-black text-ink">Nominate your raters</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">360 nominations</p>
+            <h1 className="mt-1 text-2xl font-semibold text-ink">Nominate your raters</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
               Choose three colleagues and three direct reports who can give fair feedback on your leadership.
             </p>
@@ -160,7 +160,7 @@ export default function ParticipantNominations() {
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           <label className="sm:col-span-2">
-            <span className="text-xs font-bold text-muted">Assessment cycle</span>
+            <span className="text-xs font-semibold text-muted">Assessment cycle</span>
             <select
               value={cycleId}
               onChange={(event) => setCycleId(event.target.value)}
@@ -172,20 +172,20 @@ export default function ParticipantNominations() {
             </select>
           </label>
           <div className="rounded-lg bg-paper p-3">
-            <p className="text-xs font-bold uppercase tracking-[0.08em] text-muted">For</p>
-            <p className="mt-1 truncate text-sm font-black text-ink">{subject?.name ?? "No participant record"}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">For</p>
+            <p className="mt-1 truncate text-sm font-semibold text-ink">{subject?.name ?? "No participant record"}</p>
           </div>
         </div>
 
-        {notice && <p className="mt-4 rounded-lg bg-pulse-soft p-3 text-sm font-bold text-pulse">{notice}</p>}
+        {notice && <p className="mt-4 rounded-lg bg-pulse-soft p-3 text-sm font-semibold text-pulse">{notice}</p>}
       </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <h2 className="text-lg font-black text-ink">Add a rater</h2>
+          <h2 className="text-lg font-semibold text-ink">Add a rater</h2>
           <div className="mt-4 grid gap-3">
             <label>
-              <span className="text-xs font-bold text-muted">Relationship</span>
+              <span className="text-xs font-semibold text-muted">Relationship</span>
               <select
                 value={reviewerGroup}
                 onChange={(event) => setReviewerGroup(event.target.value as "colleague" | "direct_report")}
@@ -199,7 +199,7 @@ export default function ParticipantNominations() {
               </select>
             </label>
             <label>
-              <span className="text-xs font-bold text-muted">Rater name</span>
+              <span className="text-xs font-semibold text-muted">Rater name</span>
               <input
                 value={reviewerName}
                 onChange={(event) => setReviewerName(event.target.value)}
@@ -207,7 +207,7 @@ export default function ParticipantNominations() {
               />
             </label>
             <label>
-              <span className="text-xs font-bold text-muted">Rater work email</span>
+              <span className="text-xs font-semibold text-muted">Rater work email</span>
               <input
                 type="email"
                 value={reviewerEmail}
@@ -219,7 +219,7 @@ export default function ParticipantNominations() {
               type="button"
               onClick={() => void submitNomination()}
               disabled={saving || loading || !subject || !reviewerName.trim() || !reviewerEmail.trim()}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-sm font-black text-white disabled:opacity-50"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-sm font-semibold text-white disabled:opacity-50"
             >
               {saving ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
               Submit nomination
@@ -229,12 +229,12 @@ export default function ParticipantNominations() {
 
         <div className="rounded-lg border border-border bg-card shadow-sm">
           <div className="border-b border-border p-4">
-            <h2 className="text-lg font-black text-ink">Your nominations</h2>
+            <h2 className="text-lg font-semibold text-ink">Your nominations</h2>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {groups.map((group) => (
                 <div key={group.key} className="rounded-lg bg-paper p-3">
-                  <p className="text-xs font-bold text-muted">{group.label}</p>
-                  <p className="mt-1 text-xl font-black text-ink">{counts[group.key]}/{limits?.[group.key] ?? 3}</p>
+                  <p className="text-xs font-semibold text-muted">{group.label}</p>
+                  <p className="mt-1 text-xl font-semibold text-ink">{counts[group.key]}/{limits?.[group.key] ?? 3}</p>
                 </div>
               ))}
             </div>
@@ -248,11 +248,11 @@ export default function ParticipantNominations() {
               nominations.map((nomination) => (
                 <div key={nomination.id} className="flex items-start justify-between gap-3 p-4">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-black text-ink">{nomination.reviewer_name}</p>
+                    <p className="truncate text-sm font-semibold text-ink">{nomination.reviewer_name}</p>
                     <p className="mt-1 truncate text-xs text-muted">{nomination.reviewer_email}</p>
-                    <p className="mt-1 text-xs font-bold text-muted">{groupLabel(nomination.reviewer_group)}</p>
+                    <p className="mt-1 text-xs font-semibold text-muted">{groupLabel(nomination.reviewer_group)}</p>
                   </div>
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-paper px-2 py-1 text-xs font-black text-muted">
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-paper px-2 py-1 text-xs font-semibold text-muted">
                     {nomination.status === "approved" && <CheckCircle2 size={14} className="text-green" />}
                     {nomination.status}
                   </span>

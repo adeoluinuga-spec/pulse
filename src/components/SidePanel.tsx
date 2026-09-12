@@ -36,19 +36,19 @@ export default function SidePanel() {
         {/* Logo */}
         <div className="px-7 pt-7 pb-6">
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-syne)" }}>
+            <span className="text-2xl font-semibold tracking-tight" style={{ fontFamily: "var(--font-syne)" }}>
               Pulse
             </span>
             <span className="w-2.5 h-2.5 rounded-full bg-pulse animate-pulse-dot" />
           </div>
-          <p className="mt-2 text-xs leading-5 text-white/45">
+          <p className="mt-2 text-xs leading-5 text-white/65">
             Performance intelligence for modern teams.
           </p>
         </div>
 
         {/* Workspaces */}
         <nav className="px-4">
-          <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">
+          <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-white/65">
             Workspaces
           </p>
           <div className="mt-3 space-y-1">
@@ -60,13 +60,13 @@ export default function SidePanel() {
                   key={r.key}
                   href={r.path}
                   className={clsx(
-                    "flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold transition-all duration-150",
+                    "flex items-center gap-3 rounded-lg px-3.5 py-3 text-sm font-semibold transition-all duration-150",
                     active
                       ? "bg-white text-ink shadow-sm"
-                      : "text-white/55 hover:bg-white/8 hover:text-white"
+                      : "text-white/65 hover:bg-white/8 hover:text-white"
                   )}
                 >
-                  <Icon size={17} className={active ? "text-pulse" : "text-white/40"} />
+                  <Icon size={17} className={active ? "text-pulse" : "text-white/65"} />
                   {r.label}
                 </Link>
               );
@@ -76,7 +76,7 @@ export default function SidePanel() {
 
         {/* Quick links */}
         <div className="mt-7 px-4">
-          <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">
+          <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-white/65">
             Navigate
           </p>
           <div className="mt-3 space-y-1">
@@ -87,13 +87,13 @@ export default function SidePanel() {
                   key={label}
                   href={href}
                   className={clsx(
-                    "flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-lg px-3.5 py-3 text-sm font-medium transition-colors",
                     active
                       ? "text-white bg-white/8"
-                      : "text-white/55 hover:bg-white/8 hover:text-white"
+                      : "text-white/65 hover:bg-white/8 hover:text-white"
                   )}
                 >
-                  <Icon size={17} className={active ? "text-pulse" : "text-white/35"} />
+                  <Icon size={17} className={active ? "text-pulse" : "text-white/65"} />
                   {label}
                 </Link>
               );
@@ -103,20 +103,20 @@ export default function SidePanel() {
 
         {/* Footer */}
         <div className="mt-auto p-4 space-y-3">
-          <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
+          <div className="rounded-lg border border-white/10 bg-white/6 p-4">
             <div className="flex items-center gap-2">
               <Sparkles size={15} className="text-pulse" />
-              <span className="text-xs font-bold uppercase tracking-widest text-pulse">
+              <span className="text-xs font-semibold uppercase tracking-widest text-pulse">
                 AI Active
               </span>
             </div>
-            <p className="mt-3 text-xs leading-5 text-white/55">
+            <p className="mt-3 text-xs leading-5 text-white/65">
               Mock insights are live across reviews, OKRs, and appraisal recommendations.
             </p>
           </div>
 
           {/* Role-aware user chip */}
-          <div className="flex items-center gap-3 rounded-xl bg-white/6 p-3">
+          <div className="flex items-center gap-3 rounded-lg bg-white/6 p-3">
             <div
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors duration-300"
               style={{ backgroundColor: config.color }}
@@ -125,7 +125,7 @@ export default function SidePanel() {
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{orgName || "Your Organisation"}</p>
-              <p className="text-[11px] text-white/40">{config.label} view</p>
+              <p className="text-[11px] text-white/65">{config.label} view</p>
             </div>
           </div>
         </div>

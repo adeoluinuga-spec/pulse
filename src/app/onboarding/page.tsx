@@ -405,15 +405,15 @@ export default function OnboardingPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(232,68,10,0.08),transparent_28rem),linear-gradient(135deg,var(--cream),var(--paper))] px-4 py-8 md:py-12">
+    <main className="min-h-screen bg-background px-4 py-8 md:py-12">
       <div className="mx-auto w-full max-w-2xl">
         {/* Logo + progress */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-[14px] bg-pulse font-syne text-base font-black text-white">
+            <span className="grid h-10 w-10 place-items-center rounded-[14px] bg-pulse font-syne text-base font-semibold text-white">
               P
             </span>
-            <span className="font-syne text-lg font-bold text-ink">Pulse Setup</span>
+            <span className="font-syne text-lg font-semibold text-ink">Pulse Setup</span>
           </div>
           <div className="flex items-center gap-1.5">
             {([1, 2, 3, 4] as Step[]).map((s) => (
@@ -433,11 +433,11 @@ export default function OnboardingPage() {
 
         {/* ── Step 1: Welcome ───────────────────────────────────────────── */}
         {step === 1 && (
-          <div className="rounded-[28px] border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-10">
-            <div className="grid h-14 w-14 place-items-center rounded-3xl bg-pulse-soft text-pulse">
+          <div className="rounded-lg border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-10">
+            <div className="grid h-14 w-14 place-items-center rounded-lg bg-pulse-soft text-pulse">
               <Sparkles size={22} />
             </div>
-            <h1 className="mt-5 font-syne text-4xl font-bold leading-tight text-ink">
+            <h1 className="mt-5 font-syne text-4xl font-semibold leading-tight text-ink">
               Welcome to Pulse.
               {orgName && (
                 <span className="block text-pulse">Let&apos;s set up {orgName}.</span>
@@ -456,9 +456,9 @@ export default function OnboardingPage() {
               ].map((item) => (
                 <div
                   key={item.num}
-                  className="flex items-center gap-4 rounded-2xl bg-paper px-4 py-3"
+                  className="flex items-center gap-4 rounded-lg bg-paper px-4 py-3"
                 >
-                  <span className="font-syne text-xs font-black text-pulse">{item.num}</span>
+                  <span className="font-syne text-xs font-semibold text-pulse">{item.num}</span>
                   <span className="text-sm font-semibold text-ink">{item.label}</span>
                 </div>
               ))}
@@ -466,7 +466,7 @@ export default function OnboardingPage() {
 
             <button
               onClick={() => setStep(2)}
-              className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-[0_18px_34px_rgba(232,68,10,0.22)] transition hover:shadow-[0_22px_42px_rgba(232,68,10,0.26)] active:scale-[0.97]"
+              className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(36,93,232,0.22)] transition hover:shadow-[0_22px_42px_rgba(36,93,232,0.26)] active:scale-[0.97]"
             >
               Let&apos;s go
               <ChevronRight size={16} />
@@ -477,7 +477,7 @@ export default function OnboardingPage() {
         {/* ── Step 2: Org Details ───────────────────────────────────────── */}
         {step === 2 && (
           <form onSubmit={saveOrgDetails} className="space-y-6">
-            <div className="rounded-[28px] border border-border bg-card p-6 md:p-8">
+            <div className="rounded-lg border border-border bg-card p-6 md:p-8">
               <SectionTitle>Work Locations</SectionTitle>
               <p className="mb-4 text-sm text-muted">
                 Where does your team work? Add all locations.
@@ -533,7 +533,7 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-border bg-card p-6 md:p-8">
+            <div className="rounded-lg border border-border bg-card p-6 md:p-8">
               <SectionTitle>Leave Entitlements</SectionTitle>
               <p className="mb-4 text-sm text-muted">
                 Set the annual days per leave type. You can adjust later.
@@ -556,7 +556,7 @@ export default function OnboardingPage() {
                           ),
                         )
                       }
-                      className="h-10 w-20 rounded-2xl border border-border bg-paper px-3 text-center text-sm font-bold text-ink outline-none focus:border-pulse"
+                      className="h-10 w-20 rounded-md border border-border bg-paper px-3 text-center text-sm font-semibold text-ink outline-none focus:border-pulse"
                     />
                     <span className="text-xs text-muted">days / year</span>
                   </div>
@@ -564,7 +564,7 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-border bg-card p-6 md:p-8">
+            <div className="rounded-lg border border-border bg-card p-6 md:p-8">
               <SectionTitle>Appraisal Weights</SectionTitle>
               <p className="mb-4 text-sm text-muted">
                 How much does each component count toward the final score?
@@ -575,7 +575,7 @@ export default function OnboardingPage() {
                     <div className="mb-1.5 flex items-center justify-between">
                       <span className="text-sm font-semibold text-ink">{w.label}</span>
                       <span
-                        className={`font-syne text-sm font-bold ${w.value > 0 ? "text-pulse" : "text-muted"}`}
+                        className={`font-syne text-sm font-semibold ${w.value > 0 ? "text-pulse" : "text-muted"}`}
                       >
                         {w.value}%
                       </span>
@@ -595,7 +595,7 @@ export default function OnboardingPage() {
                 ))}
               </div>
               <div
-                className={`mt-4 flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-bold transition-colors ${
+                className={`mt-4 flex items-center justify-between rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
                   weightsTotal === 100
                     ? "bg-green-soft text-green"
                     : "bg-red-soft text-red"
@@ -609,7 +609,7 @@ export default function OnboardingPage() {
             <button
               type="submit"
               disabled={saving || weightsTotal !== 100}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-[0_18px_34px_rgba(232,68,10,0.22)] disabled:cursor-not-allowed disabled:opacity-45"
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(36,93,232,0.22)] disabled:cursor-not-allowed disabled:opacity-45"
             >
               {saving ? (
                 <Loader2 size={17} className="animate-spin" />
@@ -626,18 +626,18 @@ export default function OnboardingPage() {
         {/* ── Step 3: Import Employees ───────────────────────────────────── */}
         {step === 3 && (
           <div className="space-y-6">
-            <div className="rounded-[28px] border border-border bg-card p-6 md:p-8">
+            <div className="rounded-lg border border-border bg-card p-6 md:p-8">
               <SectionTitle>Import Employees</SectionTitle>
               <p className="mb-6 text-sm leading-relaxed text-muted">
                 Add your team so we can send personalised invites.
               </p>
 
-              <div className="mb-6 flex rounded-2xl border border-border bg-paper p-1">
+              <div className="mb-6 flex rounded-lg border border-border bg-paper p-1">
                 {(["csv", "manual"] as const).map((mode) => (
                   <button
                     key={mode}
                     onClick={() => setImportMode(mode)}
-                    className={`flex-1 rounded-xl py-2.5 text-sm font-bold transition-colors ${
+                    className={`flex-1 rounded-md py-2.5 text-sm font-semibold transition-colors ${
                       importMode === mode
                         ? "bg-ink text-white"
                         : "text-muted hover:text-ink"
@@ -652,7 +652,7 @@ export default function OnboardingPage() {
                 <div className="space-y-4">
                   <button
                     onClick={downloadTemplate}
-                    className="flex items-center gap-2 text-sm font-bold text-pulse underline underline-offset-2"
+                    className="flex items-center gap-2 text-sm font-semibold text-pulse underline underline-offset-2"
                   >
                     <FileText size={14} />
                     Download CSV template
@@ -666,7 +666,7 @@ export default function OnboardingPage() {
                     }}
                     onDragLeave={() => setDragOver(false)}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-6 py-10 transition-colors ${
+                    className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-6 py-10 transition-colors ${
                       dragOver
                         ? "border-pulse bg-pulse-soft"
                         : "border-border bg-paper hover:border-pulse/50"
@@ -677,7 +677,7 @@ export default function OnboardingPage() {
                       className={dragOver ? "text-pulse" : "text-muted"}
                     />
                     <div className="text-center">
-                      <p className="text-sm font-bold text-ink">
+                      <p className="text-sm font-semibold text-ink">
                         {dragOver ? "Drop to upload" : "Drag & drop your CSV here"}
                       </p>
                       <p className="mt-1 text-xs text-muted">
@@ -697,7 +697,7 @@ export default function OnboardingPage() {
                   />
 
                   {csvError && (
-                    <p className="rounded-2xl bg-red-soft px-4 py-3 text-sm font-semibold text-red">
+                    <p className="rounded-lg bg-red-soft px-4 py-3 text-sm font-semibold text-red">
                       {csvError}
                     </p>
                   )}
@@ -728,7 +728,7 @@ export default function OnboardingPage() {
                       onChange={(v) => setManualEmp((e) => ({ ...e, team: v }))}
                     />
                     <div>
-                      <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-muted">
+                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted">
                         Cadre
                       </span>
                       <select
@@ -736,7 +736,7 @@ export default function OnboardingPage() {
                         onChange={(e) =>
                           setManualEmp((emp) => ({ ...emp, cadre: e.target.value }))
                         }
-                        className="h-10 w-full rounded-xl border border-border bg-paper px-2 text-sm text-ink outline-none focus:border-pulse"
+                        className="h-10 w-full rounded-md border border-border bg-paper px-2 text-sm text-ink outline-none focus:border-pulse"
                       >
                         {["entry", "mid", "senior", "executive"].map((c) => (
                           <option key={c} value={c}>
@@ -755,7 +755,7 @@ export default function OnboardingPage() {
                   <button
                     onClick={addManualEmployee}
                     disabled={!manualEmp.name || !manualEmp.email}
-                    className="flex h-10 w-full items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-bold text-white disabled:opacity-40"
+                    className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white disabled:opacity-40"
                   >
                     <Plus size={14} />
                     Add to list
@@ -766,18 +766,18 @@ export default function OnboardingPage() {
 
             {/* Preview table */}
             {employees.length > 0 && (
-              <div className="rounded-[28px] border border-border bg-card p-6 md:p-8">
+              <div className="rounded-lg border border-border bg-card p-6 md:p-8">
                 <div className="mb-4 flex items-center justify-between">
                   <SectionTitle>{employees.length} employee{employees.length !== 1 ? "s" : ""} ready to import</SectionTitle>
                   <button
                     onClick={() => setEmployees([])}
-                    className="text-xs font-bold text-muted hover:text-red"
+                    className="text-xs font-semibold text-muted hover:text-red"
                   >
                     Clear all
                   </button>
                 </div>
-                <div className="overflow-hidden rounded-xl border border-border">
-                  <div className="grid grid-cols-[2fr_2fr_1fr_1fr] gap-0 bg-paper px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-muted">
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <div className="grid grid-cols-[2fr_2fr_1fr_1fr] gap-0 bg-paper px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted">
                     <span>Name</span>
                     <span>Email</span>
                     <span>Dept</span>
@@ -812,14 +812,14 @@ export default function OnboardingPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setStep(2)}
-                className="flex h-14 flex-1 items-center justify-center rounded-2xl border border-border text-sm font-bold text-muted hover:border-ink hover:text-ink"
+                className="flex h-14 flex-1 items-center justify-center rounded-md border border-border text-sm font-semibold text-muted hover:border-ink hover:text-ink"
               >
                 Back
               </button>
               <button
                 onClick={() => setStep(4)}
                 disabled={employees.length === 0}
-                className="flex h-14 flex-[3] items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-[0_18px_34px_rgba(232,68,10,0.22)] disabled:cursor-not-allowed disabled:opacity-45"
+                className="flex h-14 flex-[3] items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(36,93,232,0.22)] disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Continue
                 <ArrowRight size={16} />
@@ -831,7 +831,7 @@ export default function OnboardingPage() {
         {/* ── Step 4: Send Invites ────────────────────────────────────────── */}
         {step === 4 && (
           <div className="space-y-6">
-            <div className="rounded-[28px] border border-border bg-card p-6 md:p-8">
+            <div className="rounded-lg border border-border bg-card p-6 md:p-8">
               <SectionTitle>Send Invites</SectionTitle>
               <p className="mb-6 text-sm leading-relaxed text-muted">
                 Each person will receive a personalised invite link to set their password
@@ -839,13 +839,13 @@ export default function OnboardingPage() {
               </p>
 
               {/* Employee list */}
-              <div className="mb-6 overflow-hidden rounded-xl border border-border">
+              <div className="mb-6 overflow-hidden rounded-lg border border-border">
                 <div className="divide-y divide-border">
                   {employees.map((emp, i) => {
                     const result = inviteResults[i];
                     return (
                       <div key={i} className="flex items-center gap-3 px-4 py-3">
-                        <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-ink text-xs font-bold text-white">
+                        <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-ink text-xs font-semibold text-white">
                           {emp.name
                             .split(" ")
                             .map((p) => p[0])
@@ -861,7 +861,7 @@ export default function OnboardingPage() {
                         </div>
                         {result && (
                           <span
-                            className={`flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                            className={`flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
                               result.status === "sent"
                                 ? "bg-green-soft text-green"
                                 : result.status === "error"
@@ -885,7 +885,7 @@ export default function OnboardingPage() {
               {/* Progress bar */}
               {inviting && (
                 <div className="mb-6">
-                  <div className="mb-2 flex justify-between text-xs font-bold text-muted">
+                  <div className="mb-2 flex justify-between text-xs font-semibold text-muted">
                     <span>Sending invites...</span>
                     <span>
                       {inviteResults.filter((r) => r.status !== "pending").length} /{" "}
@@ -911,9 +911,9 @@ export default function OnboardingPage() {
 
               {inviteDone ? (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 rounded-2xl bg-green-soft px-4 py-3">
+                  <div className="flex items-center gap-3 rounded-lg bg-green-soft px-4 py-3">
                     <Check size={16} className="text-green" />
-                    <span className="text-sm font-bold text-green">
+                    <span className="text-sm font-semibold text-green">
                       {inviteResults.filter((r) => r.status === "sent").length} invites
                       sent successfully
                       {inviteResults.filter((r) => r.status === "error").length > 0 &&
@@ -923,7 +923,7 @@ export default function OnboardingPage() {
                   <button
                     onClick={finishSetup}
                     disabled={saving}
-                    className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white"
+                    className="flex h-14 w-full items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white"
                   >
                     Done — Go to HR Dashboard
                     <ArrowRight size={16} />
@@ -933,7 +933,7 @@ export default function OnboardingPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setStep(3)}
-                    className="flex h-14 flex-1 items-center justify-center rounded-2xl border border-border text-sm font-bold text-muted hover:border-ink hover:text-ink"
+                    className="flex h-14 flex-1 items-center justify-center rounded-md border border-border text-sm font-semibold text-muted hover:border-ink hover:text-ink"
                     disabled={inviting}
                   >
                     Back
@@ -941,7 +941,7 @@ export default function OnboardingPage() {
                   <button
                     onClick={sendAllInvites}
                     disabled={inviting || !employees.length || !orgId}
-                    className="flex h-14 flex-[3] items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-[0_18px_34px_rgba(232,68,10,0.22)] disabled:cursor-not-allowed disabled:opacity-45"
+                    className="flex h-14 flex-[3] items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(36,93,232,0.22)] disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     {inviting ? (
                       <>
@@ -969,7 +969,7 @@ export default function OnboardingPage() {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-1 font-syne text-xl font-bold text-ink">{children}</h2>
+    <h2 className="mb-1 font-syne text-xl font-semibold text-ink">{children}</h2>
   );
 }
 
@@ -986,7 +986,7 @@ function SmallField({
 }) {
   return (
     <div>
-      <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-muted">
+      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted">
         {label}
       </span>
       <input
@@ -994,7 +994,7 @@ function SmallField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-10 w-full rounded-xl border border-border bg-paper px-3 text-sm text-ink outline-none focus:border-pulse"
+        className="h-10 w-full rounded-md border border-border bg-paper px-3 text-sm text-ink outline-none focus:border-pulse"
       />
     </div>
   );

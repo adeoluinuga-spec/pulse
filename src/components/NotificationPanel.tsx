@@ -31,13 +31,13 @@ export default function NotificationPanel() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-2">
             <h2
-              className="text-base font-bold text-ink"
+              className="text-base font-semibold text-ink"
               style={{ fontFamily: "var(--font-syne)" }}
             >
               Notifications
             </h2>
             {unreadCount > 0 && (
-              <span className="bg-pulse text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+              <span className="bg-pulse text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
                 {unreadCount}
               </span>
             )}

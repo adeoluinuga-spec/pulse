@@ -53,10 +53,10 @@ export default function AIInsight({ aiRec, className, loading = false }: AIInsig
   const confidencePct = Math.round(aiRec.confidence * 100);
 
   return (
-    <div className={clsx("bg-ink rounded-[20px] p-5", className)}>
+    <div className={clsx("bg-ink rounded-lg p-5", className)}>
       <div className="flex items-center gap-2 mb-4">
         <span className={clsx("w-1 h-3.5 rounded-full flex-shrink-0", config.dot)} />
-        <span className="type-label text-white/40">Pulse AI · Appraisal Signal</span>
+        <span className="type-label text-white/65">Pulse AI · Appraisal Signal</span>
       </div>
 
       <p
@@ -65,14 +65,14 @@ export default function AIInsight({ aiRec, className, loading = false }: AIInsig
       >
         {config.headline}
       </p>
-      <p className="text-white/50 text-xs leading-relaxed mb-4">{config.subtext}</p>
+      <p className="text-white/65 text-xs leading-relaxed mb-4">{config.subtext}</p>
 
       <div className="mb-4">
         <div className="flex items-baseline justify-between mb-1.5">
-          <span className="text-[10px] text-white/30 font-medium uppercase tracking-widest">
+          <span className="text-[10px] text-white/65 font-medium uppercase tracking-widest">
             Confidence
           </span>
-          <span className={clsx("text-sm font-bold", config.accent)}>{confidencePct}%</span>
+          <span className={clsx("text-sm font-semibold", config.accent)}>{confidencePct}%</span>
         </div>
         <div className="h-[3px] bg-white/10 rounded-full overflow-hidden">
           <div
@@ -93,7 +93,7 @@ export default function AIInsight({ aiRec, className, loading = false }: AIInsig
           {aiRec.evidence.map((item, i) => (
             <div key={i} className="flex items-start gap-2.5">
               <span className={clsx("w-1 h-1 rounded-full mt-1.5 flex-shrink-0", config.dot)} />
-              <p className="text-xs text-white/55 leading-relaxed">{item}</p>
+              <p className="text-xs text-white/65 leading-relaxed">{item}</p>
             </div>
           ))}
         </div>

@@ -34,7 +34,7 @@ export default function SettingsPage() {
         </div>
         <h1 className="mt-3 text-2xl font-semibold text-ink">Workspace appearance</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-          Settings now follow the Harvesters Finance style: restrained surfaces, compact controls, and minimal color.
+          A clear, consistent workspace with navy highlights, cobalt actions and calm surfaces, inspired by your performance reviews.
         </p>
       </section>
 
@@ -45,7 +45,7 @@ export default function SettingsPage() {
             <button key={item.name} onClick={() => setTheme(item.name)} className={clsx("relative min-h-32 rounded-lg border p-4 text-left shadow-sm transition", item.tone, theme === item.name ? "border-cobalt" : "border-paper-200")}>
               {theme === item.name && <span className="absolute right-3 top-3 grid h-6 w-6 place-items-center rounded-full bg-cobalt text-white"><Check size={13} /></span>}
               <p className="text-base font-semibold">{item.name}</p>
-              <p className={clsx("mt-2 text-sm", item.tone.includes("text-white") ? "text-white/58" : "text-muted")}>{item.text}</p>
+              <p className={clsx("mt-2 text-sm", item.tone.includes("text-white") ? "text-white/65" : "text-muted")}>{item.text}</p>
             </button>
           ))}
         </div>

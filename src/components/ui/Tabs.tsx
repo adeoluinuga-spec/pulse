@@ -18,7 +18,7 @@ export function Tabs<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={cn("flex gap-1 overflow-x-auto rounded-lg border border-paper-200 bg-paper-50 p-1", className)}>
+    <div className={cn("flex gap-1 overflow-x-auto rounded-lg bg-paper-100 p-1", className)}>
       {items.map((item) => {
         const Icon = item.icon;
         const active = item.key === value;
@@ -28,7 +28,7 @@ export function Tabs<T extends string>({
             type="button"
             onClick={() => onChange(item.key)}
             className={cn(
-              "inline-flex h-9 shrink-0 items-center gap-2 rounded-md px-3 text-[13px] font-semibold transition-colors",
+              "inline-flex h-9 shrink-0 items-center gap-2 rounded-md px-3 text-xs font-semibold transition-colors",
               active ? "bg-surface text-cobalt shadow-sm" : "text-ink-400 hover:bg-surface hover:text-ink",
             )}
           >

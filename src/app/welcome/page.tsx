@@ -187,25 +187,25 @@ export default function WelcomePage() {
 
   if (loading) {
     return (
-      <main className="grid min-h-screen place-items-center bg-paper">
+      <main className="grid min-h-screen place-items-center bg-background">
         <Loader2 className="animate-spin text-muted" size={24} />
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(232,68,10,0.08),transparent_28rem),linear-gradient(135deg,var(--cream),var(--paper))] px-4 py-10">
+    <main className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto w-full max-w-lg">
         {/* Logo + greeting */}
         <div className="mb-8 flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded-[18px] bg-pulse font-syne text-lg font-black text-white shadow-[0_0_0_8px_rgba(232,68,10,0.12)]">
+          <span className="grid h-12 w-12 place-items-center rounded-lg bg-pulse font-syne text-lg font-semibold text-white shadow-[0_0_0_8px_rgba(36,93,232,0.12)]">
             P
           </span>
           <div>
-            <p className="font-syne text-xl font-extrabold text-ink">
+            <p className="font-syne text-xl font-semibold text-ink">
               Welcome to Pulse{employeeName ? `, ${employeeName.split(" ")[0]}` : ""}
             </p>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
               {step === 1 ? "Step 1 of 2 — Your details" : "Step 2 of 2 — How Pulse works"}
             </p>
           </div>
@@ -227,7 +227,7 @@ export default function WelcomePage() {
         {step === 1 && (
           <form
             onSubmit={handleStep1Submit}
-            className="rounded-[28px] border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-8"
+            className="rounded-lg border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-8"
           >
             <p className="mb-5 text-sm leading-relaxed text-muted">
               HR has already set up your profile. Confirm or update your personal
@@ -259,7 +259,7 @@ export default function WelcomePage() {
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="mt-0.5 text-xs font-bold text-pulse underline-offset-2 hover:underline"
+                  className="mt-0.5 text-xs font-semibold text-pulse underline-offset-2 hover:underline"
                 >
                   Upload photo (optional)
                 </button>
@@ -296,8 +296,8 @@ export default function WelcomePage() {
                 />
               </Field>
 
-              <div className="rounded-2xl border border-border bg-paper p-4">
-                <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted">
+              <div className="rounded-lg border border-border bg-paper p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted">
                   Emergency Contact
                 </p>
                 <div className="space-y-3">
@@ -335,7 +335,7 @@ export default function WelcomePage() {
             </div>
 
             {error && (
-              <p className="mt-4 rounded-2xl border border-red/20 bg-red-soft px-4 py-3 text-sm font-semibold text-red">
+              <p className="mt-4 rounded-lg border border-red/20 bg-red-soft px-4 py-3 text-sm font-semibold text-red">
                 {error}
               </p>
             )}
@@ -343,7 +343,7 @@ export default function WelcomePage() {
             <button
               type="submit"
               disabled={saving}
-              className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-[0_18px_34px_rgba(232,68,10,0.22)] transition disabled:opacity-50"
+              className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(36,93,232,0.22)] transition disabled:opacity-50"
             >
               {saving ? (
                 <Loader2 size={17} className="animate-spin" />
@@ -360,7 +360,7 @@ export default function WelcomePage() {
         {/* ── Step 2: Orientation ── */}
         {step === 2 && (
           <div className="space-y-4">
-            <div className="rounded-[28px] border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-8">
+            <div className="rounded-lg border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-8">
               <p className="mb-6 text-sm leading-relaxed text-muted">
                 There are three things to stay on top of in Pulse. That&apos;s it.
               </p>
@@ -371,15 +371,15 @@ export default function WelcomePage() {
                   return (
                     <div
                       key={i}
-                      className="flex gap-4 rounded-2xl border border-border bg-paper p-4"
+                      className="flex gap-4 rounded-lg border border-border bg-paper p-4"
                     >
                       <div
-                        className={`mt-0.5 grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl ${card.color}`}
+                        className={`mt-0.5 grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg ${card.color}`}
                       >
                         <Icon size={18} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-ink">{card.title}</p>
+                        <p className="text-sm font-semibold text-ink">{card.title}</p>
                         <p className="mt-1 text-xs leading-relaxed text-muted">{card.body}</p>
                       </div>
                     </div>
@@ -387,7 +387,7 @@ export default function WelcomePage() {
                 })}
               </div>
 
-              <div className="mt-6 flex items-center gap-2 rounded-2xl bg-pulse-soft px-4 py-3">
+              <div className="mt-6 flex items-center gap-2 rounded-lg bg-pulse-soft px-4 py-3">
                 <CheckCircle2 size={16} className="flex-shrink-0 text-pulse" />
                 <p className="text-xs font-semibold text-pulse">
                   Your profile is all set. Your manager can now see your goals and
@@ -402,7 +402,7 @@ export default function WelcomePage() {
                 else if (platformRole === "executive_view") router.replace("/dashboard/executive");
                 else router.replace("/dashboard");
               }}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-[0_18px_34px_rgba(232,68,10,0.22)] transition"
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(36,93,232,0.22)] transition"
             >
               Got it — Let&apos;s go
               <ArrowRight size={16} />
@@ -426,7 +426,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-bold uppercase tracking-widest text-muted">
+      <span className="text-xs font-semibold uppercase tracking-widest text-muted">
         {label}
       </span>
       <div className="mt-1.5">{children}</div>

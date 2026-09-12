@@ -185,7 +185,7 @@ export default function ReportForm() {
   if (loading || dataLoading) {
     return (
       <div className="dashboard-page flex min-h-[60vh] items-center justify-center">
-        <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted">
           <Sparkles size={14} className="animate-pulse text-pulse" />
           Loading report workspace...
         </div>
@@ -208,7 +208,7 @@ export default function ReportForm() {
             maxWidth: "32rem",
           }}
         >
-          <div className="bg-ink text-white rounded-xl px-4 py-3 flex items-center gap-3 shadow-2xl">
+          <div className="bg-ink text-white rounded-lg px-4 py-3 flex items-center gap-3 shadow-2xl">
             <CheckCircle size={15} className="text-green flex-shrink-0" />
             <p className="text-sm font-medium">
               Report submitted. Your manager has been notified.
@@ -249,7 +249,7 @@ export default function ReportForm() {
                 <div className="flex flex-col items-center">
                   <div
                     className={clsx(
-                      "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0",
+                      "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0",
                       isDone
                         ? "bg-green text-white"
                         : isCurrent
@@ -303,7 +303,7 @@ export default function ReportForm() {
                   value={accomplishments}
                   onChange={(e) => setAccomplishments(e.target.value)}
                   placeholder="Describe your key wins, deliverables, and progress..."
-                  className="w-full rounded-xl border border-border bg-card p-3.5 text-sm text-ink placeholder:text-muted resize-none focus:outline-none focus:border-pulse focus:ring-2 focus:ring-pulse/10 transition-colors"
+                  className="w-full rounded-md border border-border bg-card p-3.5 text-sm text-ink placeholder:text-muted resize-none focus:outline-none focus:border-pulse focus:ring-2 focus:ring-pulse/10 transition-colors"
                   style={{ minHeight: "100px" }}
                 />
               </div>
@@ -316,7 +316,7 @@ export default function ReportForm() {
                   value={blockers}
                   onChange={(e) => setBlockers(e.target.value)}
                   placeholder="What slowed you down or needs support?"
-                  className="w-full rounded-xl border border-border bg-card p-3.5 text-sm text-ink placeholder:text-muted resize-none focus:outline-none focus:border-pulse focus:ring-2 focus:ring-pulse/10 transition-colors"
+                  className="w-full rounded-md border border-border bg-card p-3.5 text-sm text-ink placeholder:text-muted resize-none focus:outline-none focus:border-pulse focus:ring-2 focus:ring-pulse/10 transition-colors"
                   style={{ minHeight: "80px" }}
                 />
               </div>
@@ -331,7 +331,7 @@ export default function ReportForm() {
                       key={m.key}
                       onClick={() => setMood(m.key)}
                       className={clsx(
-                        "flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all text-left",
+                        "flex items-center gap-2 px-3.5 py-2.5 rounded-md border text-sm font-medium transition-all text-left",
                         mood === m.key
                           ? "bg-pulse-soft border-pulse text-pulse"
                           : "bg-card border-border text-ink hover:border-pulse/40"
@@ -346,7 +346,7 @@ export default function ReportForm() {
 
               <button
                 onClick={() => setStep(2)}
-                className="w-full bg-pulse text-white font-semibold text-sm py-3 rounded-xl hover:bg-pulse/90 transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-pulse text-white font-semibold text-sm py-3 rounded-md hover:bg-pulse/90 transition-colors flex items-center justify-center gap-2"
               >
                 Next
                 <ArrowRight size={15} />
@@ -363,7 +363,7 @@ export default function ReportForm() {
 
               <div className="space-y-3">
                 {goalEntries.length === 0 && (
-                  <div className="rounded-2xl border border-dashed border-border bg-card p-4 text-center">
+                  <div className="rounded-lg border border-dashed border-border bg-card p-4 text-center">
                     <p className="text-sm font-semibold text-ink">No active goals yet</p>
                     <p className="mt-1 text-xs leading-relaxed text-muted">
                       You can still submit your weekly report. Goal tracking will
@@ -378,7 +378,7 @@ export default function ReportForm() {
                   return (
                     <div
                       key={goal.id}
-                      className="bg-card rounded-2xl border border-border p-4"
+                      className="bg-card rounded-lg border border-border p-4"
                     >
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <p className="text-sm font-medium text-ink leading-snug flex-1">
@@ -393,7 +393,7 @@ export default function ReportForm() {
                             onChange={(e) =>
                               updateGoal(goal.id, Number(e.target.value))
                             }
-                            className="w-14 text-right border border-border rounded-lg px-2 py-1.5 text-sm font-bold text-ink focus:outline-none focus:border-pulse focus:ring-2 focus:ring-pulse/10 transition-colors"
+                            className="w-14 text-right border border-border rounded-lg px-2 py-1.5 text-sm font-semibold text-ink focus:outline-none focus:border-pulse focus:ring-2 focus:ring-pulse/10 transition-colors"
                           />
                           <span className="text-sm text-muted">%</span>
                         </div>
@@ -433,14 +433,14 @@ export default function ReportForm() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setStep(1)}
-                  className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold text-muted hover:border-ink hover:text-ink transition-colors flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 rounded-md border border-border text-sm font-semibold text-muted hover:border-ink hover:text-ink transition-colors flex items-center justify-center gap-1.5"
                 >
                   <ChevronLeft size={15} />
                   Back
                 </button>
                 <button
                   onClick={() => setStep(3)}
-                  className="flex-1 bg-pulse text-white font-semibold text-sm py-3 rounded-xl hover:bg-pulse/90 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 bg-pulse text-white font-semibold text-sm py-3 rounded-md hover:bg-pulse/90 transition-colors flex items-center justify-center gap-2"
                 >
                   Next
                   <ArrowRight size={15} />
@@ -453,7 +453,7 @@ export default function ReportForm() {
           {step === 3 && (
             <>
               {/* Summary card */}
-              <div className="bg-card rounded-2xl border border-border p-4 space-y-4">
+              <div className="bg-card rounded-lg border border-border p-4 space-y-4">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2">
                     This Week
@@ -492,7 +492,7 @@ export default function ReportForm() {
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2.5">
                   Goal Updates
                 </p>
-                <div className="bg-card rounded-2xl border border-border divide-y divide-border">
+                <div className="bg-card rounded-lg border border-border divide-y divide-border">
                   {goalEntries.map((goal) => {
                     const changed = goal.currentPct !== goal.originalPct;
                     const improved = goal.currentPct > goal.originalPct;
@@ -513,7 +513,7 @@ export default function ReportForm() {
                               <span className="text-muted">→</span>
                               <span
                                 className={clsx(
-                                  "font-bold",
+                                  "font-semibold",
                                   improved ? "text-green" : "text-red"
                                 )}
                               >
@@ -538,7 +538,7 @@ export default function ReportForm() {
                 <button
                   onClick={() => setStep(2)}
                   disabled={submitState !== "idle"}
-                  className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold text-muted hover:border-ink hover:text-ink transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
+                  className="flex-1 py-3 rounded-md border border-border text-sm font-semibold text-muted hover:border-ink hover:text-ink transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
                 >
                   <ChevronLeft size={15} />
                   Back
@@ -548,7 +548,7 @@ export default function ReportForm() {
                   onClick={handleSubmit}
                   disabled={submitState !== "idle" || !mood || !orgId}
                   className={clsx(
-                    "flex-1 text-white font-semibold text-sm py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 disabled:cursor-not-allowed",
+                    "flex-1 text-white font-semibold text-sm py-3 rounded-md transition-all duration-300 flex items-center justify-center gap-2 disabled:cursor-not-allowed",
                     submitState === "idle" && "bg-pulse hover:bg-pulse/90",
                     submitState === "processing" && "bg-ink",
                     submitState === "done" && "bg-green"
@@ -574,7 +574,7 @@ export default function ReportForm() {
               {submitState === "done" && (
                 <div className="space-y-3 animate-fade-up">
                   {aiError && (
-                    <div className="bg-amber-soft rounded-xl border border-amber/20 p-3.5 flex items-start gap-2.5">
+                    <div className="bg-amber-soft rounded-lg border border-amber/20 p-3.5 flex items-start gap-2.5">
                       <span className="text-amber flex-shrink-0 text-sm">⚠</span>
                       <p className="text-xs text-amber leading-relaxed">
                         AI analysis unavailable. Your report was saved successfully.
@@ -583,17 +583,17 @@ export default function ReportForm() {
                   )}
 
                   {aiDigest && (
-                    <div className="bg-ink rounded-[20px] p-5 space-y-4">
+                    <div className="bg-ink rounded-lg p-5 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="w-1.5 h-4 rounded-full bg-pulse flex-shrink-0" />
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-pulse">
+                          <span className="text-[10px] font-semibold uppercase tracking-widest text-pulse">
                             AI Report Digest
                           </span>
                         </div>
                         <span
                           className={clsx(
-                            "px-2.5 py-1 rounded-full text-[10px] font-bold",
+                            "px-2.5 py-1 rounded-full text-[10px] font-semibold",
                             aiDigest.sentiment === "positive"
                               ? "bg-green/20 text-green"
                               : aiDigest.sentiment === "concerning"
@@ -607,7 +607,7 @@ export default function ReportForm() {
 
                       {aiDigest.accomplishments.length > 0 && (
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/65 mb-2">
                             Key Accomplishments
                           </p>
                           <div className="space-y-1.5">
@@ -625,7 +625,7 @@ export default function ReportForm() {
 
                       {aiDigest.blockers.length > 0 && (
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/65 mb-2">
                             Flagged Blockers
                           </p>
                           <div className="space-y-1.5">
@@ -643,7 +643,7 @@ export default function ReportForm() {
 
                       {aiDigest.collaborationMentions.length > 0 && (
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/65 mb-2">
                             Collaboration
                           </p>
                           <div className="flex flex-wrap gap-1.5">
@@ -663,7 +663,7 @@ export default function ReportForm() {
 
                   <button
                     onClick={() => router.push("/dashboard/employee")}
-                    className="w-full bg-green text-white font-semibold text-sm py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-green/90 transition-colors"
+                    className="w-full bg-green text-white font-semibold text-sm py-3 rounded-md flex items-center justify-center gap-2 hover:bg-green/90 transition-colors"
                   >
                     <ArrowRight size={15} />
                     View Dashboard

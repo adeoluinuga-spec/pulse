@@ -141,7 +141,7 @@ export default function ManagerDashboard() {
   if (loading || dataLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted">
           <Loader2 size={16} className="animate-spin text-pulse" />
           Loading team workspace...
         </div>
@@ -152,7 +152,7 @@ export default function ManagerDashboard() {
   return (
     <div className="space-y-6 pb-8">
       <section className="px-5 pt-5">
-        <div className="rounded-[24px] bg-ink p-6">
+        <div className="rounded-lg bg-ink p-6">
           <div className="mb-4 flex items-center gap-2">
             <span className="h-3.5 w-1 rounded-full bg-pulse" />
             <span className="type-label text-pulse">Team Intelligence</span>
@@ -163,7 +163,7 @@ export default function ManagerDashboard() {
           >
             {user.name.split(" ")[0] || "Manager"}, here is your live team view.
           </p>
-          <p className="mb-5 text-sm leading-relaxed text-white/55">
+          <p className="mb-5 text-sm leading-relaxed text-white/65">
             This page only uses people assigned to you in this organisation.
             Seeded demo employees will not appear in a live tenant.
           </p>
@@ -178,14 +178,14 @@ export default function ManagerDashboard() {
               <div key={stat.label}>
                 <p
                   className={clsx(
-                    "text-xl font-bold leading-none",
+                    "text-xl font-semibold leading-none",
                     stat.accent ? "text-pulse" : "text-white",
                   )}
                   style={{ fontFamily: "var(--font-syne)" }}
                 >
                   {stat.value}
                 </p>
-                <p className="mt-1 text-[10px] leading-none text-white/35">
+                <p className="mt-1 text-[10px] leading-none text-white/65">
                   {stat.label}
                 </p>
               </div>
@@ -200,7 +200,7 @@ export default function ManagerDashboard() {
 
       {team.length === 0 ? (
         <section className="px-5">
-          <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center">
+          <div className="rounded-lg border border-dashed border-border bg-card p-6 text-center">
             <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-pulse-soft text-pulse">
               <Users size={20} />
             </div>
@@ -223,11 +223,11 @@ export default function ManagerDashboard() {
               return (
                 <div
                   key={member.id}
-                  className="rounded-2xl border border-border bg-card p-4"
+                  className="rounded-lg border border-border bg-card p-4"
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold text-white"
                       style={{ backgroundColor: member.avatarColor }}
                     >
                       {member.initials}
@@ -240,7 +240,7 @@ export default function ManagerDashboard() {
                         {member.role || member.department || "Employee"}
                       </p>
                     </div>
-                    <p className={clsx("text-lg font-bold", scoreColor(member.performanceScore))}>
+                    <p className={clsx("text-lg font-semibold", scoreColor(member.performanceScore))}>
                       {member.performanceScore || "--"}
                     </p>
                   </div>
@@ -266,7 +266,7 @@ export default function ManagerDashboard() {
       )}
 
       <section className="px-5">
-        <div className="rounded-2xl border border-border bg-card p-4 text-xs leading-relaxed text-muted">
+        <div className="rounded-lg border border-border bg-card p-4 text-xs leading-relaxed text-muted">
           Team management actions will appear here as employees submit reports
           and HR completes the live organisation setup.
         </div>

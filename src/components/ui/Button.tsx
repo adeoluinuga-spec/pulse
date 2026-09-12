@@ -10,16 +10,16 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-cobalt text-white shadow-sm hover:bg-cobalt-dark",
-  secondary: "border border-paper-300 bg-surface text-ink shadow-sm hover:border-silver-dark hover:bg-paper-50",
+  primary: "bg-cobalt text-white hover:bg-cobalt-dark",
+  secondary: "border border-paper-300 bg-surface text-ink hover:border-silver-dark hover:bg-paper-50",
   ghost: "bg-transparent text-ink-500 hover:bg-paper-100 hover:text-ink",
   danger: "border border-red/30 bg-surface text-red hover:bg-red-soft",
 };
 
 const sizes: Record<ButtonSize, string> = {
   sm: "h-8 px-3 text-xs",
-  md: "h-10 px-4 text-sm",
-  lg: "h-11 px-5 text-sm",
+  md: "h-10 px-4 text-xs",
+  lg: "h-11 px-5 text-[13px]",
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(

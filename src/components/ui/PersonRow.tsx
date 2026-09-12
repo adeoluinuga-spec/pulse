@@ -39,7 +39,7 @@ export default function PersonRow({
     <Wrapper
       className={clsx(
         "w-full flex items-center gap-3 py-3.5 text-left",
-        onClick && "hover:bg-cream/50 transition-colors rounded-xl -mx-1 px-1",
+        onClick && "hover:bg-cream/50 transition-colors rounded-lg -mx-1 px-1",
         className
       )}
       onClick={onClick}
@@ -56,7 +56,7 @@ export default function PersonRow({
       <div className="flex items-center gap-2 flex-shrink-0">
         {showScore && (
           <span
-            className="text-base font-bold text-ink"
+            className="text-base font-semibold text-ink"
             style={{ fontFamily: "var(--font-syne)" }}
           >
             {employee.performanceScore}

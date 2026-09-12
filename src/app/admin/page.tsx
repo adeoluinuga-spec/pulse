@@ -81,7 +81,7 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <main className="grid min-h-screen place-items-center bg-paper">
+      <main className="grid min-h-screen place-items-center bg-background">
         <Loader2 className="animate-spin text-muted" size={24} />
       </main>
     );
@@ -89,12 +89,12 @@ export default function AdminPage() {
 
   if (!isAuthorised) {
     return (
-      <main className="grid min-h-screen place-items-center bg-paper px-6">
+      <main className="grid min-h-screen place-items-center bg-background px-6">
         <div className="w-full max-w-sm text-center">
-          <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-3xl bg-red-soft text-red">
+          <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-lg bg-red-soft text-red">
             <ShieldAlert size={28} />
           </div>
-          <h1 className="font-syne text-2xl font-bold text-ink">Access Denied</h1>
+          <h1 className="font-syne text-2xl font-semibold text-ink">Access Denied</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">
             This page is restricted to Pulse super administrators.
             {authEmail && (
@@ -103,7 +103,7 @@ export default function AdminPage() {
           </p>
           <a
             href="/dashboard"
-            className="mt-6 inline-flex h-11 items-center justify-center rounded-2xl bg-ink px-6 text-sm font-bold text-white"
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-lg bg-ink px-6 text-sm font-semibold text-white"
           >
             Back to Dashboard
           </a>
@@ -121,28 +121,28 @@ function AdminDashboard({ authEmail }: { authEmail: string }) {
   const [tab, setTab] = useState<Tab>("orgs");
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(232,68,10,0.08),transparent_28rem),linear-gradient(135deg,var(--cream),var(--paper))] px-4 py-8">
+    <main className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto w-full max-w-4xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 place-items-center rounded-[18px] bg-pulse font-syne text-lg font-black text-white shadow-[0_0_0_8px_rgba(232,68,10,0.12)]">
+            <span className="grid h-12 w-12 place-items-center rounded-lg bg-pulse font-syne text-lg font-semibold text-white shadow-[0_0_0_8px_rgba(36,93,232,0.12)]">
               P
             </span>
             <div>
-              <p className="font-syne text-xl font-extrabold text-ink">Pulse Admin</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">
+              <p className="font-syne text-xl font-semibold text-ink">Pulse Admin</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
                 Super Admin Console
               </p>
             </div>
           </div>
-          <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold text-muted md:block">
+          <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted md:block">
             {authEmail}
           </span>
         </div>
 
         {/* Tab bar */}
-        <div className="mb-6 flex rounded-2xl border border-border bg-card p-1">
+        <div className="mb-6 flex rounded-lg border border-border bg-card p-1">
           <TabBtn active={tab === "orgs"} onClick={() => setTab("orgs")}>
             <Building2 size={14} />
             Organisations
@@ -224,7 +224,7 @@ function OrgListView() {
 
   if (error) {
     return (
-      <div className="rounded-2xl bg-red-soft px-4 py-3 text-sm font-semibold text-red">
+      <div className="rounded-lg bg-red-soft px-4 py-3 text-sm font-semibold text-red">
         {error}
       </div>
     );
@@ -232,11 +232,11 @@ function OrgListView() {
 
   if (!orgs.length) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-[28px] border border-dashed border-border bg-card py-20 text-center">
-        <div className="mb-4 grid h-14 w-14 place-items-center rounded-3xl bg-pulse-soft text-pulse">
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card py-20 text-center">
+        <div className="mb-4 grid h-14 w-14 place-items-center rounded-lg bg-pulse-soft text-pulse">
           <Building2 size={22} />
         </div>
-        <p className="font-syne text-xl font-bold text-ink">No organisations yet</p>
+        <p className="font-syne text-xl font-semibold text-ink">No organisations yet</p>
         <p className="mt-2 text-sm text-muted">
           Create your first organisation using the Add Organisation tab.
         </p>
@@ -246,7 +246,7 @@ function OrgListView() {
 
   return (
     <div className="space-y-3">
-      <p className="px-1 text-xs font-bold uppercase tracking-widest text-muted">
+      <p className="px-1 text-xs font-semibold uppercase tracking-widest text-muted">
         {orgs.length} organisation{orgs.length !== 1 ? "s" : ""}
       </p>
 
@@ -258,12 +258,12 @@ function OrgListView() {
         return (
           <div
             key={org.id}
-            className="overflow-hidden rounded-[24px] border border-border bg-card shadow-sm"
+            className="overflow-hidden rounded-lg border border-border bg-card shadow-sm"
           >
             {/* Row */}
             <div className="flex items-center gap-3 p-5">
               {/* Avatar */}
-              <div className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-2xl bg-pulse-soft font-syne text-base font-black text-pulse">
+              <div className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-lg bg-pulse-soft font-syne text-base font-semibold text-pulse">
                 {org.name.slice(0, 1).toUpperCase()}
               </div>
 
@@ -272,7 +272,7 @@ function OrgListView() {
                 className="min-w-0 flex-1 text-left"
                 onClick={() => setExpandedId(isExpanded ? null : org.id)}
               >
-                <p className="truncate font-syne text-base font-bold text-ink">{org.name}</p>
+                <p className="truncate font-syne text-base font-semibold text-ink">{org.name}</p>
                 <p className="text-xs text-muted">
                   {org.slug} · {org.currency} · {org.appraisalCadence}
                 </p>
@@ -289,7 +289,7 @@ function OrgListView() {
               {/* Expand toggle */}
               <button
                 onClick={() => setExpandedId(isExpanded ? null : org.id)}
-                className="flex-shrink-0 rounded-xl p-2 text-muted transition hover:bg-paper hover:text-ink"
+                className="flex-shrink-0 rounded-md p-2 text-muted transition hover:bg-paper hover:text-ink"
               >
                 {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
@@ -300,13 +300,13 @@ function OrgListView() {
                   <button
                     onClick={() => handleDelete(org.id)}
                     disabled={isDeleting}
-                    className="rounded-xl bg-red px-3 py-2 text-xs font-bold text-white"
+                    className="rounded-md bg-red px-3 py-2 text-xs font-semibold text-white"
                   >
                     {isDeleting ? <Loader2 size={13} className="animate-spin" /> : "Confirm"}
                   </button>
                   <button
                     onClick={() => setConfirmDeleteId(null)}
-                    className="rounded-xl bg-paper px-3 py-2 text-xs font-bold text-muted hover:text-ink"
+                    className="rounded-md bg-paper px-3 py-2 text-xs font-semibold text-muted hover:text-ink"
                   >
                     Cancel
                   </button>
@@ -315,7 +315,7 @@ function OrgListView() {
                 <button
                   onClick={() => handleDelete(org.id)}
                   disabled={isDeleting}
-                  className="flex-shrink-0 rounded-xl p-2 text-muted transition hover:bg-red-soft hover:text-red"
+                  className="flex-shrink-0 rounded-md p-2 text-muted transition hover:bg-red-soft hover:text-red"
                 >
                   <Trash2 size={15} />
                 </button>
@@ -420,7 +420,7 @@ function CreateOrgView({ onCreated }: { onCreated: () => void }) {
   return (
     <div>
       {done && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-green/20 bg-green-soft p-4">
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-green/20 bg-green-soft p-4">
           <div className="mt-0.5 grid h-6 w-6 flex-shrink-0 place-items-center rounded-full bg-green text-white">
             <Check size={13} />
           </div>
@@ -428,18 +428,18 @@ function CreateOrgView({ onCreated }: { onCreated: () => void }) {
         </div>
       )}
       {error && (
-        <div className="mb-6 rounded-2xl border border-red/20 bg-red-soft p-4">
+        <div className="mb-6 rounded-lg border border-red/20 bg-red-soft p-4">
           <p className="text-sm font-semibold text-red">{error}</p>
         </div>
       )}
 
       <form
         onSubmit={handleSubmit}
-        className="rounded-[28px] border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-8"
+        className="rounded-lg border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-8"
       >
         <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-pulse-soft px-3 py-2 text-pulse">
           <Building2 size={14} />
-          <span className="text-xs font-black">Create New Organisation</span>
+          <span className="text-xs font-semibold">Create New Organisation</span>
         </div>
 
         <div className="space-y-4">
@@ -519,7 +519,7 @@ function CreateOrgView({ onCreated }: { onCreated: () => void }) {
         <button
           type="submit"
           disabled={submitting || !form.name || !form.slug || (!form.hrAdminEmail && !form.executiveEmail)}
-          className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-[0_18px_34px_rgba(232,68,10,0.22)] transition disabled:cursor-not-allowed disabled:opacity-45"
+          className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(36,93,232,0.22)] transition disabled:cursor-not-allowed disabled:opacity-45"
         >
           {submitting ? (
             <Loader2 size={17} className="animate-spin" />
@@ -549,7 +549,7 @@ function TabBtn({
   return (
     <button
       onClick={onClick}
-      className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-colors ${
+      className={`flex flex-1 items-center justify-center gap-2 rounded-md py-3 text-sm font-semibold transition-colors ${
         active ? "bg-ink text-white" : "text-muted hover:text-ink"
       }`}
     >
@@ -560,7 +560,7 @@ function TabBtn({
 
 function Chip({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <span className="flex items-center gap-1.5 rounded-full bg-paper px-2.5 py-1 text-xs font-bold text-muted">
+    <span className="flex items-center gap-1.5 rounded-full bg-paper px-2.5 py-1 text-xs font-semibold text-muted">
       {icon}
       {label}
     </span>
@@ -577,12 +577,12 @@ function MetricTile({
   value: string | number;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-3">
+    <div className="rounded-lg border border-border bg-card p-3">
       <div className="mb-1.5 flex items-center gap-1.5 text-muted">
         {icon}
-        <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-widest">{label}</span>
       </div>
-      <p className="font-syne text-2xl font-bold text-ink">{value}</p>
+      <p className="font-syne text-2xl font-semibold text-ink">{value}</p>
     </div>
   );
 }
@@ -590,7 +590,7 @@ function MetricTile({
 function InfoBadge({ label, value }: { label: string; value: string }) {
   return (
     <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs">
-      <span className="font-bold uppercase tracking-widest text-muted">{label}: </span>
+      <span className="font-semibold uppercase tracking-widest text-muted">{label}: </span>
       <span className="font-semibold text-ink">{value}</span>
     </span>
   );
@@ -609,7 +609,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-bold uppercase tracking-widest text-muted">
+      <span className="text-xs font-semibold uppercase tracking-widest text-muted">
         {label}
         {required && <span className="ml-1 text-pulse">*</span>}
       </span>

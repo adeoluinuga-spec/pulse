@@ -38,22 +38,22 @@ export default function StatCard({
   return (
     <div
       className={clsx(
-        "rounded-2xl p-4 flex flex-col gap-1",
+        "rounded-lg p-[18px] flex flex-col gap-2",
         accent ? "bg-ink text-white" : "bg-card border border-border",
         className
       )}
     >
       <span
         className={clsx(
-          "text-[11px] font-medium uppercase tracking-widest",
-          accent ? "text-white/50" : "text-muted"
+          "text-[11px] font-medium",
+          accent ? "text-white/65" : "text-muted"
         )}
       >
         {label}
       </span>
       <span
         className={clsx(
-          "text-3xl font-bold leading-none",
+          "text-3xl font-semibold leading-none",
           accent ? "text-white" : "text-ink"
         )}
         style={{ fontFamily: "var(--font-syne)" }}

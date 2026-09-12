@@ -207,8 +207,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(232,68,10,0.08),transparent_28rem),linear-gradient(135deg,var(--cream),var(--paper))] text-ink md:grid md:grid-cols-[1.08fr_0.92fr]">
-      <section className="relative flex min-h-[50vh] flex-col justify-between overflow-hidden bg-ink px-6 pb-8 pt-7 text-white md:m-6 md:min-h-[calc(100vh-48px)] md:rounded-[38px] md:px-10 md:py-10">
+    <main className="min-h-screen overflow-hidden bg-background text-ink md:grid md:grid-cols-[1.08fr_0.92fr]">
+      <section className="relative flex min-h-[50vh] flex-col justify-between overflow-hidden bg-ink px-6 pb-8 pt-7 text-white md:m-6 md:min-h-[calc(100vh-48px)] md:rounded-lg md:px-10 md:py-10">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -left-24 top-16 h-80 w-80 animate-pulse rounded-full bg-pulse/18 blur-3xl" />
           <div className="absolute bottom-10 right-[-80px] h-[28rem] w-[28rem] rounded-full bg-white/[0.07] blur-3xl" />
@@ -219,13 +219,13 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 place-items-center rounded-[18px] bg-pulse font-syne text-lg font-black shadow-[0_0_0_8px_rgba(232,68,10,0.12)]">P</span>
+            <span className="grid h-12 w-12 place-items-center rounded-lg bg-pulse font-syne text-lg font-semibold shadow-[0_0_0_8px_rgba(36,93,232,0.12)]">P</span>
             <div>
-              <p className="font-syne text-xl font-extrabold">Pulse</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/36">Living Work OS</p>
+              <p className="font-syne text-xl font-semibold">Pulse</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/65">Living Work OS</p>
             </div>
           </div>
-          <span className="hidden rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-white/62 md:inline-flex">
+          <span className="hidden rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-white/62 md:inline-flex">
             Pulse for your organisation
           </span>
         </div>
@@ -233,25 +233,25 @@ export default function LoginPage() {
         <div className="relative z-10 max-w-2xl py-12 md:py-0">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-pulse">
             <Sparkles size={15} />
-            <span className="text-xs font-bold">Pulse intelligence layer</span>
+            <span className="text-xs font-semibold">Pulse intelligence layer</span>
           </div>
-          <h1 className="mt-6 max-w-xl font-syne text-[44px] font-bold leading-[0.96] md:text-7xl">
+          <h1 className="mt-6 max-w-xl font-syne text-[44px] font-semibold leading-[0.96] md:text-7xl">
             Work, understood better.
           </h1>
-          <p className="mt-6 max-w-md text-base leading-relaxed text-white/58">
+          <p className="mt-6 max-w-md text-base leading-relaxed text-white/65">
             A unified intelligent workspace for performance, growth, collaboration, and organizational clarity.
           </p>
         </div>
 
         <div className="relative z-10 grid gap-4 md:grid-cols-[1fr_0.72fr] md:items-end">
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.055] p-4 backdrop-blur">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/32">Today&apos;s operating note</p>
-            <p className="mt-3 font-syne text-xl font-bold leading-snug text-white">{insight}</p>
+          <div className="rounded-lg border border-white/10 bg-white/[0.055] p-4 backdrop-blur">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Today&apos;s operating note</p>
+            <p className="mt-3 font-syne text-xl font-semibold leading-snug text-white">{insight}</p>
           </div>
-          <div className="hidden rounded-[24px] border border-white/10 bg-white/[0.045] p-4 md:block">
+          <div className="hidden rounded-lg border border-white/10 bg-white/[0.045] p-4 md:block">
             <div className="flex items-center justify-between">
-              <span className="h-2 w-2 rounded-full bg-pulse shadow-[0_0_0_7px_rgba(232,68,10,0.12)]" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Live clarity</span>
+              <span className="h-2 w-2 rounded-full bg-pulse shadow-[0_0_0_7px_rgba(36,93,232,0.12)]" />
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-white/65">Live clarity</span>
             </div>
             <div className="mt-6 space-y-2">
               {[72, 48, 88].map((width, index) => (
@@ -267,14 +267,14 @@ export default function LoginPage() {
       <section className="flex min-h-[50vh] items-center justify-center px-4 py-8 md:min-h-screen md:px-10">
         <div className="w-full max-w-[470px]">
           <Progress step={step} />
-          <div className="mt-5 overflow-hidden rounded-[34px] border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-8">
+          <div className="mt-5 overflow-hidden rounded-lg border border-border bg-card p-6 shadow-[0_24px_80px_rgba(13,13,13,0.10)] md:p-8">
             {step === "login" && (
               <form onSubmit={handleLogin} className="animate-fade-up">
                 <Eyebrow icon={<Building2 size={14} />} text="Sign in to Pulse" />
-                <h2 className="mt-4 font-syne text-3xl font-bold leading-tight text-ink">Sign in to your workspace.</h2>
+                <h2 className="mt-4 font-syne text-3xl font-semibold leading-tight text-ink">Sign in to your workspace.</h2>
                 <p className="mt-3 text-sm leading-relaxed text-muted">Sign in with your company credentials. Pulse will connect you to the right workspace automatically.</p>
 
-                <label className="mt-7 block text-xs font-bold uppercase tracking-widest text-muted">
+                <label className="mt-7 block text-xs font-semibold uppercase tracking-widest text-muted">
                   Company Email
                   <div className="relative mt-2">
                     <Mail size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
@@ -285,16 +285,16 @@ export default function LoginPage() {
                       required
                       autoComplete="email"
                       placeholder="adeolu@zenithcorp.com"
-                      className="h-14 w-full rounded-2xl border border-border bg-paper pl-11 pr-4 text-base font-medium text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)]"
+                      className="h-14 w-full rounded-md border border-border bg-paper pl-11 pr-4 text-base font-medium text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)]"
                     />
                   </div>
                 </label>
 
-                <div className={`mt-3 overflow-hidden rounded-2xl border transition-all duration-300 ${connected ? "max-h-28 border-green/20 bg-green-soft/70 p-3 opacity-100" : "max-h-0 border-transparent opacity-0"}`}>
+                <div className={`mt-3 overflow-hidden rounded-lg border transition-all duration-300 ${connected ? "max-h-28 border-green/20 bg-green-soft/70 p-3 opacity-100" : "max-h-0 border-transparent opacity-0"}`}>
                   <div className="flex items-center gap-3">
-                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-ink font-syne text-sm font-black text-white">Z</span>
+                    <span className="grid h-10 w-10 place-items-center rounded-lg bg-ink font-syne text-sm font-semibold text-white">Z</span>
                     <div>
-                      <p className="text-sm font-black text-green">Work email recognised</p>
+                      <p className="text-sm font-semibold text-green">Work email recognised</p>
                       <p className="text-xs text-muted">Workspace theme and access layer detected.</p>
                     </div>
                   </div>
@@ -307,7 +307,7 @@ export default function LoginPage() {
             {step === "otp" && (
               <form onSubmit={verifyOtp} className="animate-fade-up">
                 <Eyebrow icon={<ShieldCheck size={14} />} text="Identity check" />
-                <h2 className="mt-4 font-syne text-3xl font-bold leading-tight text-ink">Verify Your Identity</h2>
+                <h2 className="mt-4 font-syne text-3xl font-semibold leading-tight text-ink">Verify Your Identity</h2>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
                   We sent a secure verification code to your work email.
                 </p>
@@ -321,11 +321,11 @@ export default function LoginPage() {
                       onKeyDown={(event) => handleOtpKey(index, event)}
                       inputMode="numeric"
                       maxLength={1}
-                      className="h-14 rounded-2xl border border-border bg-paper text-center font-syne text-2xl font-bold text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)] md:h-16"
+                      className="h-14 rounded-md border border-border bg-paper text-center font-syne text-2xl font-semibold text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)] md:h-16"
                     />
                   ))}
                 </div>
-                <p className="mt-4 rounded-2xl bg-pulse-soft px-4 py-3 text-xs font-bold text-pulse">
+                <p className="mt-4 rounded-lg bg-pulse-soft px-4 py-3 text-xs font-semibold text-pulse">
                   Check your email — the code expires in 10 minutes.
                 </p>
                 <PrimaryButton loading={loading} disabled={otpDigits.join("").length < 8}>Verify and continue</PrimaryButton>
@@ -334,16 +334,16 @@ export default function LoginPage() {
 
             {step === "welcome" && (
               <div className="animate-fade-up">
-                <div className="grid h-14 w-14 place-items-center rounded-3xl bg-pulse-soft text-pulse">
+                <div className="grid h-14 w-14 place-items-center rounded-lg bg-pulse-soft text-pulse">
                   <Sparkles size={22} />
                 </div>
-                <h2 className="mt-5 font-syne text-4xl font-bold leading-tight text-ink">Welcome to Pulse, {firstName}.</h2>
+                <h2 className="mt-5 font-syne text-4xl font-semibold leading-tight text-ink">Welcome to Pulse, {firstName}.</h2>
                 <p className="mt-4 text-sm leading-relaxed text-muted">
                   Pulse helps you stay aligned, grow intentionally, receive support, track performance transparently, and work with clarity.
                 </p>
                 <div className="mt-6 grid gap-2">
                   {["Stay aligned", "Grow intentionally", "Receive support", "Track performance transparently"].map((item) => (
-                    <div key={item} className="flex items-center gap-3 rounded-2xl bg-paper px-4 py-3 text-sm font-bold text-ink">
+                    <div key={item} className="flex items-center gap-3 rounded-lg bg-paper px-4 py-3 text-sm font-semibold text-ink">
                       <Check size={16} className="text-green" />
                       {item}
                     </div>
@@ -356,15 +356,15 @@ export default function LoginPage() {
             {step === "profile" && (
               <form onSubmit={completeProfile} className="animate-fade-up">
                 <Eyebrow icon={<Camera size={14} />} text="Your profile basics" />
-                <h2 className="mt-4 font-syne text-3xl font-bold leading-tight text-ink">Complete only what belongs to you.</h2>
+                <h2 className="mt-4 font-syne text-3xl font-semibold leading-tight text-ink">Complete only what belongs to you.</h2>
                 <p className="mt-3 text-sm leading-relaxed text-muted">Your organization will complete the rest.</p>
 
-                <button type="button" onClick={() => photoInputRef.current?.click()} className="mt-7 flex w-full items-center gap-4 rounded-3xl border border-border bg-paper p-4 text-left transition hover:border-pulse/35 hover:bg-card active:scale-[0.99]">
-                  <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-ink text-sm font-black text-white ring-4 ring-white">
+                <button type="button" onClick={() => photoInputRef.current?.click()} className="mt-7 flex w-full items-center gap-4 rounded-md border border-border bg-paper p-4 text-left transition hover:border-pulse/35 hover:bg-card active:scale-[0.99]">
+                  <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-ink text-sm font-semibold text-white ring-4 ring-white">
                     {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : firstName.slice(0, 2).toUpperCase()}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-black text-ink">Profile photo</span>
+                    <span className="block text-sm font-semibold text-ink">Profile photo</span>
                     <span className="mt-1 block text-xs leading-relaxed text-muted">Add an executive-style image or keep initials for now.</span>
                   </span>
                   <Camera size={18} className="text-pulse" />
@@ -378,11 +378,11 @@ export default function LoginPage() {
                   <TextField label="Next of Kin" value={nextOfKin} onChange={setNextOfKin} placeholder="Name and phone" />
                 </div>
 
-                <div className="mt-5 rounded-3xl border border-border bg-paper p-4">
-                  <p className="text-xs font-black uppercase tracking-widest text-muted">Controlled by HR/IT</p>
+                <div className="mt-5 rounded-lg border border-border bg-paper p-4">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted">Controlled by HR/IT</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {controlledByOrg.map((item) => (
-                      <span key={item} className="rounded-full bg-card px-3 py-1.5 text-[11px] font-bold text-muted">{item}</span>
+                      <span key={item} className="rounded-full bg-card px-3 py-1.5 text-[11px] font-semibold text-muted">{item}</span>
                     ))}
                   </div>
                 </div>
@@ -418,7 +418,7 @@ function Eyebrow({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="inline-flex items-center gap-2 rounded-full bg-pulse-soft px-3 py-2 text-pulse">
       {icon}
-      <span className="text-xs font-black">{text}</span>
+      <span className="text-xs font-semibold">{text}</span>
     </div>
   );
 }
@@ -439,7 +439,7 @@ function PrimaryButton({
       type={onClick ? "button" : "submit"}
       onClick={onClick}
       disabled={loading || disabled}
-      className="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-[0_18px_34px_rgba(232,68,10,0.22)] transition hover:shadow-[0_22px_42px_rgba(232,68,10,0.26)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45"
+      className="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(36,93,232,0.22)] transition hover:shadow-[0_22px_42px_rgba(36,93,232,0.26)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45"
     >
       {loading ? <Loader2 size={17} className="animate-spin" /> : null}
       {children}
@@ -460,13 +460,13 @@ function TextField({
   placeholder: string;
 }) {
   return (
-    <label className="block text-xs font-bold uppercase tracking-widest text-muted">
+    <label className="block text-xs font-semibold uppercase tracking-widest text-muted">
       {label}
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="mt-2 h-12 w-full rounded-2xl border border-border bg-paper px-4 text-base font-medium text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)]"
+        className="mt-2 h-12 w-full rounded-md border border-border bg-paper px-4 text-base font-medium text-ink outline-none transition focus:border-pulse focus:bg-card focus:shadow-[0_0_0_4px_var(--pulse-soft)]"
       />
     </label>
   );

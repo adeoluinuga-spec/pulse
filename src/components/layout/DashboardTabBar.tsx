@@ -52,7 +52,7 @@ export default function DashboardTabBar() {
               role="tab"
               aria-selected={active}
               className={clsx(
-                "flex-shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-bold whitespace-nowrap",
+                "flex-shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold whitespace-nowrap",
                 "transition-all duration-150 active:scale-95",
                 active
                   ? "bg-ink text-white"

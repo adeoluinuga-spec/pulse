@@ -63,12 +63,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <Icon size={19} />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-black text-ink">{tone.label}</p>
+                <p className="text-sm font-semibold text-ink">{tone.label}</p>
                 <p className="mt-1 text-sm leading-5 text-muted">{toast.message}</p>
                 <button
                   type="button"
                   onClick={() => dismissToast(toast.id)}
-                  className="mt-3 inline-flex min-h-9 items-center rounded-lg bg-ink px-4 text-xs font-black text-white transition hover:bg-ink/90"
+                  className="mt-3 inline-flex min-h-9 items-center rounded-lg bg-ink px-4 text-xs font-semibold text-white transition hover:bg-ink/90"
                 >
                   OK
                 </button>

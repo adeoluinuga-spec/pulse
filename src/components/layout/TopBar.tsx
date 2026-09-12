@@ -25,15 +25,15 @@ export default function TopBar() {
   }, [profileOpen]);
 
   return (
-    <header className="sticky top-0 z-50 flex min-h-14 flex-shrink-0 items-center justify-between border-b border-paper-200 bg-surface/90 px-4 pt-safe backdrop-blur-xl sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 flex min-h-16 flex-shrink-0 items-center justify-between border-b border-paper-200 bg-surface/95 px-4 pt-safe backdrop-blur-xl sm:px-6 lg:px-8">
       <Link href="/dashboard" className="flex items-center gap-2.5 transition-opacity active:opacity-70 md:hidden">
         <span className="grid h-7 w-7 place-items-center rounded-md bg-cobalt text-xs font-semibold text-white">P</span>
         <span className="font-display text-[15px] font-semibold text-ink">Pulse</span>
       </Link>
 
       <div className="hidden min-w-0 md:block">
-        <p className="font-display text-lg font-semibold text-ink">{pathname === "/dashboard/organisation" ? "Organisation structure" : "Performance command center"}</p>
-        <p className="mt-0.5 text-xs text-muted">Pulse Work OS</p>
+        <p className="font-display text-[13px] font-semibold text-ink">{pathname === "/dashboard/organisation" ? "Organisation structure" : "Performance command center"}</p>
+        <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-muted">Pulse Work OS</p>
       </div>
 
       <div className="flex items-center gap-2">
@@ -65,7 +65,7 @@ export default function TopBar() {
                     {profileImage ? <img src={profileImage} alt="" className="h-full w-full object-cover" /> : user.initials}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-ink">{user.name}</p>
+                    <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
                     <p className="truncate text-[11px] text-muted">{user.role}</p>
                     <p className="mt-0.5 truncate text-[10px] text-muted/70">{user.cadre} / {user.peopleResponsibility}</p>
                   </div>

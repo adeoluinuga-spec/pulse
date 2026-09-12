@@ -14,9 +14,9 @@ export default function My360DashboardPage() {
             <ClipboardList size={20} />
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-widest text-white/40">My 360 assessment</p>
-            <h1 className="mt-2 font-syne text-3xl font-bold leading-tight">Your current 360 status</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/58">
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/65">My 360 assessment</p>
+            <h1 className="mt-2 font-syne text-3xl font-semibold leading-tight">Your current 360 status</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">
               This is your personal view of active assessment cycles, reviewer requests, and released reports.
             </p>
           </div>
@@ -47,7 +47,7 @@ function InfoPanel({ icon, title, body }: { icon: ReactNode; title: string; body
       <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-cobalt-light text-cobalt">
         {icon}
       </div>
-      <p className="text-sm font-black text-ink">{title}</p>
+      <p className="text-sm font-semibold text-ink">{title}</p>
       <p className="mt-1 text-xs leading-relaxed text-muted">{body}</p>
     </div>
   );

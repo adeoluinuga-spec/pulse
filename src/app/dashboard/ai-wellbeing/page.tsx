@@ -136,7 +136,7 @@ function CoachInsightCard({
 }) {
   const priorities = sectionText(insight, "Top 2 Priorities Right Now") || sectionText(insight, "Top 2 Priorities");
   return (
-    <div className="rounded-[20px] bg-ink p-5 text-white">
+    <div className="rounded-lg bg-ink p-5 text-white">
       <CoachSection title="Where You Stand">{sectionText(insight, "Where You Stand")}</CoachSection>
       <CoachSection title="Top 2 Priorities Right Now">
         <div className="whitespace-pre-line">{priorities}</div>
@@ -144,7 +144,7 @@ function CoachInsightCard({
       <CoachSection title="Your Trajectory">
         <p>{sectionText(insight, "Your Trajectory")}</p>
         <div className="mt-4 space-y-2">
-          <div className="flex items-center justify-between text-xs text-white/45">
+          <div className="flex items-center justify-between text-xs text-white/65">
             <span>Current {currentScore}%</span>
             <span>Projected {projectedScore}%</span>
             <span>Target 90%</span>
@@ -166,7 +166,7 @@ function CoachSection({ title, children }: { title: string; children: React.Reac
     <div className="mt-5 first:mt-0">
       <div className="mb-2 flex items-center gap-2">
         <span className="text-pulse">✦</span>
-        <p className="text-xs font-bold uppercase tracking-widest text-pulse">{title}</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-pulse">{title}</p>
       </div>
       <div className="text-sm leading-relaxed text-white/70">{children}</div>
     </div>
@@ -281,13 +281,13 @@ export default function AiWellbeingPage() {
 
   return (
     <div className="dashboard-page space-y-5">
-      {toast && <div className="fixed left-1/2 top-[118px] z-[100] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-sm font-bold text-white shadow-xl md:top-20">{toast}</div>}
+      {toast && <div className="fixed left-1/2 top-[118px] z-[100] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white shadow-xl md:top-20">{toast}</div>}
       {confetti && <div className="fixed inset-x-0 top-28 z-[100] text-center text-4xl">🎉</div>}
 
       <section className="px-4">
         <div className="flex rounded-lg border border-border bg-card p-1">
           {tabs.map((tab) => (
-            <button key={tab.key} onClick={() => setActive(tab.key)} className={clsx("flex-1 rounded-md px-2 py-2 text-xs font-bold transition-colors md:text-sm", active === tab.key ? "bg-ink text-white" : "text-muted hover:text-ink")}>
+            <button key={tab.key} onClick={() => setActive(tab.key)} className={clsx("flex-1 rounded-md px-2 py-2 text-xs font-semibold transition-colors md:text-sm", active === tab.key ? "bg-ink text-white" : "text-muted hover:text-ink")}>
               {tab.label}
             </button>
           ))}
@@ -297,17 +297,17 @@ export default function AiWellbeingPage() {
       {active === "coach" && (
         <>
           <section className="px-4">
-            <div className="rounded-[20px] bg-ink p-5 text-white">
+            <div className="rounded-lg bg-ink p-5 text-white">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                   <div className="flex items-center gap-2">
                     <Sparkles size={16} className="text-pulse" />
-                    <h1 className="text-lg font-bold" style={{ fontFamily: "var(--font-syne)" }}>Your AI Performance Coach</h1>
+                    <h1 className="text-lg font-semibold" style={{ fontFamily: "var(--font-syne)" }}>Your AI Performance Coach</h1>
                   </div>
-                  <p className="mt-2 text-sm text-white/55">Analysis generated monthly. Request a fresh one anytime.</p>
-                  <p className="mt-2 text-xs text-white/35">Last generated: {coachUpdated}</p>
+                  <p className="mt-2 text-sm text-white/65">Analysis generated monthly. Request a fresh one anytime.</p>
+                  <p className="mt-2 text-xs text-white/65">Last generated: {coachUpdated}</p>
                 </div>
-                <button onClick={refreshCoach} disabled={coachLoading} className="inline-flex items-center justify-center gap-2 rounded-lg border border-pulse px-4 py-2.5 text-sm font-bold text-pulse disabled:opacity-60">
+                <button onClick={refreshCoach} disabled={coachLoading} className="inline-flex items-center justify-center gap-2 rounded-lg border border-pulse px-4 py-2.5 text-sm font-semibold text-pulse disabled:opacity-60">
                   {coachLoading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
                   Refresh Analysis
                 </button>
@@ -324,10 +324,10 @@ export default function AiWellbeingPage() {
         <section className="space-y-4 px-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-xl font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>Recommended for you</h2>
+              <h2 className="text-xl font-semibold text-ink" style={{ fontFamily: "var(--font-syne)" }}>Recommended for you</h2>
               <p className="mt-1 text-sm text-muted">Based on your goals and next cadre.</p>
             </div>
-            <span className="rounded-full bg-pulse-soft px-3 py-1 text-xs font-bold text-pulse">✦ AI-curated</span>
+            <span className="rounded-full bg-pulse-soft px-3 py-1 text-xs font-semibold text-pulse">✦ AI-curated</span>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {trainingItems.map((training) => {
@@ -337,22 +337,22 @@ export default function AiWellbeingPage() {
                 <div key={training.id} className="rounded-lg border border-border bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>{training.title}</h3>
+                      <h3 className="text-sm font-semibold text-ink" style={{ fontFamily: "var(--font-syne)" }}>{training.title}</h3>
                       <p className="mt-1 text-xs font-semibold text-muted">{training.provider}</p>
                     </div>
-                    <span className="rounded-full bg-pulse-soft px-2 py-1 text-[10px] font-bold text-pulse">{intel.relevance}% relevant</span>
+                    <span className="rounded-full bg-pulse-soft px-2 py-1 text-[10px] font-semibold text-pulse">{intel.relevance}% relevant</span>
                   </div>
                   <p className="mt-3 line-clamp-2 text-sm text-muted">{intel.reason}</p>
-                  <p className="mt-2 rounded-lg bg-paper px-3 py-2 text-xs font-bold text-ink">{intel.source} · {intel.impact}</p>
+                  <p className="mt-2 rounded-lg bg-paper px-3 py-2 text-xs font-semibold text-ink">{intel.source} · {intel.impact}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-muted">{durationFor(training)}</span>
-                    <span className="rounded-full bg-green-soft px-2.5 py-1 text-[10px] font-bold text-green">{levelFor(training)}</span>
+                    <span className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-semibold text-muted">{durationFor(training)}</span>
+                    <span className="rounded-full bg-green-soft px-2.5 py-1 text-[10px] font-semibold text-green">{levelFor(training)}</span>
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <a href={training.url ?? "https://coursera.org"} target="_blank" className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-ink px-3 py-2 text-xs font-bold text-white">
+                    <a href={training.url ?? "https://coursera.org"} target="_blank" className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-ink px-3 py-2 text-xs font-semibold text-white">
                       View Course <ExternalLink size={12} />
                     </a>
-                    <button onClick={() => toggleEnroll(training)} className={clsx("flex-1 rounded-lg px-3 py-2 text-xs font-bold", isEnrolled ? "bg-green-soft text-green" : "border border-border text-muted")}>
+                    <button onClick={() => toggleEnroll(training)} className={clsx("flex-1 rounded-lg px-3 py-2 text-xs font-semibold", isEnrolled ? "bg-green-soft text-green" : "border border-border text-muted")}>
                       {isEnrolled ? "Enrolled ✓" : "Mark as Enrolled"}
                     </button>
                   </div>
@@ -361,8 +361,8 @@ export default function AiWellbeingPage() {
             })}
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
-            <p className="text-sm font-bold text-ink">Learning Tracker</p>
-            {certBanner && <div className="mt-3 rounded-lg bg-green-soft px-3 py-2 text-sm font-bold text-green">{certBanner}</div>}
+            <p className="text-sm font-semibold text-ink">Learning Tracker</p>
+            {certBanner && <div className="mt-3 rounded-lg bg-green-soft px-3 py-2 text-sm font-semibold text-green">{certBanner}</div>}
             {enrolled.length ? (
               <div className="mt-3 space-y-2">
                 {enrolled.map((item) => (
@@ -371,7 +371,7 @@ export default function AiWellbeingPage() {
                       <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
                       <p className="text-xs text-muted">{item.status} · {item.date}</p>
                     </div>
-                    {item.status === "Enrolled" && <button onClick={() => markComplete(item.id)} className="rounded-lg bg-pulse px-3 py-1.5 text-xs font-bold text-white">Mark Complete</button>}
+                    {item.status === "Enrolled" && <button onClick={() => markComplete(item.id)} className="rounded-lg bg-pulse px-3 py-1.5 text-xs font-semibold text-white">Mark Complete</button>}
                   </div>
                 ))}
               </div>
@@ -385,37 +385,37 @@ export default function AiWellbeingPage() {
       {active === "collaboration" && (
         <section className="space-y-4 px-4">
           <div>
-            <h2 className="text-xl font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>Peer Collaboration</h2>
+            <h2 className="text-xl font-semibold text-ink" style={{ fontFamily: "var(--font-syne)" }}>Peer Collaboration</h2>
             <p className="mt-1 text-sm text-muted">Private suggestions based on your goals.</p>
           </div>
           {lowGoal && !collabHidden ? (
-            <div className="relative overflow-hidden rounded-[20px] bg-ink p-5 text-white transition-opacity">
+            <div className="relative overflow-hidden rounded-lg bg-ink p-5 text-white transition-opacity">
               <div className="pointer-events-none absolute right-4 top-4 text-6xl opacity-10">🤝</div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-pulse">Collaboration Suggestion</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-pulse">Collaboration Suggestion</p>
               <p className="mt-3 text-sm leading-relaxed text-white/70">Your {lowGoal.name} is at {lowGoal.percentComplete}% — a peer session could unlock the next steps.</p>
               <div className="mt-4 flex items-center gap-3 rounded-lg bg-white/6 p-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: suggestedPeer.avatarColor }}>{suggestedPeer.initials}</div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold text-white" style={{ backgroundColor: suggestedPeer.avatarColor }}>{suggestedPeer.initials}</div>
                 <div>
-                  <p className="text-sm font-bold text-white">{suggestedPeer.name}</p>
-                  <p className="text-xs text-white/45">{suggestedPeer.role}</p>
+                  <p className="text-sm font-semibold text-white">{suggestedPeer.name}</p>
+                  <p className="text-xs text-white/65">{suggestedPeer.role}</p>
                 </div>
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-white/45">{suggestedPeer.name.split(" ")[0]} has strong delivery patterns in a different function and can help pressure-test your next milestone plan.</p>
+              <p className="mt-3 text-xs leading-relaxed text-white/65">{suggestedPeer.name.split(" ")[0]} has strong delivery patterns in a different function and can help pressure-test your next milestone plan.</p>
               <div className="mt-4 flex gap-2">
-                <button onClick={() => showToast(`Session request sent to ${suggestedPeer.name}`)} className="flex-1 rounded-lg bg-pulse px-4 py-3 text-sm font-bold text-white">Request a session</button>
-                <button onClick={() => setCollabHidden(true)} className="rounded-lg border border-white/10 px-4 py-3 text-sm font-bold text-white/55">Dismiss</button>
+                <button onClick={() => showToast(`Session request sent to ${suggestedPeer.name}`)} className="flex-1 rounded-lg bg-pulse px-4 py-3 text-sm font-semibold text-white">Request a session</button>
+                <button onClick={() => setCollabHidden(true)} className="rounded-lg border border-white/10 px-4 py-3 text-sm font-semibold text-white/65">Dismiss</button>
               </div>
-              <p className="mt-3 text-[11px] text-white/30">Only you can see this suggestion.</p>
+              <p className="mt-3 text-[11px] text-white/65">Only you can see this suggestion.</p>
             </div>
           ) : (
             <div className="rounded-lg border border-border bg-card p-6 text-center">
               <CheckCircle size={28} className="mx-auto text-green" />
-              <p className="mt-3 text-sm font-bold text-ink">You&apos;re on track with all your goals.</p>
+              <p className="mt-3 text-sm font-semibold text-ink">You&apos;re on track with all your goals.</p>
               <p className="mt-1 text-xs text-muted">Check back if you hit a roadblock.</p>
             </div>
           )}
           <div className="rounded-lg border border-border bg-card p-4">
-            <p className="text-sm font-bold text-ink">Peer Sessions History</p>
+            <p className="text-sm font-semibold text-ink">Peer Sessions History</p>
             <div className="mt-3 space-y-2">
               {peerHistory.map((item) => (
                 <div key={`${item.peer}-${item.date}`} className="flex items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2">
@@ -423,7 +423,7 @@ export default function AiWellbeingPage() {
                     <p className="text-sm font-semibold text-ink">{item.peer}</p>
                     <p className="text-xs text-muted">{item.date} · {item.goal}</p>
                   </div>
-                  <span className="rounded-full bg-card px-2.5 py-1 text-[10px] font-bold text-muted">{item.status}</span>
+                  <span className="rounded-full bg-card px-2.5 py-1 text-[10px] font-semibold text-muted">{item.status}</span>
                 </div>
               ))}
             </div>
@@ -433,8 +433,8 @@ export default function AiWellbeingPage() {
 
       {active === "wellbeing" && (
         <section className="space-y-4 px-4">
-          <div className="rounded-[20px] bg-cream p-5">
-            <h2 className="text-xl font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>How are you doing?</h2>
+          <div className="rounded-lg bg-cream p-5">
+            <h2 className="text-xl font-semibold text-ink" style={{ fontFamily: "var(--font-syne)" }}>How are you doing?</h2>
             <p className="mt-1 text-sm text-muted">A quick check-in. Always private. Takes under a minute.</p>
           </div>
           {surveyDue ? (
@@ -455,13 +455,13 @@ export default function AiWellbeingPage() {
               <Question title="Anything you'd like to share? (always private)">
                 <textarea value={wellbeingNote} onChange={(event) => setWellbeingNote(event.target.value)} placeholder="This is just for you..." className="min-h-20 w-full resize-none rounded-lg border border-border bg-paper px-3 py-2 text-base outline-none focus:border-pulse" />
               </Question>
-              <button onClick={submitWellbeing} disabled={!wellbeingMood || !workload || !support || wellbeingLoading} className="w-full rounded-lg bg-pulse px-4 py-3 text-sm font-bold text-white disabled:opacity-40">
+              <button onClick={submitWellbeing} disabled={!wellbeingMood || !workload || !support || wellbeingLoading} className="w-full rounded-lg bg-pulse px-4 py-3 text-sm font-semibold text-white disabled:opacity-40">
                 {wellbeingLoading ? "Thinking..." : "Submit Check-in"}
               </button>
             </div>
           ) : (
             <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-sm font-bold text-ink">You&apos;ve checked in this week.</p>
+              <p className="text-sm font-semibold text-ink">You&apos;ve checked in this week.</p>
               <p className="mt-1 text-sm text-muted">Next survey: {nextDate(lastWellbeing.date)}</p>
               <div className="mt-4 flex gap-2 text-2xl">{user.wellbeingHistory.slice(-4).map((entry) => <span key={entry.date}>{entry.mood === "energised" ? "🔥" : entry.mood === "good" ? "😊" : entry.mood === "okay" ? "😐" : "😓"}</span>)}</div>
             </div>
@@ -470,14 +470,14 @@ export default function AiWellbeingPage() {
             <div className="rounded-lg border border-green/20 bg-green-soft p-4">
               <p className="text-sm leading-relaxed text-green">{wellbeingResponse.message}</p>
               <div className="mt-3 grid gap-2 md:grid-cols-2">
-                {wellbeingResponse.actions.map((action) => <div key={action} className="rounded-lg bg-card px-3 py-2 text-xs font-bold text-ink">{action}</div>)}
+                {wellbeingResponse.actions.map((action) => <div key={action} className="rounded-lg bg-card px-3 py-2 text-xs font-semibold text-ink">{action}</div>)}
               </div>
             </div>
           )}
           <div className="grid gap-2 md:grid-cols-3">
             {resources.map((resource) => (
               <div key={resource.title} className="rounded-lg border border-border bg-card p-3">
-                <p className="text-sm font-bold text-ink">{resource.title}</p>
+                <p className="text-sm font-semibold text-ink">{resource.title}</p>
                 <p className="mt-1 text-xs text-muted">{resource.body}</p>
               </div>
             ))}
@@ -491,7 +491,7 @@ export default function AiWellbeingPage() {
 function Question({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-2 text-sm font-bold text-ink">{title}</p>
+      <p className="mb-2 text-sm font-semibold text-ink">{title}</p>
       {children}
     </div>
   );
@@ -509,7 +509,7 @@ function Pills<T extends string>({
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((item) => (
-        <button key={item.key} onClick={() => onChange(item.key)} className={clsx("rounded-full border px-3 py-2 text-sm font-bold", value === item.key ? "border-pulse bg-pulse-soft text-pulse" : "border-border bg-paper text-muted")}>
+        <button key={item.key} onClick={() => onChange(item.key)} className={clsx("rounded-full border px-3 py-2 text-sm font-semibold", value === item.key ? "border-pulse bg-pulse-soft text-pulse" : "border-border bg-paper text-muted")}>
           {item.label}
         </button>
       ))}

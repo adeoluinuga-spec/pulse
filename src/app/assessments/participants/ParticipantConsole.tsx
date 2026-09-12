@@ -190,13 +190,13 @@ export default function ParticipantConsole() {
   return (
     <main className="min-h-screen bg-background px-4 py-8 text-ink">
       <section className="mx-auto w-full max-w-4xl">
-        <Link href="/assessments" className="inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-ink">
+        <Link href="/assessments" className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink">
           <ArrowLeft className="h-4 w-4" /> Back to the 360 console
         </Link>
 
         <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black leading-tight">Participants and raters</h1>
+            <h1 className="text-2xl font-semibold leading-tight">Participants and raters</h1>
             <p className="mt-1 max-w-2xl text-sm text-muted">
               Remove someone added by mistake, or take out a person who has left. What happens depends
               on whether feedback has already been given — Pulse checks before you confirm and tells you
@@ -204,7 +204,7 @@ export default function ParticipantConsole() {
             </p>
           </div>
           <label className="text-sm">
-            <span className="mb-1 block font-bold text-muted">Cycle</span>
+            <span className="mb-1 block font-semibold text-muted">Cycle</span>
             <select
               value={cycleId}
               onChange={(e) => setCycleId(e.target.value)}
@@ -224,7 +224,7 @@ export default function ParticipantConsole() {
         ) : null}
 
         {notice ? (
-          <p className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+          <p className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
             {notice}
           </p>
         ) : null}
@@ -234,7 +234,7 @@ export default function ParticipantConsole() {
 
         {pending ? (
           <div className="mt-5 rounded-lg border-2 border-ink/20 bg-card p-4 shadow-sm">
-            <p className="text-sm font-black">
+            <p className="text-sm font-semibold">
               {pending.decision.action === "delete"
                 ? `Remove ${pending.label} from this cycle?`
                 : pending.decision.action === "withdraw"
@@ -250,7 +250,7 @@ export default function ParticipantConsole() {
                   type="button"
                   onClick={() => void confirm()}
                   disabled={Boolean(busyId)}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-black text-white disabled:opacity-40"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white disabled:opacity-40"
                 >
                   {busyId ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {pending.decision.action === "delete"
@@ -263,7 +263,7 @@ export default function ParticipantConsole() {
               <button
                 type="button"
                 onClick={() => setPending(null)}
-                className="inline-flex min-h-11 items-center rounded-lg border border-ink/15 px-4 text-sm font-black"
+                className="inline-flex min-h-11 items-center rounded-lg border border-ink/15 px-4 text-sm font-semibold"
               >
                 {pending.decision.action === "blocked" ? "Close" : "Cancel"}
               </button>
@@ -275,7 +275,7 @@ export default function ParticipantConsole() {
 
         {!loading ? (
           <>
-            <h2 className="mt-7 text-sm font-black uppercase tracking-wide text-muted">
+            <h2 className="mt-7 text-sm font-semibold uppercase tracking-wide text-muted">
               Being assessed ({active.length})
             </h2>
             <ul className="mt-3 space-y-2">
@@ -285,8 +285,8 @@ export default function ParticipantConsole() {
                   <li key={participant.id} className="rounded-lg border border-border bg-card p-4 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-base font-black leading-6">{participant.name ?? "Unnamed"}</p>
-                        <p className="mt-0.5 text-xs font-bold text-muted">{participant.email ?? "no email"}</p>
+                        <p className="truncate text-base font-semibold leading-6">{participant.name ?? "Unnamed"}</p>
+                        <p className="mt-0.5 text-xs font-semibold text-muted">{participant.email ?? "no email"}</p>
                         <p className="mt-1 text-xs text-muted">
                           {theirRaters.length === 0
                             ? "No raters assigned"
@@ -299,7 +299,7 @@ export default function ParticipantConsole() {
                         type="button"
                         onClick={() => void ask("participant", participant.id, participant.name ?? "This participant")}
                         disabled={busyId === participant.id}
-                        className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-black disabled:opacity-40"
+                        className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-semibold disabled:opacity-40"
                       >
                         {busyId === participant.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -315,7 +315,7 @@ export default function ParticipantConsole() {
                         {theirRaters.map((rater) => (
                           <li key={rater.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
                             <span className="min-w-0 truncate">
-                              <span className="font-bold">{rater.reviewer_name ?? "Unnamed rater"}</span>{" "}
+                              <span className="font-semibold">{rater.reviewer_name ?? "Unnamed rater"}</span>{" "}
                               <span className="text-muted">
                                 {rater.reviewer_email} · {GROUP_LABEL[rater.reviewer_group ?? ""] ?? rater.reviewer_group} ·{" "}
                                 {rater.status} · invite {rater.invite_status}
@@ -325,7 +325,7 @@ export default function ParticipantConsole() {
                               type="button"
                               onClick={() => void ask("rater", rater.id, rater.reviewer_name ?? "This rater")}
                               disabled={busyId === rater.id}
-                              className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-ink/15 px-2.5 font-black disabled:opacity-40"
+                              className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-ink/15 px-2.5 font-semibold disabled:opacity-40"
                             >
                               {busyId === rater.id ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -351,7 +351,7 @@ export default function ParticipantConsole() {
 
             {withdrawn.length ? (
               <>
-                <h2 className="mt-7 text-sm font-black uppercase tracking-wide text-muted">
+                <h2 className="mt-7 text-sm font-semibold uppercase tracking-wide text-muted">
                   Withdrawn ({withdrawn.length})
                 </h2>
                 <p className="mt-1 text-xs text-muted">
@@ -364,7 +364,7 @@ export default function ParticipantConsole() {
                       className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 opacity-80 shadow-sm"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black">{participant.name ?? "Unnamed"}</p>
+                        <p className="truncate text-sm font-semibold">{participant.name ?? "Unnamed"}</p>
                         <p className="mt-0.5 text-xs text-muted">
                           Withdrawn{" "}
                           {participant.withdrawn_at
@@ -381,7 +381,7 @@ export default function ParticipantConsole() {
                         type="button"
                         onClick={() => void reinstate(participant)}
                         disabled={busyId === participant.id}
-                        className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-black disabled:opacity-40"
+                        className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-ink/15 px-3 text-sm font-semibold disabled:opacity-40"
                       >
                         {busyId === participant.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />

@@ -33,7 +33,7 @@ function EmptyBlock({
   body: string;
 }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-card p-5 text-center">
+    <div className="rounded-lg border border-dashed border-border bg-card p-5 text-center">
       <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-pulse-soft text-pulse">
         {icon}
       </div>
@@ -85,7 +85,7 @@ export default function EmployeeDashboard() {
   if (loading || dataLoading) {
     return (
       <div className="dashboard-page flex min-h-[60vh] items-center justify-center">
-        <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted">
           <Loader2 size={16} className="animate-spin text-pulse" />
           Loading your workspace...
         </div>
@@ -96,10 +96,10 @@ export default function EmployeeDashboard() {
   return (
     <div className="dashboard-page space-y-5">
       <section className="px-4">
-        <div className="rounded-[20px] bg-ink p-5">
-          <p className="text-sm text-white/45">{greeting()},</p>
+        <div className="rounded-lg bg-ink p-5">
+          <p className="text-sm text-white/65">{greeting()},</p>
           <h1
-            className="mt-0.5 text-xl font-bold text-white"
+            className="mt-0.5 text-xl font-semibold text-white"
             style={{ fontFamily: "var(--font-syne)" }}
           >
             {firstName}
@@ -107,12 +107,12 @@ export default function EmployeeDashboard() {
 
           <div className="mt-5 flex items-end gap-2">
             <span
-              className="text-5xl font-bold leading-none text-white"
+              className="text-5xl font-semibold leading-none text-white"
               style={{ fontFamily: "var(--font-syne)" }}
             >
               {user.performanceScore || "--"}
             </span>
-            <span className="pb-1.5 text-sm font-semibold text-white/45">
+            <span className="pb-1.5 text-sm font-semibold text-white/65">
               {user.performanceScore ? "current score" : "score pending"}
             </span>
           </div>
@@ -129,12 +129,12 @@ export default function EmployeeDashboard() {
               {user.badge}
             </span>
             {user.department && (
-              <span className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-white/55">
+              <span className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-white/65">
                 {user.department}
               </span>
             )}
             {user.role && (
-              <span className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-white/55">
+              <span className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-white/65">
                 {user.role}
               </span>
             )}
@@ -147,24 +147,24 @@ export default function EmployeeDashboard() {
       </section>
 
       <section className="grid grid-cols-2 gap-2.5 px-4 md:grid-cols-4">
-        <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="rounded-lg border border-border bg-card p-4">
           <p className="type-label mb-2">Goals On Track</p>
-          <p className="text-3xl font-bold text-ink">
+          <p className="text-3xl font-semibold text-ink">
             {onTrackGoals.length}
             <span className="text-base font-medium text-muted">/{goals.length}</span>
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="rounded-lg border border-border bg-card p-4">
           <p className="type-label mb-2">Reports</p>
-          <p className="text-3xl font-bold text-ink">{reports.length}</p>
+          <p className="text-3xl font-semibold text-ink">{reports.length}</p>
         </div>
-        <div className="rounded-2xl bg-pulse p-4">
-          <p className="type-label mb-2 text-white/55">Week Streak</p>
-          <p className="text-3xl font-bold text-white">{user.weekStreak || 0}</p>
+        <div className="rounded-lg bg-pulse p-4">
+          <p className="type-label mb-2 text-white/65">Week Streak</p>
+          <p className="text-3xl font-semibold text-white">{user.weekStreak || 0}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="rounded-lg border border-border bg-card p-4">
           <p className="type-label mb-2">Peer Rating</p>
-          <p className="text-3xl font-bold text-ink">
+          <p className="text-3xl font-semibold text-ink">
             {user.peerRating || "--"}
             {user.peerRating ? <span className="text-base text-muted">/5</span> : null}
           </p>
@@ -191,11 +191,11 @@ export default function EmployeeDashboard() {
               <Link
                 key={goal.id}
                 href="/goals"
-                className="block rounded-2xl border border-border bg-card p-4"
+                className="block rounded-lg border border-border bg-card p-4"
               >
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <p className="truncate text-sm font-semibold text-ink">{goal.name}</p>
-                  <span className="text-xs font-bold text-ink">
+                  <span className="text-xs font-semibold text-ink">
                     {goal.percentComplete}%
                   </span>
                 </div>
@@ -229,7 +229,7 @@ export default function EmployeeDashboard() {
             body="Your submitted reports will appear here after you send your first weekly update."
           />
         ) : (
-          <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             <p className="text-xs font-semibold uppercase text-muted">
               Latest report · {latestReport.date || "recent"}
             </p>

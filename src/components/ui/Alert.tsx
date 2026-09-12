@@ -24,7 +24,7 @@ export default function Alert({ variant = "info", title, message, className }: A
   const { bg, text, border, Icon } = variantConfig[variant];
 
   return (
-    <div className={clsx("rounded-xl border p-4 flex gap-3", bg, border, className)}>
+    <div className={clsx("rounded-lg border p-4 flex gap-3", bg, border, className)}>
       <Icon size={16} className={clsx("flex-shrink-0 mt-0.5", text)} />
       <div className="min-w-0">
         {title && (

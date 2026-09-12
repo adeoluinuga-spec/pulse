@@ -36,7 +36,7 @@ export default function HeroCard({ employee, className, loading = false }: HeroC
 
   if (loading) {
     return (
-      <div className={clsx("bg-ink rounded-2xl p-5 text-white", className)}>
+      <div className={clsx("bg-ink rounded-lg p-5 text-white", className)}>
         <div className="mb-5 flex items-center gap-3">
           <Skeleton width={44} height={44} borderRadius="999px" className="bg-white/10" />
           <div className="flex-1">
@@ -51,7 +51,7 @@ export default function HeroCard({ employee, className, loading = false }: HeroC
   }
 
   return (
-    <div className={clsx("bg-ink rounded-2xl p-5 text-white", className)}>
+    <div className={clsx("bg-ink rounded-lg p-5 text-white", className)}>
       <div className="flex items-start justify-between mb-5">
         <div className="flex items-center gap-3">
           <Avatar
@@ -61,13 +61,13 @@ export default function HeroCard({ employee, className, loading = false }: HeroC
           />
           <div>
             <h2
-              className="text-white text-lg font-bold leading-tight"
+              className="text-white text-lg font-semibold leading-tight"
               style={{ fontFamily: "var(--font-syne)" }}
             >
               {employee.name}
             </h2>
             <p className="text-white/60 text-xs mt-0.5">{employee.role}</p>
-            <p className="text-white/40 text-[10px]">{employee.department}</p>
+            <p className="text-white/65 text-[10px]">{employee.department}</p>
           </div>
         </div>
         <Badge type={employee.badge} />
@@ -76,36 +76,36 @@ export default function HeroCard({ employee, className, loading = false }: HeroC
       <div className="mb-5">
         <div className="flex items-end gap-2">
           <span
-            className="text-white font-bold leading-none"
-            style={{ fontFamily: "var(--font-syne)", fontSize: "4rem" }}
+            className="text-white font-semibold leading-none"
+            style={{ fontFamily: "var(--font-syne)", fontSize: "3rem" }}
           >
             {score}
           </span>
           <div className="pb-2">
-            <span className="text-white/40 text-sm">/100</span>
-            <p className="text-white/50 text-[11px]">Performance Score</p>
+            <span className="text-white/65 text-sm">/100</span>
+            <p className="text-white/65 text-[11px]">Performance Score</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3 pt-4 border-t border-white/10">
         <div className="text-center">
-          <p className="text-white font-bold text-lg" style={{ fontFamily: "var(--font-syne)" }}>
+          <p className="text-white font-semibold text-lg" style={{ fontFamily: "var(--font-syne)" }}>
             {employee.consistencyIndex}
           </p>
-          <p className="text-white/40 text-[10px] mt-0.5">Consistency</p>
+          <p className="text-white/65 text-[10px] mt-0.5">Consistency</p>
         </div>
         <div className="text-center border-x border-white/10">
-          <p className="text-white font-bold text-lg" style={{ fontFamily: "var(--font-syne)" }}>
+          <p className="text-white font-semibold text-lg" style={{ fontFamily: "var(--font-syne)" }}>
             {employee.peerRating.toFixed(1)}
           </p>
-          <p className="text-white/40 text-[10px] mt-0.5">Peer Rating</p>
+          <p className="text-white/65 text-[10px] mt-0.5">Peer Rating</p>
         </div>
         <div className="text-center">
-          <p className="text-white font-bold text-lg" style={{ fontFamily: "var(--font-syne)" }}>
+          <p className="text-white font-semibold text-lg" style={{ fontFamily: "var(--font-syne)" }}>
             {employee.weekStreak}w
           </p>
-          <p className="text-white/40 text-[10px] mt-0.5">Streak</p>
+          <p className="text-white/65 text-[10px] mt-0.5">Streak</p>
         </div>
       </div>
     </div>

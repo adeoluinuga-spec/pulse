@@ -207,7 +207,7 @@ export default function CohortBuilder({
 
   return (
     <section className="mt-6 rounded-lg border border-border bg-card p-4 shadow-sm">
-      <h2 className="flex items-center gap-2 text-base font-black">
+      <h2 className="flex items-center gap-2 text-base font-semibold">
         <Users className="h-4 w-4" /> Build the cohort from the org chart
       </h2>
       <p className="mt-1 text-sm text-muted">
@@ -223,7 +223,7 @@ export default function CohortBuilder({
       ) : null}
 
       {notice ? (
-        <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
+        <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
           {notice}
         </p>
       ) : null}
@@ -232,7 +232,7 @@ export default function CohortBuilder({
       ) : null}
 
       {/* Step 1 — participants by level */}
-      <h3 className="mt-5 text-xs font-black uppercase tracking-wide text-muted">1 · Who is assessed</h3>
+      <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-muted">1 · Who is assessed</h3>
       <div className="mt-2 space-y-2">
         {levels.map((level) => {
           const remaining = level.total - level.alreadyParticipants;
@@ -256,7 +256,7 @@ export default function CohortBuilder({
                 className="mt-0.5 h-4 w-4"
               />
               <span>
-                <span className="block font-black">
+                <span className="block font-semibold">
                   {level.label} — {level.total} {level.total === 1 ? "person" : "people"}
                 </span>
                 <span className="block text-xs text-muted">
@@ -273,14 +273,14 @@ export default function CohortBuilder({
         type="button"
         onClick={() => void addLevels()}
         disabled={!chosen.size || busy === "add"}
-        className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-black text-white disabled:opacity-40"
+        className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white disabled:opacity-40"
       >
         {busy === "add" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
         Add the selected levels
       </button>
 
       {/* Step 2 — the rules */}
-      <h3 className="mt-6 text-xs font-black uppercase tracking-wide text-muted">2 · Rater rules</h3>
+      <h3 className="mt-6 text-xs font-semibold uppercase tracking-wide text-muted">2 · Rater rules</h3>
       {rules ? (
         <>
           <div className="mt-2 grid gap-3 sm:grid-cols-4">
@@ -291,7 +291,7 @@ export default function CohortBuilder({
               ] as const
             ).map(([label, key]) => (
               <label key={key} className="text-xs">
-                <span className="mb-1 block font-bold text-muted">{label}</span>
+                <span className="mb-1 block font-semibold text-muted">{label}</span>
                 <input
                   type="number"
                   min={1}
@@ -306,7 +306,7 @@ export default function CohortBuilder({
               </label>
             ))}
             <label className="text-xs">
-              <span className="mb-1 block font-bold text-muted">Minimum to show a group</span>
+              <span className="mb-1 block font-semibold text-muted">Minimum to show a group</span>
               <input
                 type="number"
                 min={2}
@@ -318,7 +318,7 @@ export default function CohortBuilder({
               />
             </label>
             <label className="text-xs">
-              <span className="mb-1 block font-bold text-muted">Groups below the minimum</span>
+              <span className="mb-1 block font-semibold text-muted">Groups below the minimum</span>
               <select
                 value={rules.suppressionMode}
                 disabled={locked || busy === "rules"}
@@ -342,13 +342,13 @@ export default function CohortBuilder({
       ) : null}
 
       {/* Step 3 — the plan */}
-      <h3 className="mt-6 text-xs font-black uppercase tracking-wide text-muted">3 · Who rates them</h3>
+      <h3 className="mt-6 text-xs font-semibold uppercase tracking-wide text-muted">3 · Who rates them</h3>
       <div className="mt-2 flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => void preview()}
           disabled={busy === "preview"}
-          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-4 text-sm font-black disabled:opacity-40"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-4 text-sm font-semibold disabled:opacity-40"
         >
           {busy === "preview" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
           Preview the rater plan
@@ -358,7 +358,7 @@ export default function CohortBuilder({
             type="button"
             onClick={() => void apply()}
             disabled={busy === "apply" || !totalNew}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-black text-white disabled:opacity-40"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white disabled:opacity-40"
           >
             {busy === "apply" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
             Create {totalNew} rater assignment{totalNew === 1 ? "" : "s"}
@@ -370,12 +370,12 @@ export default function CohortBuilder({
         <ul className="mt-3 space-y-2">
           {plans.map((plan) => (
             <li key={plan.subjectId} className="rounded-lg border border-border bg-background p-3">
-              <p className="text-sm font-black">{plan.subjectName}</p>
+              <p className="text-sm font-semibold">{plan.subjectName}</p>
               {plan.newRaters.length ? (
                 <ul className="mt-1.5 space-y-0.5 text-xs">
                   {plan.newRaters.map((rater) => (
                     <li key={`${rater.group}-${rater.email}`}>
-                      <span className="font-bold">{GROUP_LABEL[rater.group] ?? rater.group}</span>
+                      <span className="font-semibold">{GROUP_LABEL[rater.group] ?? rater.group}</span>
                       {" · "}
                       {rater.name}{" "}
                       <span className="text-muted">

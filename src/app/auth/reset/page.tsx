@@ -30,15 +30,15 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top_left,rgba(232,68,10,0.10),transparent_28rem),linear-gradient(135deg,var(--cream),var(--paper))] px-4 py-8">
-      <form onSubmit={handleSubmit} className="w-full max-w-md rounded-[28px] border border-border bg-card p-6 shadow-[var(--shadow-lg)] md:p-8">
-        <Link href="/auth/login" className="text-xs font-bold uppercase tracking-widest text-pulse">Back to sign in</Link>
-        <h1 className="mt-5 font-syne text-3xl font-bold text-ink">Reset your password</h1>
+    <main className="grid min-h-screen place-items-center bg-background px-4 py-8">
+      <form onSubmit={handleSubmit} className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-lg)] md:p-8">
+        <Link href="/auth/login" className="text-xs font-semibold uppercase tracking-widest text-pulse">Back to sign in</Link>
+        <h1 className="mt-5 font-syne text-3xl font-semibold text-ink">Reset your password</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">
           Enter your work email and Pulse will send a secure reset link.
         </p>
 
-        <label className="mt-7 block text-xs font-bold uppercase tracking-widest text-muted">
+        <label className="mt-7 block text-xs font-semibold uppercase tracking-widest text-muted">
           Email
           <input
             type="email"
@@ -46,20 +46,20 @@ export default function ResetPasswordPage() {
             onChange={(event) => setEmail(event.target.value)}
             required
             autoComplete="email"
-            className="mt-2 h-12 w-full rounded-2xl border border-border bg-paper px-4 text-base font-medium text-ink outline-none transition focus:border-pulse focus:bg-card"
+            className="mt-2 h-12 w-full rounded-md border border-border bg-paper px-4 text-base font-medium text-ink outline-none transition focus:border-pulse focus:bg-card"
           />
         </label>
 
         <button
           type="submit"
           disabled={loading || sent}
-          className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white transition active:scale-[0.97] disabled:opacity-60"
+          className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white transition active:scale-[0.97] disabled:opacity-60"
         >
           {loading && <Loader2 size={16} className="animate-spin" />}
           {sent ? "Reset link sent" : loading ? "Sending..." : "Send reset link"}
         </button>
 
-        {sent && <p className="mt-4 rounded-2xl bg-green-soft px-4 py-3 text-sm font-bold text-green">Check your email for a reset link.</p>}
+        {sent && <p className="mt-4 rounded-lg bg-green-soft px-4 py-3 text-sm font-semibold text-green">Check your email for a reset link.</p>}
       </form>
     </main>
   );

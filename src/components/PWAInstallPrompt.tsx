@@ -51,8 +51,8 @@ export default function PWAInstallPrompt() {
 
   return (
     <div className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,12px))] left-4 right-4 z-[100] mx-auto max-w-[430px] animate-sheet-up md:bottom-6 md:left-auto md:right-6 md:w-80">
-      <div className="bg-ink text-white rounded-2xl p-4 flex items-center gap-3 shadow-2xl border border-pulse/25">
-        <div className="w-9 h-9 rounded-xl bg-pulse/20 flex items-center justify-center flex-shrink-0">
+      <div className="bg-ink text-white rounded-lg p-4 flex items-center gap-3 shadow-2xl border border-pulse/25">
+        <div className="w-9 h-9 rounded-lg bg-pulse/20 flex items-center justify-center flex-shrink-0">
           <Download size={16} className="text-pulse" />
         </div>
 
@@ -60,7 +60,7 @@ export default function PWAInstallPrompt() {
           <p className="text-sm font-semibold leading-tight">
             Add Pulse to your home screen
           </p>
-          <p className="text-[11px] text-white/50 mt-0.5">
+          <p className="text-[11px] text-white/65 mt-0.5">
             Works offline and feels native
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function PWAInstallPrompt() {
 
         <button
           onClick={dismiss}
-          className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/10 text-white/50 hover:text-white transition-colors"
+          className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/10 text-white/65 hover:text-white transition-colors"
           aria-label="Dismiss install prompt"
         >
           <X size={11} />

@@ -215,35 +215,35 @@ function PerformanceHero({
 }) {
   return (
     <section className="px-4">
-      <div className="rounded-[20px] bg-ink p-5 text-white shadow-sm">
+      <div className="rounded-lg bg-ink p-5 text-white shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm text-white/40">{label}</p>
+            <p className="text-sm text-white/65">{label}</p>
             <div className="mt-4 flex items-end gap-1">
-              <span className="text-[52px] font-extrabold leading-none" style={{ fontFamily: "var(--font-syne)" }}>
+              <span className="text-[52px] font-semibold leading-none" style={{ fontFamily: "var(--font-syne)" }}>
                 {score}
               </span>
-              <span className="pb-1.5 text-2xl font-bold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>
+              <span className="pb-1.5 text-2xl font-semibold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>
                 %
               </span>
               <span className="pb-2 pl-2 text-sm font-semibold text-green">↑ +4 pts this month</span>
             </div>
           </div>
-          <span className="rounded-full bg-pulse/20 px-2.5 py-1 text-[11px] font-bold text-pulse">{badge}</span>
+          <span className="rounded-full bg-pulse/20 px-2.5 py-1 text-[11px] font-semibold text-pulse">{badge}</span>
         </div>
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
           <div
             className="h-full rounded-full"
             style={{
               width: `${score}%`,
-              background: "linear-gradient(90deg, #e8440a, #ff9046)",
+              background: "linear-gradient(90deg, #245de8, #6490f5)",
               animation: "score-bar-fill 1.2s cubic-bezier(0.22, 1, 0.36, 1) both",
             }}
           />
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
-          <span className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-white/55">Q2 2026 Cycle</span>
-          <span className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-white/55">Appraisal: Jun 30</span>
+          <span className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-white/65">Q2 2026 Cycle</span>
+          <span className="rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-white/65">Appraisal: Jun 30</span>
         </div>
       </div>
     </section>
@@ -266,7 +266,7 @@ function Segmented<T extends string>({
           key={item.key}
           onClick={() => onChange(item.key)}
           className={clsx(
-            "flex-1 rounded-md px-2 py-2 text-xs font-bold transition-colors md:text-sm",
+            "flex-1 rounded-md px-2 py-2 text-xs font-semibold transition-colors md:text-sm",
             value === item.key ? "bg-ink text-white" : "text-muted hover:text-ink",
           )}
         >
@@ -293,7 +293,7 @@ function KpiCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="truncate text-sm font-bold text-ink">{kpi.name}</p>
+            <p className="truncate text-sm font-semibold text-ink">{kpi.name}</p>
             <button
               onClick={() => onHelp(`${kpi.name} compares your current value against the target and applies its ${kpi.weight}% weighting in the cycle.`)}
               className="text-muted"
@@ -306,13 +306,13 @@ function KpiCard({
             {compactValue(kpi.current, kpi.unit)} / {compactValue(kpi.target, kpi.unit)} target
           </p>
         </div>
-        <span className="rounded-full bg-paper px-2 py-1 text-[10px] font-bold text-muted">{kpi.weight}% weight</span>
+        <span className="rounded-full bg-paper px-2 py-1 text-[10px] font-semibold text-muted">{kpi.weight}% weight</span>
       </div>
       <div className="mt-4 flex items-end justify-between">
-        <p className={clsx("text-3xl font-bold leading-none", textClass(achieved))} style={{ fontFamily: "var(--font-syne)" }}>
+        <p className={clsx("text-3xl font-semibold leading-none", textClass(achieved))} style={{ fontFamily: "var(--font-syne)" }}>
           {achieved}%
         </p>
-        <span className={clsx("flex items-center gap-1 text-xs font-bold", kpi.trend === "down" ? "text-red" : "text-green")}>
+        <span className={clsx("flex items-center gap-1 text-xs font-semibold", kpi.trend === "down" ? "text-red" : "text-green")}>
           <TrendIcon size={14} />
           vs last period
         </span>
@@ -341,11 +341,11 @@ function OkrCard({
       <button onClick={onToggle} className="w-full p-4 text-left">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-ink">{title}</p>
+            <p className="text-sm font-semibold text-ink">{title}</p>
             <p className="mt-1 text-xs text-muted">{goals.length} key results</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>{progress}%</span>
+            <span className="text-xl font-semibold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>{progress}%</span>
             <ChevronDown className={clsx("text-muted transition-transform", open && "rotate-180")} size={16} />
           </div>
         </div>
@@ -358,7 +358,7 @@ function OkrCard({
           <div className="divide-y divide-border border-t border-border">
             {goals.map((goal) => (
               <div key={goal.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-pulse text-xs font-bold text-white">AO</div>
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-pulse text-xs font-semibold text-white">AO</div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-ink">{goal.name}</p>
                   <p className="text-xs text-muted">Target 100% · current {goal.percentComplete}% · due {formatShortDate(goal.dueDate)}</p>
@@ -366,7 +366,7 @@ function OkrCard({
                     <div className={clsx("h-full rounded-full", pctClass(goal.percentComplete))} style={{ width: `${goal.percentComplete}%` }} />
                   </div>
                 </div>
-                <span className="text-sm font-bold text-ink">{goal.percentComplete}%</span>
+                <span className="text-sm font-semibold text-ink">{goal.percentComplete}%</span>
               </div>
             ))}
           </div>
@@ -386,16 +386,16 @@ function GoalCard({ goal, onSelect }: { goal: GoalState; onSelect: (goal: GoalSt
     <button onClick={() => onSelect(goal)} className="w-full rounded-lg border border-border bg-card p-4 text-left">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <span className={clsx("rounded px-1.5 py-0.5 text-[10px] font-bold uppercase", typeClass(goal.type))}>{typeLabel(goal.type)}</span>
-          <p className="mt-2 line-clamp-2 text-sm font-bold text-ink">{goal.name}</p>
+          <span className={clsx("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase", typeClass(goal.type))}>{typeLabel(goal.type)}</span>
+          <p className="mt-2 line-clamp-2 text-sm font-semibold text-ink">{goal.name}</p>
           <p className="mt-1 text-xs text-muted">Due {formatShortDate(goal.dueDate)} · {goal.weight}% weight · {goal.assignedBy}</p>
         </div>
-        <p className="text-2xl font-bold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>{goal.percentComplete}%</p>
+        <p className="text-2xl font-semibold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>{goal.percentComplete}%</p>
       </div>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-border">
         <div className={clsx("h-full rounded-full", pctClass(goal.percentComplete))} style={{ width: `${goal.percentComplete}%` }} />
       </div>
-      <span className={clsx("mt-3 inline-flex rounded-full border px-2 py-1 text-[10px] font-bold", meta.cls)}>{meta.label}</span>
+      <span className={clsx("mt-3 inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold", meta.cls)}>{meta.label}</span>
     </button>
   );
 }
@@ -417,7 +417,7 @@ function GoalGroup({
   return (
     <div className="rounded-lg border border-border bg-card">
       <button onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between px-4 py-3">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-muted">{title}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{title}</span>
         <ChevronDown size={16} className={clsx("text-muted transition-transform", open && "rotate-180")} />
       </button>
       <div className={clsx("grid transition-all", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
@@ -436,12 +436,12 @@ function GanttView({ goals, todayTime }: { goals: GoalState[]; todayTime: number
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm font-bold text-ink">Goal Tracker</p>
+        <p className="text-sm font-semibold text-ink">Goal Tracker</p>
         <span className="text-xs text-muted">Jan → Jun</span>
       </div>
       <div className="relative space-y-3">
         <div className="absolute bottom-0 top-0 w-px bg-pulse/60" style={{ left: "78%" }}>
-          <span className="absolute -top-4 -translate-x-1/2 text-[10px] font-bold text-pulse">Today</span>
+          <span className="absolute -top-4 -translate-x-1/2 text-[10px] font-semibold text-pulse">Today</span>
         </div>
         {goals.map((goal, index) => {
           const start = Math.min(70, 8 + index * 8);
@@ -451,7 +451,7 @@ function GanttView({ goals, todayTime }: { goals: GoalState[]; todayTime: number
             <div key={goal.id}>
               <div className="mb-1 flex items-center justify-between gap-2">
                 <p className="truncate text-xs font-semibold text-ink">{goal.name}</p>
-                {dueSoon && <span className="text-[10px] font-bold text-red">At risk</span>}
+                {dueSoon && <span className="text-[10px] font-semibold text-red">At risk</span>}
               </div>
               <div className="h-5 rounded-full bg-paper">
                 <div className="h-full rounded-full bg-border" style={{ marginLeft: `${start}%`, width: `${width}%` }}>
@@ -474,11 +474,11 @@ function GoalGauge({ percent, onTrack, total }: { percent: number; onTrack: numb
       <svg viewBox="0 0 140 140" className="mx-auto h-40 w-40">
         <defs>
           <linearGradient id="goalGauge" x1="0" x2="1">
-            <stop offset="0%" stopColor="#e8440a" />
+            <stop offset="0%" stopColor="#245de8" />
             <stop offset="100%" stopColor="#1a7a4a" />
           </linearGradient>
         </defs>
-        <circle cx="70" cy="70" r={r} fill="none" stroke="#e4e7ec" strokeWidth="12" />
+        <circle cx="70" cy="70" r={r} fill="none" stroke="#dfe6ef" strokeWidth="12" />
         <circle
           cx="70"
           cy="70"
@@ -491,7 +491,7 @@ function GoalGauge({ percent, onTrack, total }: { percent: number; onTrack: numb
           strokeDashoffset={c - (percent / 100) * c}
           transform="rotate(-90 70 70)"
         />
-        <text x="70" y="76" textAnchor="middle" fontSize="28" fontWeight="800" fill="#0d0d0d" fontFamily="Syne, sans-serif">
+        <text x="70" y="76" textAnchor="middle" fontSize="28" fontWeight="800" fill="#182438" fontFamily="Inter, sans-serif">
           {percent}%
         </text>
       </svg>
@@ -504,19 +504,19 @@ function GoalsBarChart({ goals }: { goals: GoalState[] }) {
   const chartGoals = goals.slice(0, 5);
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <p className="mb-3 text-sm font-bold text-ink">Goals vs Achieved</p>
+      <p className="mb-3 text-sm font-semibold text-ink">Goals vs Achieved</p>
       <svg viewBox="0 0 340 180" className="h-56 w-full">
         {[25, 50, 75, 100].map((line) => (
-          <line key={line} x1="24" x2="330" y1={150 - line * 1.2} y2={150 - line * 1.2} stroke="#e4e7ec" strokeDasharray="4 4" />
+          <line key={line} x1="24" x2="330" y1={150 - line * 1.2} y2={150 - line * 1.2} stroke="#dfe6ef" strokeDasharray="4 4" />
         ))}
         {chartGoals.map((goal, i) => {
           const x = 40 + i * 58;
           const achievedHeight = goal.percentComplete * 1.2;
           return (
             <g key={goal.id}>
-              <rect x={x} y={30} width="18" height="120" rx="4" fill="#f1f3f5" />
-              <rect x={x + 22} y={150 - achievedHeight} width="18" height={achievedHeight} rx="4" fill="#e8440a" />
-              <text x={x + 20} y="170" textAnchor="middle" fontSize="9" fill="#6f747d">{goal.name.slice(0, 8)}</text>
+              <rect x={x} y={30} width="18" height="120" rx="4" fill="#eaf0f7" />
+              <rect x={x + 22} y={150 - achievedHeight} width="18" height={achievedHeight} rx="4" fill="#245de8" />
+              <text x={x + 20} y="170" textAnchor="middle" fontSize="9" fill="#66758a">{goal.name.slice(0, 8)}</text>
             </g>
           );
         })}
@@ -542,18 +542,18 @@ function TrendLine({
   const d = points.map((point, i) => `${i === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <p className="mb-3 text-sm font-bold text-ink">Performance Score Trend</p>
+      <p className="mb-3 text-sm font-semibold text-ink">Performance Score Trend</p>
       <svg viewBox="0 0 330 170" className="h-56 w-full">
-        <path d={d} fill="none" stroke="#e8440a" strokeWidth="3" />
+        <path d={d} fill="none" stroke="#245de8" strokeWidth="3" />
         {points.map((point, i) => (
           <g key={point.label}>
             <button onMouseEnter={() => onPoint(i)} onMouseLeave={() => onPoint(null)} onClick={() => onPoint(activePoint === i ? null : i)}>
-              <circle cx={point.x} cy={point.y} r="5" fill="#e8440a" />
+              <circle cx={point.x} cy={point.y} r="5" fill="#245de8" />
             </button>
-            <text x={point.x} y="162" textAnchor="middle" fontSize="9" fill="#6f747d">{point.label}</text>
+            <text x={point.x} y="162" textAnchor="middle" fontSize="9" fill="#66758a">{point.label}</text>
             {activePoint === i && (
               <g>
-                <rect x={point.x - 22} y={point.y - 34} width="44" height="22" rx="5" fill="#0d0d0d" />
+                <rect x={point.x - 22} y={point.y - 34} width="44" height="22" rx="5" fill="#182438" />
                 <text x={point.x} y={point.y - 19} textAnchor="middle" fontSize="10" fill="white">{point.score}%</text>
               </g>
             )}
@@ -577,11 +577,11 @@ function KpiHeatmap({
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <p className="mb-3 text-sm font-bold text-ink">KPI Achievement Heatmap</p>
+      <p className="mb-3 text-sm font-semibold text-ink">KPI Achievement Heatmap</p>
       <div className="overflow-x-auto">
         <div className="grid min-w-[520px] gap-1" style={{ gridTemplateColumns: `120px repeat(${months.length}, minmax(42px, 1fr))` }}>
           <div />
-          {months.map((month) => <p key={month} className="text-center text-[10px] font-bold text-muted">{month}</p>)}
+          {months.map((month) => <p key={month} className="text-center text-[10px] font-semibold text-muted">{month}</p>)}
           {kpis.map((kpi, row) => (
             <>
               <p key={`${kpi.id}-label`} className="truncate text-xs font-semibold text-ink">{kpi.name}</p>
@@ -596,7 +596,7 @@ function KpiHeatmap({
                     className={clsx("relative h-9 rounded", color)}
                     title={`${kpi.name} ${month}: ${value}%`}
                   >
-                    {activeCell === key && <span className="absolute -top-7 left-1/2 z-10 -translate-x-1/2 rounded bg-ink px-2 py-1 text-[10px] font-bold text-white">{value}%</span>}
+                    {activeCell === key && <span className="absolute -top-7 left-1/2 z-10 -translate-x-1/2 rounded bg-ink px-2 py-1 text-[10px] font-semibold text-white">{value}%</span>}
                   </button>
                 );
               })}
@@ -613,11 +613,11 @@ function DonutChart({ value }: { value: number }) {
   const c = 2 * Math.PI * r;
   return (
     <div className="rounded-lg border border-border bg-card p-4 text-center">
-      <p className="mb-3 text-sm font-bold text-ink">Team Contribution</p>
+      <p className="mb-3 text-sm font-semibold text-ink">Team Contribution</p>
       <svg viewBox="0 0 120 120" className="mx-auto h-36 w-36">
-        <circle cx="60" cy="60" r={r} fill="none" stroke="#e4e7ec" strokeWidth="14" />
-        <circle cx="60" cy="60" r={r} fill="none" stroke="#e8440a" strokeWidth="14" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c - (value / 100) * c} transform="rotate(-90 60 60)" />
-        <text x="60" y="66" textAnchor="middle" fontSize="24" fontWeight="800" fill="#0d0d0d" fontFamily="Syne, sans-serif">{value}%</text>
+        <circle cx="60" cy="60" r={r} fill="none" stroke="#dfe6ef" strokeWidth="14" />
+        <circle cx="60" cy="60" r={r} fill="none" stroke="#245de8" strokeWidth="14" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c - (value / 100) * c} transform="rotate(-90 60 60)" />
+        <text x="60" y="66" textAnchor="middle" fontSize="24" fontWeight="800" fill="#182438" fontFamily="Inter, sans-serif">{value}%</text>
       </svg>
       <p className="text-xs text-muted">Estimated contribution to team goal progress</p>
     </div>
@@ -653,7 +653,7 @@ function AppraisalMatrix({
   const total = rows.reduce((sum, row) => sum + (row.weighted ?? 0), 0);
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card">
-      <div className="grid grid-cols-[1fr_58px_58px_78px] gap-2 border-b border-border px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted">
+      <div className="grid grid-cols-[1fr_58px_58px_78px] gap-2 border-b border-border px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-muted">
         <span>Component</span>
         <span>Weight</span>
         <span>Score</span>
@@ -667,10 +667,10 @@ function AppraisalMatrix({
           </div>
           <span className="text-muted">{row.weight}%</span>
           <span className="font-semibold text-ink">{row.score === null ? "Pending" : row.name.toLowerCase().includes("peer") ? `${peerRating}/5` : `${row.score}%`}</span>
-          <span className="font-bold text-ink">{row.weighted === null ? "—" : row.weighted.toFixed(1)}</span>
+          <span className="font-semibold text-ink">{row.weighted === null ? "—" : row.weighted.toFixed(1)}</span>
         </div>
       ))}
-      <div className="grid grid-cols-[1fr_58px_58px_78px] gap-2 bg-paper px-4 py-3 text-sm font-bold text-ink">
+      <div className="grid grid-cols-[1fr_58px_58px_78px] gap-2 bg-paper px-4 py-3 text-sm font-semibold text-ink">
         <span>Total</span>
         <span>100%</span>
         <span />
@@ -695,7 +695,7 @@ function Timeline() {
               {i < appraisalSteps.length - 1 && <div className="my-1 h-9 w-px bg-border" />}
             </div>
             <div className={clsx("pt-0.5", i < appraisalSteps.length - 1 && "pb-2")}>
-              <p className={clsx("text-sm font-bold", done ? "text-green" : current ? "text-ink" : "text-muted")}>{step.label}</p>
+              <p className={clsx("text-sm font-semibold", done ? "text-green" : current ? "text-ink" : "text-muted")}>{step.label}</p>
               <p className={clsx("mt-0.5 text-xs", current ? "text-pulse" : "text-muted")}>{step.sub}</p>
             </div>
           </div>
@@ -863,33 +863,33 @@ export default function PerformancePage() {
           <PerformanceHero score={Math.round((goalScore * 0.35) + (user.consistencyIndex * 0.2) + (kpiScore * 0.25) + (user.peerRating * 20 * 0.05))} badge="Live Score" label="Live Score" />
           <section className="space-y-3 px-4">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted">Score Breakdown</p>
-              <button onClick={() => setFormulaOpen(true)} className="text-xs font-bold text-pulse">How is this calculated?</button>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">Score Breakdown</p>
+              <button onClick={() => setFormulaOpen(true)} className="text-xs font-semibold text-pulse">How is this calculated?</button>
             </div>
             <AppraisalMatrix components={user.appraisalComponents} goalScore={goalScore} kpiScore={kpiScore} peerRating={user.peerRating} />
           </section>
           <section className="space-y-3 px-4">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted">Appraisal Status</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">Appraisal Status</p>
             <Timeline />
           </section>
           <section className="space-y-3 px-4">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted">Historical Appraisals</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">Historical Appraisals</p>
             <div className="space-y-2">
               {historicalAppraisals.map((item) => (
                 <div key={item.cycle} className="rounded-lg border border-border bg-card">
                   <button onClick={() => setExpandedHistory(expandedHistory === item.cycle ? null : item.cycle)} className="flex w-full items-center justify-between gap-3 p-4 text-left">
                     <div>
-                      <p className="text-sm font-bold text-ink">{item.cycle}</p>
+                      <p className="text-sm font-semibold text-ink">{item.cycle}</p>
                       <p className="text-xs text-muted">Closed {item.closed} · {item.rec}</p>
                     </div>
-                    <span className="text-xl font-bold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>{item.score}</span>
+                    <span className="text-xl font-semibold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>{item.score}</span>
                   </button>
                   {expandedHistory === item.cycle && (
                     <div className="border-t border-border px-4 py-3">
                       {item.breakdown.map(([label, value]) => (
                         <div key={label} className="flex justify-between py-1 text-sm">
                           <span className="text-muted">{label}</span>
-                          <span className="font-bold text-ink">{value}</span>
+                          <span className="font-semibold text-ink">{value}</span>
                         </div>
                       ))}
                     </div>
@@ -907,7 +907,7 @@ export default function PerformancePage() {
           <div className="flex items-start gap-3">
             <HelpCircle size={18} className="mt-0.5 text-pulse" />
             <div>
-              <p className="text-base font-bold text-ink">Metric guidance</p>
+              <p className="text-base font-semibold text-ink">Metric guidance</p>
               <p className="mt-2 text-sm leading-relaxed text-muted">{helpText}</p>
             </div>
           </div>
@@ -918,15 +918,15 @@ export default function PerformancePage() {
         <BottomSheet onClose={() => { setSelectedGoal(null); setUpdateDraft(null); }}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <span className={clsx("rounded px-1.5 py-0.5 text-[10px] font-bold uppercase", typeClass(selectedGoal.type))}>{typeLabel(selectedGoal.type)}</span>
-              <h2 className="mt-2 text-lg font-bold text-ink" style={{ fontFamily: "var(--font-syne)" }}>{selectedGoal.name}</h2>
+              <span className={clsx("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase", typeClass(selectedGoal.type))}>{typeLabel(selectedGoal.type)}</span>
+              <h2 className="mt-2 text-lg font-semibold text-ink" style={{ fontFamily: "var(--font-syne)" }}>{selectedGoal.name}</h2>
               <p className="mt-1 text-sm leading-relaxed text-muted">{selectedGoal.description}</p>
             </div>
             <button onClick={() => setSelectedGoal(null)} className="text-muted"><X size={18} /></button>
           </div>
 
           <div className="mt-5 space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted">Tasks</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">Tasks</p>
             {selectedGoal.tasks.map((task) => (
               <button key={task.id} onClick={() => toggleTask(task.id)} className="flex w-full items-center gap-3 rounded-lg bg-paper px-3 py-2 text-left">
                 <span className={clsx("flex h-5 w-5 items-center justify-center rounded-full border", task.done ? "border-green bg-green text-white" : "border-border")}>{task.done && <Check size={12} />}</span>
@@ -936,12 +936,12 @@ export default function PerformancePage() {
           </div>
 
           <div className="mt-5 space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted">Progress History</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">Progress History</p>
             {selectedGoal.history.map((item, index) => (
               <div key={`${item.date}-${index}`} className="flex gap-3">
                 <span className="mt-1 h-2 w-2 rounded-full bg-pulse" />
                 <div>
-                  <p className="text-sm font-bold text-ink">{item.value}% · {item.date}</p>
+                  <p className="text-sm font-semibold text-ink">{item.value}% · {item.date}</p>
                   <p className="text-xs text-muted">{item.note}</p>
                 </div>
               </div>
@@ -949,10 +949,10 @@ export default function PerformancePage() {
           </div>
 
           <div className="mt-5 space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted">Comments</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">Comments</p>
             {selectedGoal.comments.map((item) => (
               <div key={item.id} className="rounded-lg bg-paper px-3 py-2">
-                <p className="text-sm text-ink"><span className="font-bold">{item.author}</span> {item.body}</p>
+                <p className="text-sm text-ink"><span className="font-semibold">{item.author}</span> {item.body}</p>
                 <p className="mt-1 text-[10px] text-muted">{item.time}</p>
               </div>
             ))}
@@ -966,15 +966,15 @@ export default function PerformancePage() {
             {updateDraft ? (
               <div className="rounded-lg border border-border bg-paper p-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-ink">Update Progress</p>
-                  <span className="text-sm font-bold text-pulse">{updateDraft.value}%</span>
+                  <p className="text-sm font-semibold text-ink">Update Progress</p>
+                  <span className="text-sm font-semibold text-pulse">{updateDraft.value}%</span>
                 </div>
                 <input type="range" min={0} max={100} value={updateDraft.value} onChange={(event) => setUpdateDraft({ ...updateDraft, value: Number(event.target.value) })} className="mt-3 w-full accent-pulse" />
                 <textarea value={updateDraft.note} onChange={(event) => setUpdateDraft({ ...updateDraft, note: event.target.value })} placeholder="Add update note" className="mt-3 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:border-pulse" />
-                <button onClick={saveProgress} className="mt-3 w-full rounded-lg bg-pulse px-4 py-3 text-sm font-bold text-white">Save Progress</button>
+                <button onClick={saveProgress} className="mt-3 w-full rounded-lg bg-pulse px-4 py-3 text-sm font-semibold text-white">Save Progress</button>
               </div>
             ) : (
-              <button onClick={() => setUpdateDraft({ value: selectedGoal.percentComplete, note: "" })} className="w-full rounded-lg bg-pulse px-4 py-3 text-sm font-bold text-white">Update Progress</button>
+              <button onClick={() => setUpdateDraft({ value: selectedGoal.percentComplete, note: "" })} className="w-full rounded-lg bg-pulse px-4 py-3 text-sm font-semibold text-white">Update Progress</button>
             )}
           </div>
         </BottomSheet>
@@ -982,11 +982,11 @@ export default function PerformancePage() {
 
       {formulaOpen && (
         <BottomSheet onClose={() => setFormulaOpen(false)}>
-          <p className="text-base font-bold text-ink">How the live score is calculated</p>
+          <p className="text-base font-semibold text-ink">How the live score is calculated</p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             Pulse multiplies each component score by its weight, then adds the weighted values. Goal Achievement is recalculated from your current goal progress, so ticking tasks or moving a goal slider updates this table immediately.
           </p>
-          <div className="mt-4 rounded-lg bg-ink px-4 py-3 text-sm font-bold text-white">
+          <div className="mt-4 rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white">
             Score = sum(component score × component weight)
           </div>
         </BottomSheet>

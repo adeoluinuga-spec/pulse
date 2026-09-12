@@ -86,11 +86,11 @@ function StatusScreen({
           <div className={`grid h-12 w-12 place-items-center rounded-lg ${iconClass}`}>
             {tone === "success" ? <Check size={22} /> : <AlertCircle size={22} />}
           </div>
-          <h1 className="mt-5 text-2xl font-black leading-tight">{title}</h1>
+          <h1 className="mt-5 text-2xl font-semibold leading-tight">{title}</h1>
           <p className="mt-3 text-sm leading-6 text-muted">{message}</p>
           <a
             href={contactPath}
-            className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-ink px-4 text-sm font-black text-white"
+            className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-ink px-4 text-sm font-semibold text-white"
           >
             Contact HR
           </a>
@@ -113,7 +113,7 @@ function RatingControl({
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <p className="text-base font-black leading-6 text-ink">{item.body}</p>
+      <p className="text-base font-semibold leading-6 text-ink">{item.body}</p>
       <div className="mt-4 grid grid-cols-5 gap-2">
         {[1, 2, 3, 4, 5].map((score) => {
           const selected = currentScore === score;
@@ -122,7 +122,7 @@ function RatingControl({
               key={score}
               type="button"
               onClick={() => onChange({ itemId: item.id, itemType: "scale", score, notObserved: false, comment: answer?.comment ?? "" })}
-              className={`flex min-h-12 flex-col items-center justify-center rounded-lg border px-1 text-sm font-black transition ${
+              className={`flex min-h-12 flex-col items-center justify-center rounded-lg border px-1 text-sm font-semibold transition ${
                 selected ? "border-pulse bg-pulse text-white" : "border-border bg-paper text-ink"
               }`}
               aria-pressed={selected}
@@ -132,7 +132,7 @@ function RatingControl({
           );
         })}
       </div>
-      <div className="mt-2 grid grid-cols-5 gap-2 text-center text-[10px] font-bold text-muted">
+      <div className="mt-2 grid grid-cols-5 gap-2 text-center text-[10px] font-semibold text-muted">
         {ratingLabels.map((label) => (
           <span key={label} className="leading-3">{label}</span>
         ))}
@@ -140,7 +140,7 @@ function RatingControl({
       <button
         type="button"
         onClick={() => onChange({ itemId: item.id, itemType: "scale", score: null, notObserved: true, comment: answer?.comment ?? "" })}
-        className={`mt-4 flex min-h-12 w-full items-center justify-between rounded-lg border px-3 text-left text-sm font-black ${
+        className={`mt-4 flex min-h-12 w-full items-center justify-between rounded-lg border px-3 text-left text-sm font-semibold ${
           answer?.notObserved ? "border-amber bg-amber-soft text-amber" : "border-border bg-paper text-ink"
         }`}
         aria-pressed={answer?.notObserved === true}
@@ -180,7 +180,7 @@ function TextControl({
 }) {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <label className="text-base font-black leading-6 text-ink" htmlFor={`text-${item.id}`}>
+      <label className="text-base font-semibold leading-6 text-ink" htmlFor={`text-${item.id}`}>
         {item.body}
       </label>
       <textarea
@@ -367,17 +367,17 @@ export default function ReviewFlow({ token }: { token: string }) {
       <section className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-5 sm:px-6 lg:max-w-4xl lg:py-8">
         <header className="border-b border-border pb-4">
           <div className="flex items-center justify-between gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-pulse text-sm font-black text-white">P</div>
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-pulse text-sm font-semibold text-white">P</div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-black uppercase tracking-[0.08em] text-muted">Pulse 360 assessment</p>
-              <h1 className="truncate text-xl font-black text-ink">{payload.subject.name}</h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Pulse 360 assessment</p>
+              <h1 className="truncate text-xl font-semibold text-ink">{payload.subject.name}</h1>
             </div>
-            <span className="rounded-lg bg-pulse-soft px-2 py-1 text-xs font-black text-pulse">
+            <span className="rounded-lg bg-pulse-soft px-2 py-1 text-xs font-semibold text-pulse">
               {relationshipLabel(payload.relationshipType ?? "")}
             </span>
           </div>
           <div className="mt-4">
-            <div className="flex items-center justify-between text-xs font-bold text-muted">
+            <div className="flex items-center justify-between text-xs font-semibold text-muted">
               <span>{progress.answered} of {progress.total} answered</span>
               <span>{Math.min(step + 1, pageCount)} of {pageCount}</span>
             </div>
@@ -388,7 +388,7 @@ export default function ReviewFlow({ token }: { token: string }) {
               />
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-muted">
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
             <span className={saveState === "failed" ? "text-red" : saveState === "saving" ? "text-amber" : "text-green"}>
               {saveState === "saving" && "Saving draft..."}
               {saveState === "saved" && `Saved ${formatDateTime(savedAt)}`}
@@ -401,17 +401,17 @@ export default function ReviewFlow({ token }: { token: string }) {
 
         <div className="flex-1 py-5">
           <div className="mb-4">
-            <p className="text-xs font-black uppercase tracking-[0.08em] text-muted">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
               {isReviewStep ? "Final check" : currentScreen.type === "text" ? "Narrative feedback" : "Competency"}
             </p>
-            <h2 className="mt-1 text-2xl font-black leading-tight text-ink">{currentScreen.title}</h2>
+            <h2 className="mt-1 text-2xl font-semibold leading-tight text-ink">{currentScreen.title}</h2>
             {currentScreen.description && <p className="mt-2 text-sm leading-6 text-muted">{currentScreen.description}</p>}
           </div>
 
           {isReviewStep ? (
             <div className="space-y-3">
               {progress.unansweredItemIds.length > 0 && (
-                <div className="rounded-lg border border-amber/30 bg-amber-soft p-3 text-sm font-bold leading-6 text-amber">
+                <div className="rounded-lg border border-amber/30 bg-amber-soft p-3 text-sm font-semibold leading-6 text-amber">
                   {unansweredScaleItems.length > 0
                     ? `${unansweredScaleItems.length} scale item${unansweredScaleItems.length === 1 ? "" : "s"} still need a rating or Unable to Observe.`
                     : "Some narrative prompts are blank. You may submit if you have no more comments to add."}
@@ -431,8 +431,8 @@ export default function ReviewFlow({ token }: { token: string }) {
                 return (
                   <div key={item.id} className="rounded-lg border border-border bg-card p-3">
                     <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-black leading-5 text-ink">{item.body}</p>
-                      <span className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-black ${answered ? "bg-green-soft text-green" : "bg-amber-soft text-amber"}`}>
+                      <p className="text-sm font-semibold leading-5 text-ink">{item.body}</p>
+                      <span className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold ${answered ? "bg-green-soft text-green" : "bg-amber-soft text-amber"}`}>
                         {answered ? "Done" : "Missing"}
                       </span>
                     </div>
@@ -440,7 +440,7 @@ export default function ReviewFlow({ token }: { token: string }) {
                   </div>
                 );
               })}
-              {submitError && <p className="rounded-lg bg-red-soft p-3 text-sm font-bold text-red">{submitError}</p>}
+              {submitError && <p className="rounded-lg bg-red-soft p-3 text-sm font-semibold text-red">{submitError}</p>}
             </div>
           ) : (
             <div className="space-y-4">
@@ -461,7 +461,7 @@ export default function ReviewFlow({ token }: { token: string }) {
               type="button"
               onClick={() => setStep((current) => Math.max(0, current - 1))}
               disabled={step === 0}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-black text-ink disabled:opacity-40"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-ink disabled:opacity-40"
             >
               <ChevronLeft size={18} />
               Back
@@ -471,7 +471,7 @@ export default function ReviewFlow({ token }: { token: string }) {
                 type="button"
                 onClick={() => void submitReview()}
                 disabled={saveState === "saving"}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-black text-white disabled:opacity-50"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50"
               >
                 {saveState === "saving" ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                 Submit
@@ -480,7 +480,7 @@ export default function ReviewFlow({ token }: { token: string }) {
               <button
                 type="button"
                 onClick={() => setStep((current) => Math.min(screens.length - 1, current + 1))}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-sm font-black text-white"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-sm font-semibold text-white"
               >
                 Continue
                 <ChevronRight size={18} />

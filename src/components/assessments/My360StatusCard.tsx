@@ -47,7 +47,7 @@ export default function My360StatusCard({ compact = false }: { compact?: boolean
   if (state.loading) {
     return (
       <section className={clsx("rounded-lg border border-border bg-card p-4", compact ? "" : "md:p-5")}>
-        <div className="flex items-center gap-2 text-sm font-bold text-muted">
+        <div className="flex items-center gap-2 text-sm font-semibold text-muted">
           <Loader2 size={16} className="animate-spin text-pulse" />
           Checking your 360 assessment status...
         </div>
@@ -57,7 +57,7 @@ export default function My360StatusCard({ compact = false }: { compact?: boolean
 
   if (state.error || !state.status) {
     return (
-      <section className="rounded-lg border border-red/20 bg-red-soft p-4 text-sm font-bold text-red">
+      <section className="rounded-lg border border-red/20 bg-red-soft p-4 text-sm font-semibold text-red">
         {state.error || "Could not load your 360 status."}
       </section>
     );
@@ -73,18 +73,18 @@ export default function My360StatusCard({ compact = false }: { compact?: boolean
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-cobalt-light text-cobalt">
               <ClipboardList size={16} />
             </span>
-            <span className={clsx("rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-widest", toneStyles[status.tone])}>
+            <span className={clsx("rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-widest", toneStyles[status.tone])}>
               {status.cycleLabel}
             </span>
             {status.unreadAssessmentNotifications > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-pulse-soft px-2.5 py-1 text-[11px] font-black text-pulse">
+              <span className="inline-flex items-center gap-1 rounded-full bg-pulse-soft px-2.5 py-1 text-[11px] font-semibold text-pulse">
                 <Bell size={12} />
                 {status.unreadAssessmentNotifications} unread
               </span>
             ) : null}
           </div>
 
-          <h2 className="mt-3 font-syne text-xl font-bold leading-tight text-ink">
+          <h2 className="mt-3 font-syne text-xl font-semibold leading-tight text-ink">
             {status.headline}
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
@@ -103,7 +103,7 @@ export default function My360StatusCard({ compact = false }: { compact?: boolean
       {status.releasedReport ? (
         <a
           href={`/assessments/reports/${status.releasedReport.subjectId}`}
-          className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-ink px-4 text-sm font-black text-white"
+          className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white"
         >
           <FileText size={16} /> Read your 360 report
         </a>
@@ -129,7 +129,7 @@ export default function My360StatusCard({ compact = false }: { compact?: boolean
 
       {!compact ? (
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-          <Link href="/dashboard/reports" className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-paper px-4 text-xs font-black text-ink hover:border-cobalt/40">
+          <Link href="/dashboard/reports" className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-paper px-4 text-xs font-semibold text-ink hover:border-cobalt/40">
             View released reports
           </Link>
         </div>
@@ -141,15 +141,15 @@ export default function My360StatusCard({ compact = false }: { compact?: boolean
 function MiniStat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border border-border bg-paper p-3">
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-ink">{value}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-ink">{value}</p>
     </div>
   );
 }
 
 function StatusLine({ icon, text, active }: { icon: ReactNode; text: string; active: boolean }) {
   return (
-    <div className={clsx("flex items-start gap-2 rounded-lg px-3 py-2 text-xs font-bold leading-relaxed", active ? "bg-cobalt-light text-cobalt-dark" : "bg-paper text-muted")}>
+    <div className={clsx("flex items-start gap-2 rounded-lg px-3 py-2 text-xs font-semibold leading-relaxed", active ? "bg-cobalt-light text-cobalt-dark" : "bg-paper text-muted")}>
       <span className="mt-0.5 flex-shrink-0">{icon}</span>
       <span>{text}</span>
     </div>

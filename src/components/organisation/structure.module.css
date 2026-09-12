@@ -1,15 +1,15 @@
-.workspace { --structure-accent: #245de8; --structure-soft: #edf3ff; --structure-line: #a8bce7; color: #192334; max-width: 1800px; margin: 0 auto; }
+.workspace { --structure-accent: #245de8; --structure-soft: #edf3ff; --structure-line: #a8bce7; color: #182438; max-width: 1600px; margin: 0 auto; }
 .workspace[data-theme="forest"] { --structure-accent: #147565; --structure-soft: #e9f5f0; --structure-line: #8ec2b2; }
 .workspace[data-theme="slate"] { --structure-accent: #465469; --structure-soft: #edf0f5; --structure-line: #a5b0c0; }
 .header, .inline, .actions, .chartToolbar, .chartFooter { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .header { justify-content: space-between; align-items: flex-start; margin: 20px 0; }
 .eyebrow { color: var(--structure-accent); text-transform: uppercase; letter-spacing: .12em; font-size: 10px; font-weight: 700; margin-bottom: 8px; }
 .header h1 { font-size: clamp(24px, 3vw, 32px); line-height: 1.2; font-weight: 650; letter-spacing: -.035em; }
-.header p { font-size: 13px; color: #667085; margin-top: 10px; max-width: 620px; line-height: 1.6; }
-.muted { color: #667085; font-size: 12px; line-height: 1.6; }
-.breadcrumb { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #667085; }
+.header p { font-size: 13px; color: #66758a; margin-top: 10px; max-width: 620px; line-height: 1.6; }
+.muted { color: #66758a; font-size: 12px; line-height: 1.6; }
+.breadcrumb { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #66758a; }
 .breadcrumb a:hover { text-decoration: underline; }
-.button, .primaryButton, .smallButton, .iconButton, .dangerButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 6px; border: 1px solid #dce2eb; background: white; color: #344054; font-size: 12px; font-weight: 600; padding: 10px 13px; cursor: pointer; min-height: 38px; }
+.button, .primaryButton, .smallButton, .iconButton, .dangerButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 6px; border: 1px solid #d8e1ed; background: white; color: #34435a; font-size: 12px; font-weight: 600; padding: 10px 13px; cursor: pointer; min-height: 38px; }
 .primaryButton { background: var(--structure-accent); color: white; border-color: var(--structure-accent); }
 .dangerButton { color: #b42318; }
 .smallButton { padding: 5px 8px; min-height: 32px; font-size: 11px; }
@@ -19,15 +19,15 @@
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #e3e8ef; border: 1px solid #e3e8ef; border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
 .stat { padding: 16px 20px; background: white; }
 .stat strong { display: block; font-size: 22px; letter-spacing: -.03em; font-weight: 650; }
-.stat span { display: block; margin-top: 3px; font-size: 11px; color: #667085; }
+.stat span { display: block; margin-top: 3px; font-size: 11px; color: #66758a; }
 .status { border-radius: 4px; background: var(--structure-soft); color: var(--structure-accent); padding: 5px 8px; font-size: 11px; font-weight: 650; }
-.notice, .error { padding: 12px 16px; border: 1px solid #dce2eb; border-radius: 7px; background: white; margin: 12px 0; font-size: 12px; line-height: 1.7; }
+.notice, .error { padding: 12px 16px; border: 1px solid #d8e1ed; border-radius: 7px; background: white; margin: 12px 0; font-size: 12px; line-height: 1.7; }
 .error { background: #fff5f3; border-color: #ffd1c7; color: #912018; }
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
-.toolbar label { display: flex; gap: 8px; align-items: center; font-size: 11px; color: #667085; }
-.toolbar select { padding: 8px; border: 1px solid #dce2eb; border-radius: 6px; background: white; color: #344054; max-width: 160px; }
+.toolbar label { display: flex; gap: 8px; align-items: center; font-size: 11px; color: #66758a; }
+.toolbar select { padding: 8px; border: 1px solid #d8e1ed; border-radius: 6px; background: white; color: #34435a; max-width: 160px; }
 .editor { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 16px; align-items: start; }
-.chartPanel { background: white; border: 1px solid #dce2eb; border-radius: 8px; overflow: hidden; min-width: 0; }
+.chartPanel { background: white; border: 1px solid #d8e1ed; border-radius: 8px; overflow: hidden; min-width: 0; }
 .chartToolbar { padding: 12px 16px; justify-content: space-between; border-bottom: 1px solid #e8ecf2; }
 .chartToolbar > span { max-width: 300px; }
 .canvas { overflow: auto; height: 620px; max-height: 70vh; background-color: #f9fbfd; background-image: radial-gradient(#dce3ed 1px, transparent 1px); background-size: 20px 20px; }
@@ -41,39 +41,39 @@
 .nodePerson { display: flex; align-items: center; gap: 8px; margin-top: auto; font-size: 11px; width: 100%; }
 .nodePerson > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .avatar { width: 26px; height: 26px; display: grid; place-items: center; flex-shrink: 0; border-radius: 50%; background: var(--structure-soft); color: var(--structure-accent); font-size: 9px; font-weight: 700; }
-.collapse { position: absolute; right: 8px; bottom: -12px; display: flex; align-items: center; gap: 3px; border: 1px solid #dce2eb; background: white; padding: 3px 7px; border-radius: 12px; font-size: 10px; cursor: pointer; }
-.chartFooter { padding: 12px 16px; justify-content: space-between; border-top: 1px solid #e8ecf2; font-size: 10px; color: #667085; }
+.collapse { position: absolute; right: 8px; bottom: -12px; display: flex; align-items: center; gap: 3px; border: 1px solid #d8e1ed; background: white; padding: 3px 7px; border-radius: 12px; font-size: 10px; cursor: pointer; }
+.chartFooter { padding: 12px 16px; justify-content: space-between; border-top: 1px solid #e8ecf2; font-size: 10px; color: #66758a; }
 .legendDot { display: inline-block; width: 14px; height: 2px; background: var(--structure-accent); margin-right: 5px; vertical-align: middle; }
-.chartEmpty { padding: 90px 30px; text-align: center; max-width: 430px; margin: auto; color: #667085; font-size: 13px; line-height: 1.7; }
+.chartEmpty { padding: 90px 30px; text-align: center; max-width: 430px; margin: auto; color: #66758a; font-size: 13px; line-height: 1.7; }
 .chartEmpty svg { margin: auto auto 16px; color: var(--structure-accent); }
-.chartEmpty h2 { font-size: 17px; font-weight: 650; color: #344054; margin-bottom: 8px; }
+.chartEmpty h2 { font-size: 17px; font-weight: 650; color: #34435a; margin-bottom: 8px; }
 .sidebar { display: grid; gap: 14px; }
-.panel { background: white; border: 1px solid #dce2eb; border-radius: 8px; padding: 16px; }
+.panel { background: white; border: 1px solid #d8e1ed; border-radius: 8px; padding: 16px; }
 .panel h2 { font-size: 13px; font-weight: 650; margin-bottom: 6px; }
 .field { display: grid; gap: 6px; margin-top: 14px; font-size: 11px; font-weight: 600; color: #475467; }
-.field input, .field select, .search { display: block; width: 100%; min-width: 0; border: 1px solid #dce2eb; border-radius: 5px; background: white; padding: 9px; font-size: 12px; color: #192334; font-weight: 400; }
-.field small { font-size: 10px; font-weight: 400; color: #667085; line-height: 1.6; }
+.field input, .field select, .search { display: block; width: 100%; min-width: 0; border: 1px solid #d8e1ed; border-radius: 5px; background: white; padding: 9px; font-size: 12px; color: #182438; font-weight: 400; }
+.field small { font-size: 10px; font-weight: 400; color: #66758a; line-height: 1.6; }
 .staffList { max-height: 270px; overflow: auto; margin-top: 10px; }
 .staffRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 0; border-bottom: 1px solid #eff2f6; }
 .staffRow > div { min-width: 0; }
 .staffRow strong { font-size: 11px; display: block; overflow-wrap: anywhere; }
-.staffRow small { display: block; font-size: 10px; color: #667085; overflow-wrap: anywhere; }
-.dialog { border: 1px solid #dce2eb; border-radius: 10px; width: min(640px, calc(100% - 32px)); padding: 24px; max-height: 85vh; overflow: auto; margin: auto; color: #192334; background: white; box-shadow: 0 24px 80px #18233330; }
+.staffRow small { display: block; font-size: 10px; color: #66758a; overflow-wrap: anywhere; }
+.dialog { border: 1px solid #d8e1ed; border-radius: 10px; width: min(640px, calc(100% - 32px)); padding: 24px; max-height: 85vh; overflow: auto; margin: auto; color: #182438; background: white; box-shadow: 0 24px 80px #18233330; }
 .dialog::backdrop { background: #14233b70; }
 .dialog h2 { font-size: 20px; font-weight: 650; margin-bottom: 10px; }
-.dialog p { font-size: 13px; line-height: 1.7; color: #667085; }
+.dialog p { font-size: 13px; line-height: 1.7; color: #66758a; }
 .dialog .actions { margin-top: 22px; justify-content: flex-end; }
 .templates { display: grid; gap: 10px; margin-top: 16px; }
-.template { display: block; text-align: left; border: 1px solid #dce2eb; padding: 16px; border-radius: 7px; background: white; cursor: pointer; }
+.template { display: block; text-align: left; border: 1px solid #d8e1ed; padding: 16px; border-radius: 7px; background: white; cursor: pointer; }
 .template:hover { border-color: var(--structure-accent); background: var(--structure-soft); }
 .template strong { font-size: 13px; display: block; margin-bottom: 4px; }
-.template span { color: #667085; font-size: 12px; line-height: 1.6; }
+.template span { color: #66758a; font-size: 12px; line-height: 1.6; }
 .reviewList { max-height: 260px; overflow: auto; margin-top: 14px; }
 .reviewRow { padding: 10px 0; border-bottom: 1px solid #e8ecf2; font-size: 12px; }
 .reviewRow strong { display: block; margin-bottom: 3px; }
-.reviewRow span { color: #667085; font-size: 11px; }
+.reviewRow span { color: #66758a; font-size: 11px; }
 .issues { padding-left: 18px; list-style: disc; }
-.history { margin-top: 20px; font-size: 12px; color: #667085; }
+.history { margin-top: 20px; font-size: 12px; color: #66758a; }
 .history summary { cursor: pointer; font-weight: 600; }
 @media (max-width: 1100px) { .editor { grid-template-columns: minmax(0, 1fr); } .sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .stats { grid-template-columns: repeat(2, 1fr); } .sidebar { grid-template-columns: minmax(0, 1fr); } .canvas { height: 440px; } .header .actions { width: 100%; } .header .actions > button { flex: 1; } .stat { padding: 12px; } .chartToolbar { padding: 10px; } }

@@ -1741,12 +1741,12 @@ export default function AssessmentsPage() {
 
   if (!canViewAssessments) {
     return (
-      <main className="grid min-h-screen place-items-center bg-paper px-6 py-10">
-        <div className="w-full max-w-md rounded-[28px] border border-border bg-card p-6 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-soft text-red">
+      <main className="grid min-h-screen place-items-center bg-background px-6 py-10">
+        <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-red-soft text-red">
             <ShieldCheck size={28} />
           </div>
-          <h1 className="font-syne text-2xl font-black text-ink">Assessment access restricted</h1>
+          <h1 className="font-syne text-2xl font-semibold text-ink">Assessment access restricted</h1>
           <p className="mt-3 text-sm leading-6 text-muted">
             This assessment workspace is limited to HR admins, super admins, and executive viewers.
             Ask the organisation admin to grant access for this account.
@@ -1754,7 +1754,7 @@ export default function AssessmentsPage() {
           <button
             type="button"
             onClick={() => window.history.back()}
-            className="mt-5 inline-flex min-h-11 items-center justify-center rounded-2xl bg-ink px-4 text-sm font-black text-white"
+            className="mt-5 inline-flex min-h-11 items-center justify-center rounded-md bg-ink px-4 text-sm font-semibold text-white"
           >
             Go back
           </button>
@@ -1764,24 +1764,24 @@ export default function AssessmentsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-paper pb-28 text-ink">
+    <main className="min-h-screen bg-background pb-28 text-ink">
       <section className="border-b border-ink/8 bg-white">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full bg-pulse-soft px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-pulse">
+                <span className="inline-flex items-center gap-2 rounded-full bg-pulse-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-pulse">
                   <ShieldCheck size={14} />
                   360 assessment
                 </span>
-                <span className="rounded-full bg-ink px-3 py-1 text-xs font-bold text-white">
+                <span className="rounded-full bg-ink px-3 py-1 text-xs font-semibold text-white">
                   {activeCycle.clientName}
                 </span>
-                <span className="rounded-full border border-ink/10 bg-white px-3 py-1 text-xs font-bold text-muted">
+                <span className="rounded-full border border-ink/10 bg-white px-3 py-1 text-xs font-semibold text-muted">
                   {statusLabel(activeCycle.status)}
                 </span>
               </div>
-              <h1 className="mt-4 font-syne text-3xl font-black leading-tight sm:text-4xl">
+              <h1 className="mt-4 font-syne text-3xl font-semibold leading-tight sm:text-4xl">
                 Leadership 360 assessment command center
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted sm:text-base">
@@ -1791,28 +1791,28 @@ export default function AssessmentsPage() {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/assessments/reviewers/bulk"
-                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/10 bg-white px-4 text-sm font-semibold shadow-sm transition hover:border-pulse/40"
               >
                 <Users size={16} />
                 Bulk raters
               </Link>
               <Link
                 href="/assessments/reports"
-                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/10 bg-white px-4 text-sm font-semibold shadow-sm transition hover:border-pulse/40"
               >
                 <FileText size={16} />
                 Generate reports
               </Link>
               <Link
                 href="/assessments/cycles"
-                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/10 bg-white px-4 text-sm font-semibold shadow-sm transition hover:border-pulse/40"
               >
                 <RefreshCw size={16} />
                 Reopen or clone
               </Link>
               <Link
                 href="/assessments/participants"
-                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/10 bg-white px-4 text-sm font-semibold shadow-sm transition hover:border-pulse/40"
               >
                 <UserMinus size={16} />
                 Manage cohort
@@ -1821,7 +1821,7 @@ export default function AssessmentsPage() {
                 type="button"
                 onClick={() => void handleLaunchCycle(activeCycle.status === "collecting")}
                 disabled={isLaunchingCycle || !canManageAssessments || !activeCycle.id || (activeCycle.status !== "setup" && activeCycle.status !== "collecting")}
-                className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white shadow-sm transition hover:bg-pulse-dark disabled:cursor-not-allowed disabled:opacity-55"
+                className="inline-flex min-h-11 items-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-pulse-dark disabled:cursor-not-allowed disabled:opacity-55"
               >
                 <Rocket size={16} />
                 {isLaunchingCycle ? "Sending..." : activeCycle.status === "setup" ? "Launch cycle" : activeCycle.status === "collecting" ? "Send outstanding invitations" : "Cycle launched"}
@@ -1830,7 +1830,7 @@ export default function AssessmentsPage() {
                 type="button"
                 onClick={handleSendReminders}
                 disabled={isSendingReminders || !canManageAssessments}
-                className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-55"
+                className="inline-flex min-h-11 items-center gap-2 rounded-md border border-ink/10 bg-white px-4 text-sm font-semibold shadow-sm transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-55"
               >
                 <Mail size={16} />
                 {isSendingReminders ? "Sending..." : "Send reminders"}
@@ -1841,7 +1841,7 @@ export default function AssessmentsPage() {
                     type="button"
                     onClick={() => void handleUpdateCycleStatus("calibration")}
                     disabled={isUpdatingCycleStatus || !canManageAssessments}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-55"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-md border border-ink/10 bg-white px-4 text-sm font-semibold shadow-sm transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-55"
                   >
                     <Clock3 size={16} />
                     Move to review
@@ -1850,7 +1850,7 @@ export default function AssessmentsPage() {
                     type="button"
                     onClick={() => void handleUpdateCycleStatus("closed")}
                     disabled={isUpdatingCycleStatus || !canManageAssessments}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white shadow-sm transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-55"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-55"
                   >
                     <CheckCircle2 size={16} />
                     Close cycle
@@ -1863,7 +1863,7 @@ export default function AssessmentsPage() {
                     type="button"
                     onClick={() => void handleUpdateCycleStatus("collecting")}
                     disabled={isUpdatingCycleStatus || !canManageAssessments}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black shadow-sm transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-55"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-md border border-ink/10 bg-white px-4 text-sm font-semibold shadow-sm transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-55"
                   >
                     <RefreshCw size={16} />
                     Reopen collection
@@ -1872,14 +1872,14 @@ export default function AssessmentsPage() {
                     type="button"
                     onClick={() => void handleUpdateCycleStatus("closed")}
                     disabled={isUpdatingCycleStatus || !canManageAssessments}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white shadow-sm transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-55"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-55"
                   >
                     <CheckCircle2 size={16} />
                     Close cycle
                   </button>
                 </>
               )}
-              <Link href="/assessments/reports/pdf" className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white shadow-sm transition hover:bg-ink/90">
+              <Link href="/assessments/reports/pdf" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-ink/90">
                 <Download size={16} />
                 PDF pack
               </Link>
@@ -1894,15 +1894,15 @@ export default function AssessmentsPage() {
               ["Readiness", `${readiness}%`, "Coverage, response rate, report quality"],
               ["Close date", formatDate(activeCycle.closeDate), "Collection window"],
             ].map(([label, value, detail]) => (
-              <div key={label} className="rounded-[18px] border border-ink/8 bg-paper px-4 py-4">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted">{label}</p>
-                <p className="mt-2 text-2xl font-black">{value}</p>
+              <div key={label} className="rounded-lg border border-ink/8 bg-paper px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{label}</p>
+                <p className="mt-2 text-2xl font-semibold">{value}</p>
                 <p className="mt-1 text-xs text-muted">{detail}</p>
               </div>
             ))}
           </div>
 
-          <div className="flex gap-2 overflow-x-auto rounded-[18px] border border-ink/8 bg-paper p-1">
+          <div className="flex gap-2 overflow-x-auto rounded-lg border border-ink/8 bg-paper p-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const selected = activeTab === tab.key;
@@ -1911,7 +1911,7 @@ export default function AssessmentsPage() {
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={clsx(
-                    "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-2xl px-4 text-sm font-black transition",
+                    "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-md px-4 text-sm font-semibold transition",
                     selected ? "bg-ink text-white shadow-sm" : "text-muted hover:bg-white hover:text-ink",
                   )}
                 >
@@ -1922,9 +1922,9 @@ export default function AssessmentsPage() {
             })}
           </div>
 
-          <div className="flex flex-col gap-2 rounded-[18px] border border-ink/8 bg-paper px-4 py-3 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 rounded-lg border border-ink/8 bg-paper px-4 py-3 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
             <span>{dataSourceNotice}</span>
-            <span className="inline-flex items-center gap-2 font-black text-ink">
+            <span className="inline-flex items-center gap-2 font-semibold text-ink">
               <span className={clsx("h-2.5 w-2.5 rounded-full", isHydratingAssessmentData ? "bg-amber-500" : hasLiveCycle ? "bg-green" : "bg-amber-500")} />
               {isHydratingAssessmentData ? "Syncing" : hasLiveCycle ? "Live data" : "No live cycle"}
             </span>
@@ -1940,7 +1940,7 @@ export default function AssessmentsPage() {
                 key={level}
                 onClick={() => setLevelFilter(level)}
                 className={clsx(
-                  "min-h-10 rounded-2xl px-4 text-sm font-black transition",
+                  "min-h-10 rounded-md px-4 text-sm font-semibold transition",
                   levelFilter === level ? "bg-pulse text-white" : "border border-ink/10 bg-white text-muted hover:text-ink",
                 )}
               >
@@ -1948,12 +1948,12 @@ export default function AssessmentsPage() {
               </button>
             ))}
           </div>
-          <div className="flex min-h-11 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-3">
+          <div className="flex min-h-11 items-center gap-2 rounded-lg border border-ink/10 bg-white px-3">
             <SlidersHorizontal size={16} className="text-muted" />
             <select
               value={selectedAssesseeId}
               onChange={(event) => setSelectedAssesseeId(event.target.value)}
-              className="min-h-9 bg-transparent text-sm font-black outline-none"
+              className="min-h-9 bg-transparent text-sm font-semibold outline-none"
               aria-label="Selected assessee"
             >
               {visibleAssessees.map((assessee) => (
@@ -1968,13 +1968,13 @@ export default function AssessmentsPage() {
         {activeTab === "command" && (
           <div className="space-y-5">
             <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Admin progress</p>
-                    <h2 className="mt-2 font-syne text-2xl font-black">Cycle completion dashboard</h2>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Admin progress</p>
+                    <h2 className="mt-2 font-syne text-2xl font-semibold">Cycle completion dashboard</h2>
                   </div>
-                  <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", readiness >= 75 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                  <span className={clsx("rounded-lg px-3 py-2 text-sm font-semibold", readiness >= 75 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
                     {readiness}% ready
                   </span>
                 </div>
@@ -1985,16 +1985,16 @@ export default function AssessmentsPage() {
                       key={entry.assessee.id}
                       onClick={() => setSelectedAssesseeId(entry.assessee.id)}
                       className={clsx(
-                        "rounded-[18px] border p-4 text-left transition",
+                        "rounded-md border p-4 text-left transition",
                         selectedAssessee.id === entry.assessee.id ? "border-pulse bg-pulse-soft" : "border-ink/8 bg-paper hover:border-pulse/40",
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-black">{entry.assessee.name}</p>
+                          <p className="truncate text-sm font-semibold">{entry.assessee.name}</p>
                           <p className="mt-1 truncate text-xs text-muted">{entry.assessee.functionName} / {entry.assessee.region}</p>
                         </div>
-                        <span className={clsx("rounded-full px-2 py-1 text-xs font-black", entry.blocked ? "bg-amber-50 text-amber-700" : "bg-green-soft text-green")}>
+                        <span className={clsx("rounded-full px-2 py-1 text-xs font-semibold", entry.blocked ? "bg-amber-50 text-amber-700" : "bg-green-soft text-green")}>
                           {entry.blocked ? "Blocked" : "Ready"}
                         </span>
                       </div>
@@ -2002,25 +2002,25 @@ export default function AssessmentsPage() {
                         <div className="h-2 flex-1 overflow-hidden rounded-full bg-white">
                           <div className="h-full rounded-full bg-pulse" style={{ width: `${clampPercent(entry.progress)}%` }} />
                         </div>
-                        <span className="text-xs font-black text-muted">{entry.progress}%</span>
+                        <span className="text-xs font-semibold text-muted">{entry.progress}%</span>
                       </div>
-                      <div className="mt-3 flex items-center justify-between text-xs font-bold text-muted">
+                      <div className="mt-3 flex items-center justify-between text-xs font-semibold text-muted">
                         <span>{entry.submitted}/{entry.assigned} submitted</span>
                         <span>Score {entry.score}</span>
                       </div>
                       {entry.missingGroups.length > 0 && (
-                        <p className="mt-2 truncate text-xs font-bold text-amber-700">Missing: {entry.missingGroups.join(", ").replaceAll("_", " ")}</p>
+                        <p className="mt-2 truncate text-xs font-semibold text-amber-700">Missing: {entry.missingGroups.join(", ").replaceAll("_", " ")}</p>
                       )}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer groups</p>
-                    <h3 className="mt-2 text-xl font-black">Submission status</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Reviewer groups</p>
+                    <h3 className="mt-2 text-xl font-semibold">Submission status</h3>
                   </div>
                   <Users className="text-pulse" size={20} />
                 </div>
@@ -2029,12 +2029,12 @@ export default function AssessmentsPage() {
                     <div key={group.key} className={clsx("border-l-4 bg-paper p-4", groupTone[group.key])}>
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-sm font-black">{group.label}</p>
+                          <p className="text-sm font-semibold">{group.label}</p>
                           <p className="mt-1 text-xs text-muted">
                             {group.submitted} submitted / {group.inProgress} in progress / {group.notStarted} not started
                           </p>
                         </div>
-                        <span className="text-sm font-black">{group.progress}%</span>
+                        <span className="text-sm font-semibold">{group.progress}%</span>
                       </div>
                       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
                         <div className="h-full rounded-full bg-ink" style={{ width: `${clampPercent(group.progress)}%` }} />
@@ -2046,18 +2046,18 @@ export default function AssessmentsPage() {
             </div>
 
             <div className="grid gap-5 lg:grid-cols-2">
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Function view</p>
-                <h3 className="mt-2 text-xl font-black">Department progress</h3>
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Function view</p>
+                <h3 className="mt-2 text-xl font-semibold">Department progress</h3>
                 <div className="mt-5 space-y-3">
                   {functionProgress.map((entry) => (
-                    <div key={entry.name} className="rounded-[18px] bg-paper p-4">
+                    <div key={entry.name} className="rounded-lg bg-paper p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-black">{entry.name}</p>
+                          <p className="truncate text-sm font-semibold">{entry.name}</p>
                           <p className="mt-1 text-xs text-muted">{entry.leaders} leader{entry.leaders === 1 ? "" : "s"} / {entry.submitted}/{entry.assigned} submitted</p>
                         </div>
-                        <span className="text-sm font-black">{entry.progress}%</span>
+                        <span className="text-sm font-semibold">{entry.progress}%</span>
                       </div>
                       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
                         <div className="h-full rounded-full bg-green" style={{ width: `${clampPercent(entry.progress)}%` }} />
@@ -2067,18 +2067,18 @@ export default function AssessmentsPage() {
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Regional view</p>
-                <h3 className="mt-2 text-xl font-black">Coverage by region</h3>
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Regional view</p>
+                <h3 className="mt-2 text-xl font-semibold">Coverage by region</h3>
                 <div className="mt-5 space-y-3">
                   {regionProgress.map((entry) => (
-                    <div key={entry.name} className="rounded-[18px] bg-paper p-4">
+                    <div key={entry.name} className="rounded-lg bg-paper p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-black">{entry.name}</p>
+                          <p className="truncate text-sm font-semibold">{entry.name}</p>
                           <p className="mt-1 text-xs text-muted">{entry.leaders} leader{entry.leaders === 1 ? "" : "s"} / {entry.submitted}/{entry.assigned} submitted</p>
                         </div>
-                        <span className="text-sm font-black">{entry.progress}%</span>
+                        <span className="text-sm font-semibold">{entry.progress}%</span>
                       </div>
                       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
                         <div className="h-full rounded-full bg-pulse" style={{ width: `${clampPercent(entry.progress)}%` }} />
@@ -2091,16 +2091,16 @@ export default function AssessmentsPage() {
 
             <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
               <div className="space-y-5">
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Selected leader</p>
-                    <h2 className="mt-2 font-syne text-2xl font-black">{selectedAssessee.name}</h2>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Selected leader</p>
+                    <h2 className="mt-2 font-syne text-2xl font-semibold">{selectedAssessee.name}</h2>
                     <p className="mt-1 text-sm text-muted">
                       {levelLabel(selectedAssessee.level)} - {selectedAssessee.functionName} - {selectedAssessee.region}
                     </p>
                   </div>
-                  <div className={clsx("grid h-20 w-20 place-items-center rounded-[20px] text-2xl font-black", scoreTone(selectedScore))}>
+                  <div className={clsx("grid h-20 w-20 place-items-center rounded-lg text-2xl font-semibold", scoreTone(selectedScore))}>
                     {selectedScore}
                   </div>
                 </div>
@@ -2108,19 +2108,19 @@ export default function AssessmentsPage() {
                 <div className="mt-5 grid gap-3 sm:grid-cols-4">
                   {reviewerGroups.map((group) => (
                     <div key={group.key} className={clsx("border-l-4 bg-paper p-3", groupTone[group.key])}>
-                      <p className="text-xs font-bold text-muted">{group.shortLabel}</p>
-                      <p className="mt-1 text-xl font-black">{selectedResult.groupScores[group.key]}</p>
+                      <p className="text-xs font-semibold text-muted">{group.shortLabel}</p>
+                      <p className="mt-1 text-xl font-semibold">{selectedResult.groupScores[group.key]}</p>
                       <p className="text-[11px] text-muted">Weight {reviewerWeights[group.key]}%</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Competency heatmap</p>
-                    <h3 className="mt-1 text-lg font-black">Leadership signals</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Competency heatmap</p>
+                    <h3 className="mt-1 text-lg font-semibold">Leadership signals</h3>
                   </div>
                   <Target className="text-pulse" size={20} />
                 </div>
@@ -2131,8 +2131,8 @@ export default function AssessmentsPage() {
                     return (
                       <div key={item.competencyId}>
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-black">{competencyName}</p>
-                          <p className={clsx("text-sm font-black", delta >= 0 ? "text-green" : "text-pulse")}>
+                          <p className="text-sm font-semibold">{competencyName}</p>
+                          <p className={clsx("text-sm font-semibold", delta >= 0 ? "text-green" : "text-pulse")}>
                             {item.score} / {delta >= 0 ? "+" : ""}
                             {delta}
                           </p>
@@ -2149,13 +2149,13 @@ export default function AssessmentsPage() {
               </div>
 
               <div className="space-y-5">
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Cycle health</p>
-                    <h3 className="mt-1 text-lg font-black">{activeCycle.name}</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Cycle health</p>
+                    <h3 className="mt-1 text-lg font-semibold">{activeCycle.name}</h3>
                   </div>
-                  <div className={clsx("rounded-2xl px-3 py-2 text-sm font-black", releaseSummary.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700") }>
+                  <div className={clsx("rounded-lg px-3 py-2 text-sm font-semibold", releaseSummary.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700") }>
                     {releaseSummary.ready ? "Ready" : "Blocked"}
                   </div>
                 </div>
@@ -2165,8 +2165,8 @@ export default function AssessmentsPage() {
                     return (
                       <div key={group.key}>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="font-black">{group.label}</span>
-                          <span className="font-black text-muted">{value}%</span>
+                          <span className="font-semibold">{group.label}</span>
+                          <span className="font-semibold text-muted">{value}%</span>
                         </div>
                         <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink/8">
                           <div className="h-full rounded-full bg-ink" style={{ width: `${value}%` }} />
@@ -2175,8 +2175,8 @@ export default function AssessmentsPage() {
                     );
                   })}
                 </div>
-                <div className="mt-4 rounded-2xl bg-paper p-3 text-sm text-muted">
-                  <span className="font-black text-ink">
+                <div className="mt-4 rounded-lg bg-paper p-3 text-sm text-muted">
+                  <span className="font-semibold text-ink">
                     {releaseSummary.remaining === 0 ? "All reviewers submitted" : `${releaseSummary.remaining} reviewer${releaseSummary.remaining === 1 ? "" : "s"} outstanding`}
                   </span>
                   {releaseSummary.missingGroups.length > 0 && (
@@ -2187,52 +2187,52 @@ export default function AssessmentsPage() {
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Cycle setup</p>
-                <h3 className="mt-2 text-lg font-black">Create a new assessment cycle</h3>
-                {cycleNotice && <div className="mt-3 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{cycleNotice}</div>}
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Cycle setup</p>
+                <h3 className="mt-2 text-lg font-semibold">Create a new assessment cycle</h3>
+                {cycleNotice && <div className="mt-3 rounded-lg bg-green-soft p-3 text-sm font-semibold text-green">{cycleNotice}</div>}
                 <form onSubmit={handleCreateCycle} className="mt-4 space-y-3">
-                  <label className="block text-sm font-black text-muted">
+                  <label className="block text-sm font-semibold text-muted">
                     Cycle name
                     <input
                       value={cycleName}
                       onChange={(event) => setCycleName(event.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                       placeholder="Leadership 360 Assessment"
                     />
                   </label>
-                  <label className="block text-sm font-black text-muted">
+                  <label className="block text-sm font-semibold text-muted">
                     Client / organisation
                     <input
                       value={cycleClient}
                       onChange={(event) => setCycleClient(event.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                       placeholder="Organisation name"
                     />
                   </label>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="block text-sm font-black text-muted">
+                    <label className="block text-sm font-semibold text-muted">
                       Start date
                       <input
                         type="date"
                         value={cycleStartsOn}
                         onChange={(event) => setCycleStartsOn(event.target.value)}
-                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                        className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                       />
                     </label>
-                    <label className="block text-sm font-black text-muted">
+                    <label className="block text-sm font-semibold text-muted">
                       Close date
                       <input
                         type="date"
                         value={cycleClosesOn}
                         onChange={(event) => setCycleClosesOn(event.target.value)}
-                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                        className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                       />
                     </label>
                   </div>
                   <button
                     type="submit"
-                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white shadow-sm transition hover:bg-ink/90"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-ink/90"
                   >
                     <SlidersHorizontal size={16} />
                     Create cycle
@@ -2240,24 +2240,24 @@ export default function AssessmentsPage() {
                 </form>
               </div>
 
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">AI calibration notes</p>
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">AI calibration notes</p>
                 <div className="mt-4 space-y-3">
                   {selectedResult.strongestSignals.map((signal) => (
-                    <div key={signal} className="flex gap-3 rounded-2xl bg-green-soft p-3 text-sm text-green">
+                    <div key={signal} className="flex gap-3 rounded-lg bg-green-soft p-3 text-sm text-green">
                       <CheckCircle2 className="mt-0.5 shrink-0" size={16} />
                       <span className="font-semibold">{signal}</span>
                     </div>
                   ))}
                   {selectedResult.developmentSignals.map((signal) => (
-                    <div key={signal} className="flex gap-3 rounded-2xl bg-pulse-soft p-3 text-sm text-pulse">
+                    <div key={signal} className="flex gap-3 rounded-lg bg-pulse-soft p-3 text-sm text-pulse">
                       <Star className="mt-0.5 shrink-0" size={16} />
                       <span className="font-semibold">{signal}</span>
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 rounded-2xl border border-ink/8 bg-paper p-3 text-sm text-muted">
-                  <span className="font-black text-ink">{riskCount} portfolio risk notes</span> need HR calibration before reports are released.
+                <div className="mt-4 rounded-lg border border-ink/8 bg-paper p-3 text-sm text-muted">
+                  <span className="font-semibold text-ink">{riskCount} portfolio risk notes</span> need HR calibration before reports are released.
                 </div>
               </div>
             </div>
@@ -2267,23 +2267,23 @@ export default function AssessmentsPage() {
 
         {activeTab === "participants" && (
           <div className="space-y-5">
-            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Participants</p>
-              <h3 className="mt-2 text-xl font-black">Add leaders to the assessment cycle</h3>
+            <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Participants</p>
+              <h3 className="mt-2 text-xl font-semibold">Add leaders to the assessment cycle</h3>
               <p className="mt-2 text-sm leading-6 text-muted">
                 Start by selecting people already in your Pulse organisation. CSV import remains available for external or bulk onboarding.
               </p>
-              {participantNotice && <div className="mt-3 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{participantNotice}</div>}
+              {participantNotice && <div className="mt-3 rounded-lg bg-green-soft p-3 text-sm font-semibold text-green">{participantNotice}</div>}
 
               <div className="mt-4 space-y-4">
-                <div className="rounded-2xl border border-ink/8 bg-paper p-3">
+                <div className="rounded-lg border border-ink/8 bg-paper p-3">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <label className="flex-1 text-sm font-black text-muted">
+                    <label className="flex-1 text-sm font-semibold text-muted">
                       Existing {orgDisplayName} employees
                       <select
                         value={selectedOrgEmployeeId}
                         onChange={(event) => setSelectedOrgEmployeeId(event.target.value)}
-                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                        className="mt-1 w-full rounded-md border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                       >
                         <option value="">Select an employee</option>
                         {availableOrgEmployees.map((employee) => (
@@ -2297,7 +2297,7 @@ export default function AssessmentsPage() {
                       type="button"
                       onClick={() => handleAddExistingEmployee(selectedOrgEmployeeId)}
                       disabled={!selectedOrgEmployeeId}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Users size={16} />
                       Add to cycle
@@ -2313,19 +2313,19 @@ export default function AssessmentsPage() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-dashed border-ink/10 bg-paper p-3">
-                  <p className="text-sm font-black text-ink">Or import via CSV</p>
+                <div className="rounded-lg border border-dashed border-ink/10 bg-paper p-3">
+                  <p className="text-sm font-semibold text-ink">Or import via CSV</p>
                   <textarea
                     value={participantCsv}
                     onChange={(event) => setParticipantCsv(event.target.value)}
-                    className="mt-3 min-h-24 w-full resize-y rounded-2xl border border-ink/8 bg-white p-3 text-sm outline-none transition placeholder:text-muted focus:border-pulse/50"
+                    className="mt-3 min-h-24 w-full resize-y rounded-md border border-ink/8 bg-white p-3 text-sm outline-none transition placeholder:text-muted focus:border-pulse/50"
                     placeholder="name,email,level,function_name,region,portfolio"
                   />
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={handleImportParticipants}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white"
                     >
                       <Users size={16} />
                       Import participants
@@ -2333,7 +2333,7 @@ export default function AssessmentsPage() {
                     <button
                       type="button"
                       onClick={() => setParticipantCsv("name,email,level,function_name,region,portfolio\n")}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 text-sm font-black text-ink"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-ink/10 bg-white px-4 text-sm font-semibold text-ink"
                     >
                       Add CSV header
                     </button>
@@ -2342,25 +2342,25 @@ export default function AssessmentsPage() {
               </div>
             </div>
 
-            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+            <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer workflow</p>
-                  <h3 className="mt-2 text-xl font-black">Assign reviewers for {selectedAssessee.name}</h3>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Reviewer workflow</p>
+                  <h3 className="mt-2 text-xl font-semibold">Assign reviewers for {selectedAssessee.name}</h3>
                 </div>
-                <div className="rounded-2xl bg-paper px-3 py-2 text-sm font-black text-muted">
+                <div className="rounded-lg bg-paper px-3 py-2 text-sm font-semibold text-muted">
                   {reviewerSummary.coverage}% coverage
                 </div>
               </div>
 
-              {reviewerNotice && <div className="mt-3 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{reviewerNotice}</div>}
+              {reviewerNotice && <div className="mt-3 rounded-lg bg-green-soft p-3 text-sm font-semibold text-green">{reviewerNotice}</div>}
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <label className="block text-sm font-black text-muted md:col-span-2">
+                <label className="block text-sm font-semibold text-muted md:col-span-2">
                   Assessment scope
                   <select
                     value={assessmentScope}
                     onChange={(event) => setAssessmentScope(event.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                   >
                     {scopeOptions.map((scope) => (
                       <option key={scope.value} value={scope.value}>
@@ -2372,7 +2372,7 @@ export default function AssessmentsPage() {
                     {selectedScopeOption.description}
                   </span>
                 </label>
-                <label className="block text-sm font-black text-muted md:col-span-2">
+                <label className="block text-sm font-semibold text-muted md:col-span-2">
                   Reviewer group
                   <select
                     value={reviewerGroupForm}
@@ -2385,7 +2385,7 @@ export default function AssessmentsPage() {
                         setReviewerOrg("");
                       }
                     }}
-                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                   >
                     {reviewerGroups.map((group) => (
                       <option key={group.key} value={group.key}>
@@ -2396,26 +2396,26 @@ export default function AssessmentsPage() {
                 </label>
 
                 {reviewerGroupForm === "self" ? (
-                  <div className="rounded-2xl border border-ink/8 bg-paper p-3 text-sm text-muted md:col-span-2">
-                    <span className="font-black text-ink">{selectedAssessee.name}</span> will be assigned as their own self-reviewer.
+                  <div className="rounded-lg border border-ink/8 bg-paper p-3 text-sm text-muted md:col-span-2">
+                    <span className="font-semibold text-ink">{selectedAssessee.name}</span> will be assigned as their own self-reviewer.
                   </div>
                 ) : reviewerGroupForm === "line_manager" ? (
-                  <div className="rounded-2xl border border-ink/8 bg-paper p-3 text-sm text-muted md:col-span-2">
+                  <div className="rounded-lg border border-ink/8 bg-paper p-3 text-sm text-muted md:col-span-2">
                     {selectedLineManager ? (
                       <>
-                        <span className="font-black text-ink">{selectedLineManager.name}</span> - {selectedLineManager.email} - {employeeStakeholderLabel(selectedLineManager)}
+                        <span className="font-semibold text-ink">{selectedLineManager.name}</span> - {selectedLineManager.email} - {employeeStakeholderLabel(selectedLineManager)}
                       </>
                     ) : (
                       "No line manager is recorded for this participant in the employee table."
                     )}
                   </div>
                 ) : reviewerGroupForm === "direct_report" || reviewerGroupForm === "colleague" ? (
-                  <label className="block text-sm font-black text-muted md:col-span-2">
+                  <label className="block text-sm font-semibold text-muted md:col-span-2">
                     Select {reviewerGroupForm === "direct_report" ? "a direct report" : "a colleague"}
                     <select
                       value={selectedReviewerEmployeeId}
                       onChange={(event) => setSelectedReviewerEmployeeId(event.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                     >
                       <option value="">Choose from {orgDisplayName} employees</option>
                       {reviewerEmployeeOptions.map((employee) => (
@@ -2432,41 +2432,41 @@ export default function AssessmentsPage() {
                   </label>
                 ) : (
                   <>
-                    <label className="block text-sm font-black text-muted">
+                    <label className="block text-sm font-semibold text-muted">
                       Reviewer name
                       <input
                         value={reviewerName}
                         onChange={(event) => setReviewerName(event.target.value)}
-                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                        className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                         placeholder="Customer or partner name"
                       />
                     </label>
-                    <label className="block text-sm font-black text-muted">
+                    <label className="block text-sm font-semibold text-muted">
                       Reviewer email
                       <input
                         value={reviewerEmail}
                         onChange={(event) => setReviewerEmail(event.target.value)}
-                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                        className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                         placeholder="reviewer@company.com"
                       />
                     </label>
-                    <label className="block text-sm font-black text-muted md:col-span-2">
+                    <label className="block text-sm font-semibold text-muted md:col-span-2">
                       Organisation / stakeholder
                       <input
                         value={reviewerOrg}
                         onChange={(event) => setReviewerOrg(event.target.value)}
-                        className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                        className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                         placeholder="External account, customer organisation, or partner"
                       />
                     </label>
                   </>
                 )}
-                <label className="block text-sm font-black text-muted md:col-span-2">
+                <label className="block text-sm font-semibold text-muted md:col-span-2">
                   Review channel
                   <select
                     value={reviewerChannel}
                     onChange={(event) => setReviewerChannel(event.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                   >
                     <option value="email">Email</option>
                     <option value="sms">SMS</option>
@@ -2483,7 +2483,7 @@ export default function AssessmentsPage() {
                 <button
                   type="button"
                   onClick={handleAddReviewer}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white"
                 >
                   <Users size={16} />
                   Add reviewer
@@ -2492,11 +2492,11 @@ export default function AssessmentsPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer invitation workflow</p>
-                    <h3 className="mt-2 text-xl font-black">Secure links and delivery queue</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Reviewer invitation workflow</p>
+                    <h3 className="mt-2 text-xl font-semibold">Secure links and delivery queue</h3>
                   </div>
                   <button
                     type="button"
@@ -2506,7 +2506,7 @@ export default function AssessmentsPage() {
                         .slice(0, 5)
                         .forEach((entry) => void handleIssueInvite(entry.reviewer));
                     }}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-ink/10 bg-white px-3 text-xs font-black text-ink transition hover:border-pulse/40"
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-ink/10 bg-white px-3 text-xs font-semibold text-ink transition hover:border-pulse/40"
                   >
                     <Send size={14} />
                     Issue pending
@@ -2520,26 +2520,26 @@ export default function AssessmentsPage() {
                     ["Submitted", invitationStats.submitted],
                     ["Needs invite", invitationStats.needsInvite],
                   ].map(([label, value]) => (
-                    <div key={label} className="rounded-2xl bg-paper p-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted">{label}</p>
-                      <p className="mt-1 text-xl font-black">{value}</p>
+                    <div key={label} className="rounded-lg bg-paper p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
+                      <p className="mt-1 text-xl font-semibold">{value}</p>
                     </div>
                   ))}
                 </div>
 
-                {inviteNotice && <div className="mt-3 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse break-all">{inviteNotice}</div>}
+                {inviteNotice && <div className="mt-3 rounded-lg bg-pulse-soft p-3 text-sm font-semibold text-pulse break-all">{inviteNotice}</div>}
 
                 <div className="mt-4 space-y-3">
                   {invitationQueue.map((entry) => {
                     const meta = inviteStatusMeta[entry.status];
                     const canIssue = entry.status !== "submitted" && entry.reviewer.status !== "submitted";
                     return (
-                      <div key={entry.reviewer.id} className="rounded-2xl border border-ink/8 bg-paper p-3">
+                      <div key={entry.reviewer.id} className="rounded-lg border border-ink/8 bg-paper p-3">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate text-sm font-black">{entry.reviewer.name}</p>
-                              <span className={clsx("rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] ring-1", meta.className)}>
+                              <p className="truncate text-sm font-semibold">{entry.reviewer.name}</p>
+                              <span className={clsx("rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1", meta.className)}>
                                 {meta.label}
                               </span>
                             </div>
@@ -2553,7 +2553,7 @@ export default function AssessmentsPage() {
                               type="button"
                               onClick={() => void handleIssueInvite(entry.reviewer)}
                               disabled={!canIssue}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-ink/10 bg-white text-ink transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-ink/10 bg-white text-ink transition hover:border-pulse/40 disabled:cursor-not-allowed disabled:opacity-40"
                               title={entry.secureLink ? "Reissue invite link" : "Issue invite link"}
                               aria-label={entry.secureLink ? "Reissue invite link" : "Issue invite link"}
                             >
@@ -2562,7 +2562,7 @@ export default function AssessmentsPage() {
                             <button
                               type="button"
                               onClick={() => void handleCopyInvite(entry.secureLink)}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-ink/10 bg-white text-ink transition hover:border-pulse/40"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-ink/10 bg-white text-ink transition hover:border-pulse/40"
                               title="Copy invite link"
                               aria-label="Copy invite link"
                             >
@@ -2573,7 +2573,7 @@ export default function AssessmentsPage() {
                                 href={entry.secureLink}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-white transition hover:bg-ink/90"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-ink text-white transition hover:bg-ink/90"
                                 title="Open invite link"
                                 aria-label="Open invite link"
                               >
@@ -2583,16 +2583,16 @@ export default function AssessmentsPage() {
                           </div>
                         </div>
                         {entry.secureLink ? (
-                          <p className="mt-3 break-all rounded-xl bg-white p-2 text-xs text-muted">{entry.secureLink}</p>
+                          <p className="mt-3 break-all rounded-lg bg-white p-2 text-xs text-muted">{entry.secureLink}</p>
                         ) : (
-                          <p className="mt-3 rounded-xl bg-white p-2 text-xs font-bold text-muted">No visible link yet. Issue an invite to generate a fresh secure token.</p>
+                          <p className="mt-3 rounded-lg bg-white p-2 text-xs font-semibold text-muted">No visible link yet. Issue an invite to generate a fresh secure token.</p>
                         )}
                         <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted">
                           <span className="inline-flex items-center gap-1">
                             <Clock3 size={12} />
                             {entry.expiresAt ? `Expires ${formatDate(entry.expiresAt)}` : "No expiry set"}
                           </span>
-                          {invitationStats.expired > 0 && entry.status === "expired" && <span className="font-black text-red-700">Fresh link required</span>}
+                          {invitationStats.expired > 0 && entry.status === "expired" && <span className="font-semibold text-red-700">Fresh link required</span>}
                         </div>
                       </div>
                     );
@@ -2600,15 +2600,15 @@ export default function AssessmentsPage() {
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Live submission progress</p>
-                <h3 className="mt-2 text-xl font-black">Submitted reviews</h3>
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Live submission progress</p>
+                <h3 className="mt-2 text-xl font-semibold">Submitted reviews</h3>
                 <div className="mt-4 flex items-end justify-between gap-3">
                   <div>
-                    <p className="text-3xl font-black">{submittedCount}/{reviewerAssignments.length}</p>
+                    <p className="text-3xl font-semibold">{submittedCount}/{reviewerAssignments.length}</p>
                     <p className="mt-1 text-xs text-muted">Actual submitted reviewer assignments in this cycle</p>
                   </div>
-                  <span className="rounded-2xl bg-green-soft px-3 py-2 text-xs font-black text-green">{completion}% complete</span>
+                  <span className="rounded-lg bg-green-soft px-3 py-2 text-xs font-semibold text-green">{completion}% complete</span>
                 </div>
               </div>
             </div>
@@ -2618,20 +2618,20 @@ export default function AssessmentsPage() {
                 const result = assessmentResults.find((entry) => entry.assesseeId === assessee.id);
                 const assesseeReviewers = reviewerAssignments.filter((reviewer) => reviewer.assesseeId === assessee.id);
                 return (
-                  <div key={assessee.id} className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                  <div key={assessee.id} className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex min-w-0 gap-3">
-                        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-ink text-sm font-black text-white">
+                        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-ink text-sm font-semibold text-white">
                           {assessee.initials}
                         </div>
                         <div className="min-w-0">
-                          <h3 className="truncate text-lg font-black">{assessee.name}</h3>
+                          <h3 className="truncate text-lg font-semibold">{assessee.name}</h3>
                           <p className="truncate text-sm text-muted">
                             {levelLabel(assessee.level)} - {assessee.functionName}
                           </p>
                         </div>
                       </div>
-                      <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", scoreTone(result ? weightedScore(result) : 0))}>
+                      <span className={clsx("rounded-lg px-3 py-2 text-sm font-semibold", scoreTone(result ? weightedScore(result) : 0))}>
                         {result ? weightedScore(result) : 0}
                       </span>
                     </div>
@@ -2639,14 +2639,14 @@ export default function AssessmentsPage() {
                       <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink/8">
                         <div className="h-full rounded-full bg-green" style={{ width: `${completionForAssessee(assessee.id, reviewerAssignments)}%` }} />
                       </div>
-                      <span className="text-sm font-black">{completionForAssessee(assessee.id, reviewerAssignments)}%</span>
+                      <span className="text-sm font-semibold">{completionForAssessee(assessee.id, reviewerAssignments)}%</span>
                     </div>
                     <div className="mt-4 grid gap-2 sm:grid-cols-2">
                       {assesseeReviewers.map((reviewer) => (
-                        <div key={reviewer.id} className="rounded-2xl border border-ink/8 bg-paper p-3">
+                        <div key={reviewer.id} className="rounded-lg border border-ink/8 bg-paper p-3">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="truncate text-sm font-black">{reviewer.name}</p>
-                            <span className={clsx("shrink-0 rounded-full px-2 py-1 text-[10px] font-black ring-1", statusMeta[reviewer.status].className)}>
+                            <p className="truncate text-sm font-semibold">{reviewer.name}</p>
+                            <span className={clsx("shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ring-1", statusMeta[reviewer.status].className)}>
                               {statusMeta[reviewer.status].label}
                             </span>
                           </div>
@@ -2664,43 +2664,43 @@ export default function AssessmentsPage() {
         {activeTab === "questions" && (
           <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-5">
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Organisation framework</p>
-                    <h3 className="mt-2 text-xl font-black">{assessmentFramework.name}</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Organisation framework</p>
+                    <h3 className="mt-2 text-xl font-semibold">{assessmentFramework.name}</h3>
                   </div>
-                  <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", assessmentFramework.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                  <span className={clsx("rounded-lg px-3 py-2 text-sm font-semibold", assessmentFramework.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
                     {assessmentFramework.ready ? (frameworkId ? "Saved" : "Ready") : "Draft"}
                   </span>
                 </div>
                 <div className="mt-5 grid gap-3">
-                  <label className="block text-sm font-black text-muted">
+                  <label className="block text-sm font-semibold text-muted">
                     Framework name
                     <input
                       value={frameworkName}
                       onChange={(event) => setFrameworkName(event.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                     />
                   </label>
-                  <div className="rounded-2xl border border-ink/8 bg-paper p-3">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-muted">Assessment level naming</p>
+                  <div className="rounded-lg border border-ink/8 bg-paper p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Assessment level naming</p>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                      <label className="block text-sm font-black text-muted">
+                      <label className="block text-sm font-semibold text-muted">
                         Level 1 label
                         <input
                           value={assessmentLevelLabelDrafts[0] ?? ""}
                           onChange={(event) => setAssessmentLevelLabelDrafts((current) => [event.target.value, current[1] ?? ""]) }
-                          className="mt-1 w-full rounded-2xl border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                          className="mt-1 w-full rounded-md border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                           placeholder={levelLabel("director", assessmentLevelLabels)}
                         />
                       </label>
-                      <label className="block text-sm font-black text-muted">
+                      <label className="block text-sm font-semibold text-muted">
                         Level 2 label
                         <input
                           value={assessmentLevelLabelDrafts[1] ?? ""}
                           onChange={(event) => setAssessmentLevelLabelDrafts((current) => [current[0] ?? "", event.target.value]) }
-                          className="mt-1 w-full rounded-2xl border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                          className="mt-1 w-full rounded-md border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                           placeholder={levelLabel("assistant_director", assessmentLevelLabels)}
                         />
                       </label>
@@ -2710,19 +2710,19 @@ export default function AssessmentsPage() {
                       <button
                         type="button"
                         onClick={handleSaveAssessmentLevelNames}
-                        className="inline-flex min-h-10 items-center justify-center rounded-2xl bg-ink px-3 text-xs font-black text-white"
+                        className="inline-flex min-h-10 items-center justify-center rounded-md bg-ink px-3 text-xs font-semibold text-white"
                       >
                         Save labels
                       </button>
                     </div>
-                    {orgLevelLabelNotice && <div className="mt-3 rounded-2xl bg-green-soft p-2 text-xs font-black text-green">{orgLevelLabelNotice}</div>}
+                    {orgLevelLabelNotice && <div className="mt-3 rounded-lg bg-green-soft p-2 text-xs font-semibold text-green">{orgLevelLabelNotice}</div>}
                   </div>
-                  <label className="block text-sm font-black text-muted">
+                  <label className="block text-sm font-semibold text-muted">
                     Business function
                     <select
                       value={frameworkFunction}
                       onChange={(event) => setFrameworkFunction(event.target.value as AssessmentFunction)}
-                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                     >
                       {assessmentFunctions.map((item) => (
                         <option key={item} value={item}>
@@ -2741,48 +2741,48 @@ export default function AssessmentsPage() {
                     ["Coverage gaps", raterCoverage.missingGroups.length ? raterCoverage.missingGroups.join(", ").replaceAll("_", " ") : "none"],
                     ["Readiness", raterCoverage.ready ? "complete" : "in progress"],
                   ].map(([label, value]) => (
-                    <div key={label} className="rounded-2xl bg-paper p-3">
-                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">{label}</p>
-                      <p className="mt-2 text-sm font-black capitalize">{value}</p>
+                    <div key={label} className="rounded-lg bg-paper p-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
+                      <p className="mt-2 text-sm font-semibold capitalize">{value}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Self-assessment</p>
-                <h3 className="mt-2 text-xl font-black">Participation mode</h3>
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Self-assessment</p>
+                <h3 className="mt-2 text-xl font-semibold">Participation mode</h3>
                 <div className="mt-5 grid gap-3">
-                  <label className="flex items-center justify-between gap-3 rounded-2xl bg-paper p-3 text-sm font-black">
+                  <label className="flex items-center justify-between gap-3 rounded-lg bg-paper p-3 text-sm font-semibold">
                     Enabled
                     <input type="checkbox" checked={selfAssessmentEnabled} onChange={(event) => setSelfAssessmentEnabled(event.target.checked)} className="h-5 w-5 accent-pulse" />
                   </label>
-                  <label className="flex items-center justify-between gap-3 rounded-2xl bg-paper p-3 text-sm font-black">
+                  <label className="flex items-center justify-between gap-3 rounded-lg bg-paper p-3 text-sm font-semibold">
                     Required
                     <input type="checkbox" checked={selfAssessmentRequired} onChange={(event) => setSelfAssessmentRequired(event.target.checked)} className="h-5 w-5 accent-pulse" />
                   </label>
-                  <label className="block text-sm font-black text-muted">
+                  <label className="block text-sm font-semibold text-muted">
                     Minimum self responses
                     <input
                       type="number"
                       min="1"
                       value={selfMinimumResponses}
                       onChange={(event) => setSelfMinimumResponses(Number(event.target.value))}
-                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                     />
                   </label>
-                  <div className={clsx("rounded-2xl p-3 text-sm font-black", selfAssessmentValidation.valid ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                  <div className={clsx("rounded-lg p-3 text-sm font-semibold", selfAssessmentValidation.valid ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
                     {selfAssessmentValidation.valid ? "Self-assessment setup is valid." : selfAssessmentValidation.errors.join(" ")}
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer weights</p>
-                <h3 className="mt-2 text-xl font-black">Group weighting</h3>
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Reviewer weights</p>
+                <h3 className="mt-2 text-xl font-semibold">Group weighting</h3>
                 <div className="mt-5 space-y-4">
                   {reviewerGroups.map((group) => (
-                    <label key={group.key} className="block text-sm font-black text-muted">
+                    <label key={group.key} className="block text-sm font-semibold text-muted">
                       <span className="flex items-center justify-between gap-3">
                         {group.label}
                         <span className="text-ink">{reviewerWeights[group.key]}%</span>
@@ -2798,79 +2798,79 @@ export default function AssessmentsPage() {
                     </label>
                   ))}
                 </div>
-                <div className={clsx("mt-4 rounded-2xl p-3 text-sm font-black", reviewerWeightTotal === 100 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                <div className={clsx("mt-4 rounded-lg p-3 text-sm font-semibold", reviewerWeightTotal === 100 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
                   Total reviewer weight: {reviewerWeightTotal}%
                 </div>
               </div>
             </div>
 
             <div className="space-y-5">
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Competency builder</p>
-                <h3 className="mt-2 text-xl font-black">Create framework competency</h3>
-                {frameworkNotice && <div className="mt-3 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{frameworkNotice}</div>}
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Competency builder</p>
+                <h3 className="mt-2 text-xl font-semibold">Create framework competency</h3>
+                {frameworkNotice && <div className="mt-3 rounded-lg bg-green-soft p-3 text-sm font-semibold text-green">{frameworkNotice}</div>}
                 <div className="mt-5 grid gap-3 md:grid-cols-2">
-                  <label className="block text-sm font-black text-muted md:col-span-2">
+                  <label className="block text-sm font-semibold text-muted md:col-span-2">
                     Name
                     <input
                       value={competencyDraftName}
                       onChange={(event) => setCompetencyDraftName(event.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                       placeholder="Stakeholder trust"
                     />
                   </label>
-                  <label className="block text-sm font-black text-muted">
+                  <label className="block text-sm font-semibold text-muted">
                     Group
-                    <select value={competencyDraftGroup} onChange={(event) => setCompetencyDraftGroup(event.target.value as CompetencyDefinition["group"])} className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50">
+                    <select value={competencyDraftGroup} onChange={(event) => setCompetencyDraftGroup(event.target.value as CompetencyDefinition["group"])} className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50">
                       {competencyGroups.map((item) => (
                         <option key={item} value={item}>{item}</option>
                       ))}
                     </select>
                   </label>
-                  <label className="block text-sm font-black text-muted">
+                  <label className="block text-sm font-semibold text-muted">
                     Level
-                    <select value={competencyDraftLevel} onChange={(event) => setCompetencyDraftLevel(event.target.value as AssessmentLevel | "all")} className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50">
+                    <select value={competencyDraftLevel} onChange={(event) => setCompetencyDraftLevel(event.target.value as AssessmentLevel | "all")} className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50">
                       <option value="all">All</option>
                       <option value="director">{levelLabel("director", assessmentLevelLabels)}</option>
                       <option value="assistant_director">{levelLabel("assistant_director", assessmentLevelLabels)}</option>
                     </select>
                   </label>
-                  <label className="block text-sm font-black text-muted md:col-span-2">
+                  <label className="block text-sm font-semibold text-muted md:col-span-2">
                     Function
-                    <select value={competencyDraftFunction} onChange={(event) => setCompetencyDraftFunction(event.target.value as AssessmentFunction)} className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50">
+                    <select value={competencyDraftFunction} onChange={(event) => setCompetencyDraftFunction(event.target.value as AssessmentFunction)} className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50">
                       {assessmentFunctions.map((item) => (
                         <option key={item} value={item}>{item.replace("_", " ")}</option>
                       ))}
                     </select>
                   </label>
-                  <label className="block text-sm font-black text-muted md:col-span-2">
+                  <label className="block text-sm font-semibold text-muted md:col-span-2">
                     Description
                     <textarea
                       value={competencyDraftDescription}
                       onChange={(event) => setCompetencyDraftDescription(event.target.value)}
-                      className="mt-1 min-h-20 w-full resize-none rounded-2xl border border-ink/8 bg-paper p-3 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      className="mt-1 min-h-20 w-full resize-none rounded-md border border-ink/8 bg-paper p-3 text-sm text-ink outline-none transition focus:border-pulse/50"
                     />
                   </label>
                 </div>
-                <button type="button" onClick={handleAddCompetency} className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white">
+                <button type="button" onClick={handleAddCompetency} className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white">
                   <ClipboardList size={16} />
                   Add competency
                 </button>
               </div>
 
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Framework library</p>
-                    <h3 className="mt-2 text-xl font-black">Mapped competencies</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Framework library</p>
+                    <h3 className="mt-2 text-xl font-semibold">Mapped competencies</h3>
                   </div>
-                  <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", competencyWeightTotal === 100 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                  <span className={clsx("rounded-lg px-3 py-2 text-sm font-semibold", competencyWeightTotal === 100 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
                     {competencyWeightTotal}%
                   </span>
                 </div>
                 <div className="mt-5 space-y-4">
                   {configuredCompetencies.length === 0 && (
-                    <div className="rounded-[18px] border border-dashed border-ink/15 bg-paper p-5 text-sm leading-6 text-muted">
+                    <div className="rounded-lg border border-dashed border-ink/15 bg-paper p-5 text-sm leading-6 text-muted">
                       No competencies have been saved yet. Create the first competency above, then add the rating statements inside its card.
                     </div>
                   )}
@@ -2883,7 +2883,7 @@ export default function AssessmentsPage() {
                     const statementWeight = activeStatements.length ? Number((competencyWeight / activeStatements.length).toFixed(1)) : 0;
 
                     return (
-                      <div key={competency.id} className={clsx("overflow-hidden rounded-[18px] border bg-paper transition", isExpanded ? "border-pulse/35 shadow-sm" : "border-ink/8")}>
+                      <div key={competency.id} className={clsx("overflow-hidden rounded-lg border bg-paper transition", isExpanded ? "border-pulse/35 shadow-sm" : "border-ink/8")}>
                         <button
                           type="button"
                           onClick={() => setExpandedCompetencyId(isExpanded ? null : competency.id)}
@@ -2891,24 +2891,24 @@ export default function AssessmentsPage() {
                           aria-expanded={isExpanded}
                         >
                           <div>
-                            <p className="text-sm font-black">{competency.name}</p>
+                            <p className="text-sm font-semibold">{competency.name}</p>
                             <p className="mt-1 text-xs leading-5 text-muted">{competency.description || "No description added yet."}</p>
-                            <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
+                            <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
                               {competency.group} / {competency.level?.replace("_", " ")} / {competency.function?.replace("_", " ")}
                             </p>
-                            <p className="mt-3 text-xs font-bold text-pulse">
+                            <p className="mt-3 text-xs font-semibold text-pulse">
                               {activeStatements.length} statement{activeStatements.length === 1 ? "" : "s"} mapped
                             </p>
                           </div>
                           <div className="flex shrink-0 flex-col items-end gap-2">
-                            <span className="rounded-2xl bg-white px-3 py-2 text-sm font-black text-ink shadow-sm">{competencyWeight}%</span>
+                            <span className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm">{competencyWeight}%</span>
                             <Building2 className="text-pulse" size={18} />
                           </div>
                         </button>
 
                         {isExpanded && (
                           <div className="border-t border-ink/8 bg-white p-4">
-                            <label className="block text-sm font-black text-muted">
+                            <label className="block text-sm font-semibold text-muted">
                               <span className="flex items-center justify-between gap-3">
                                 Competency weight
                                 <span className="text-ink">{competencyWeight}%</span>
@@ -2923,34 +2923,34 @@ export default function AssessmentsPage() {
                               />
                             </label>
 
-                            <div className="mt-4 rounded-2xl border border-ink/8 bg-paper p-4">
+                            <div className="mt-4 rounded-lg border border-ink/8 bg-paper p-4">
                               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
-                                  <p className="text-sm font-black text-ink">Rating statements</p>
+                                  <p className="text-sm font-semibold text-ink">Rating statements</p>
                                   <p className="text-xs leading-5 text-muted">
                                     Statement weights are shared evenly inside this competency and always add back to {competencyWeight}%.
                                   </p>
                                 </div>
-                                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-muted">
+                                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-muted">
                                   {activeStatements.length ? `${statementWeight}% each` : "No statements yet"}
                                 </span>
                               </div>
 
                               <div className="mt-4 space-y-3">
                                 {activeStatements.map((item, index) => (
-                                  <div key={item.id} className="flex items-start gap-3 rounded-2xl border border-ink/8 bg-white p-3">
-                                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pulse-soft text-xs font-black text-pulse">
+                                  <div key={item.id} className="flex items-start gap-3 rounded-lg border border-ink/8 bg-white p-3">
+                                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pulse-soft text-xs font-semibold text-pulse">
                                       {index + 1}
                                     </span>
                                     <div className="min-w-0 flex-1">
-                                      <p className="text-sm font-bold leading-5 text-ink">{item.body}</p>
+                                      <p className="text-sm font-semibold leading-5 text-ink">{item.body}</p>
                                       <p className="mt-1 text-xs text-muted">{statementWeight}% of total report weight</p>
                                     </div>
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveStatement(item)}
                                       disabled={statementBusyId === item.id}
-                                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-ink/8 bg-white text-muted transition hover:border-red-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-ink/8 bg-white text-muted transition hover:border-red-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
                                       aria-label="Remove rating statement"
                                     >
                                       <Trash2 size={15} />
@@ -2963,14 +2963,14 @@ export default function AssessmentsPage() {
                                 <textarea
                                   value={statementDrafts[competency.id] ?? ""}
                                   onChange={(event) => setStatementDrafts((current) => ({ ...current, [competency.id]: event.target.value }))}
-                                  className="min-h-20 w-full resize-none rounded-2xl border border-ink/8 bg-white p-3 text-sm text-ink outline-none transition focus:border-pulse/50"
+                                  className="min-h-20 w-full resize-none rounded-md border border-ink/8 bg-white p-3 text-sm text-ink outline-none transition focus:border-pulse/50"
                                   placeholder={`Example: Demonstrates ${competency.name.toLowerCase()} in daily decisions.`}
                                 />
                                 <button
                                   type="button"
                                   onClick={() => handleAddStatement(competency)}
                                   disabled={statementBusyId === competency.id}
-                                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-black text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60 sm:self-start"
+                                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60 sm:self-start"
                                 >
                                   <Plus size={16} />
                                   {statementBusyId === competency.id ? "Saving..." : "Add statement"}
@@ -2991,29 +2991,29 @@ export default function AssessmentsPage() {
         {activeTab === "self" && (
           <div className="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
             <div className="space-y-5">
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Self-assessment</p>
-                    <h3 className="mt-2 font-syne text-2xl font-black">{selectedAssessee.name}</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Self-assessment</p>
+                    <h3 className="mt-2 font-syne text-2xl font-semibold">{selectedAssessee.name}</h3>
                     <p className="mt-2 text-sm leading-6 text-muted">{selectedAssessee.portfolio}</p>
                   </div>
-                  <span className={clsx("rounded-2xl px-3 py-2 text-sm font-black", selfSubmitted ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                  <span className={clsx("rounded-lg px-3 py-2 text-sm font-semibold", selfSubmitted ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
                     {selfSubmitted ? "Submitted" : "In progress"}
                   </span>
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl bg-paper p-4">
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Completion</p>
-                    <p className="mt-2 text-3xl font-black">{selfCompletion}%</p>
+                  <div className="rounded-lg bg-paper p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Completion</p>
+                    <p className="mt-2 text-3xl font-semibold">{selfCompletion}%</p>
                   </div>
-                  <div className="rounded-2xl bg-paper p-4">
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Self score</p>
-                    <p className="mt-2 text-3xl font-black">{selfAverage}/5</p>
+                  <div className="rounded-lg bg-paper p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Self score</p>
+                    <p className="mt-2 text-3xl font-semibold">{selfAverage}/5</p>
                   </div>
-                  <div className={clsx("rounded-2xl p-4", selfVsOthersGap >= 0 ? "bg-pulse-soft text-pulse" : "bg-amber-50 text-amber-700")}>
-                    <p className="text-xs font-bold uppercase tracking-[0.14em]">Gap</p>
-                    <p className="mt-2 text-3xl font-black">{selfVsOthersGap >= 0 ? "+" : ""}{selfVsOthersGap}</p>
+                  <div className={clsx("rounded-lg p-4", selfVsOthersGap >= 0 ? "bg-pulse-soft text-pulse" : "bg-amber-50 text-amber-700")}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em]">Gap</p>
+                    <p className="mt-2 text-3xl font-semibold">{selfVsOthersGap >= 0 ? "+" : ""}{selfVsOthersGap}</p>
                   </div>
                 </div>
                 <div className="mt-5 h-2 overflow-hidden rounded-full bg-ink/8">
@@ -3021,23 +3021,23 @@ export default function AssessmentsPage() {
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Comparison signals</p>
-                <h3 className="mt-2 text-xl font-black">Self versus 360 view</h3>
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Comparison signals</p>
+                <h3 className="mt-2 text-xl font-semibold">Self versus 360 view</h3>
                 <div className="mt-5 space-y-3">
                   {selectedResult.competencyScores.slice(0, 4).map((item) => {
                     const competencyName = competencyNameById.get(item.competencyId) ?? item.competencyId;
                     const selfScore = (selfRatings[item.competencyId] ?? 4) * 20;
                     const gap = Math.round(selfScore - item.score);
                     return (
-                      <div key={item.competencyId} className="rounded-2xl bg-paper p-3">
+                      <div key={item.competencyId} className="rounded-lg bg-paper p-3">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-black">{competencyName}</p>
-                          <span className={clsx("rounded-full px-2 py-1 text-xs font-black", gap >= 0 ? "bg-pulse-soft text-pulse" : "bg-amber-50 text-amber-700")}>
+                          <p className="text-sm font-semibold">{competencyName}</p>
+                          <span className={clsx("rounded-full px-2 py-1 text-xs font-semibold", gap >= 0 ? "bg-pulse-soft text-pulse" : "bg-amber-50 text-amber-700")}>
                             {gap >= 0 ? "+" : ""}{gap}
                           </span>
                         </div>
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-muted">
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-muted">
                           <span>Self {selfScore}</span>
                           <span>Others {item.score}</span>
                         </div>
@@ -3048,33 +3048,33 @@ export default function AssessmentsPage() {
               </div>
             </div>
 
-            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+            <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Leader input</p>
-                  <h3 className="mt-2 text-xl font-black">Complete self-assessment</h3>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Leader input</p>
+                  <h3 className="mt-2 text-xl font-semibold">Complete self-assessment</h3>
                 </div>
                 <button
                   type="button"
                   onClick={handleSelfSubmit}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white"
                 >
                   <Send size={16} />
                   Submit self view
                 </button>
               </div>
-              {selfNotice && <div className="mt-4 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse">{selfNotice}</div>}
+              {selfNotice && <div className="mt-4 rounded-lg bg-pulse-soft p-3 text-sm font-semibold text-pulse">{selfNotice}</div>}
               <div className="mt-5 space-y-5">
                 {assessmentQuestionItems.map((question) => {
                   const competency = configuredCompetencies.find((item) => item.id === question.competencyId);
                   return (
-                    <div key={question.id} className="rounded-[18px] border border-ink/8 bg-paper p-4">
+                    <div key={question.id} className="rounded-lg border border-ink/8 bg-paper p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-black">{competency?.name}</p>
+                          <p className="text-sm font-semibold">{competency?.name}</p>
                           <p className="mt-1 text-sm leading-6 text-muted">{question.prompt}</p>
                         </div>
-                        <span className="rounded-2xl bg-white px-3 py-2 text-sm font-black text-pulse">
+                        <span className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-pulse">
                           {selfRatings[question.competencyId]}/5
                         </span>
                       </div>
@@ -3091,7 +3091,7 @@ export default function AssessmentsPage() {
                         value={selfComments[question.competencyId] ?? ""}
                         onChange={(event) => setSelfComments((current) => ({ ...current, [question.competencyId]: event.target.value }))}
                         placeholder="Evidence, example, or reflection"
-                        className="mt-3 min-h-20 w-full resize-none rounded-2xl border border-ink/8 bg-white p-3 text-sm outline-none transition placeholder:text-muted focus:border-pulse/50"
+                        className="mt-3 min-h-20 w-full resize-none rounded-md border border-ink/8 bg-white p-3 text-sm outline-none transition placeholder:text-muted focus:border-pulse/50"
                       />
                     </div>
                   );
@@ -3104,60 +3104,60 @@ export default function AssessmentsPage() {
         {activeTab === "nominations" && (
           <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
             <div className="space-y-5">
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Rater nomination</p>
-                <h3 className="mt-2 font-syne text-2xl font-black">{selectedAssessee.name}</h3>
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Rater nomination</p>
+                <h3 className="mt-2 font-syne text-2xl font-semibold">{selectedAssessee.name}</h3>
                 <p className="mt-2 text-sm leading-6 text-muted">{levelLabel(selectedAssessee.level)} - {selectedAssessee.functionName} - {selectedAssessee.region}</p>
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl bg-paper p-4">
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Nominated</p>
-                    <p className="mt-2 text-3xl font-black">{selectedNominations.length}</p>
+                  <div className="rounded-lg bg-paper p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Nominated</p>
+                    <p className="mt-2 text-3xl font-semibold">{selectedNominations.length}</p>
                   </div>
-                  <div className="rounded-2xl bg-green-soft p-4 text-green">
-                    <p className="text-xs font-bold uppercase tracking-[0.14em]">Approved</p>
-                    <p className="mt-2 text-3xl font-black">{approvedNominations}</p>
+                  <div className="rounded-lg bg-green-soft p-4 text-green">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em]">Approved</p>
+                    <p className="mt-2 text-3xl font-semibold">{approvedNominations}</p>
                   </div>
-                  <div className="rounded-2xl bg-amber-50 p-4 text-amber-700">
-                    <p className="text-xs font-bold uppercase tracking-[0.14em]">Pending</p>
-                    <p className="mt-2 text-3xl font-black">{pendingNominations}</p>
+                  <div className="rounded-lg bg-amber-50 p-4 text-amber-700">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em]">Pending</p>
+                    <p className="mt-2 text-3xl font-semibold">{pendingNominations}</p>
                   </div>
                 </div>
-                <div className={clsx("mt-5 rounded-2xl p-3 text-sm font-black", nominationValidation.valid && selectedNominationSummary.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                <div className={clsx("mt-5 rounded-lg p-3 text-sm font-semibold", nominationValidation.valid && selectedNominationSummary.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
                   {nominationValidation.valid && selectedNominationSummary.ready
                     ? "Nomination list passes validation and has approved group coverage."
                     : nominationValidation.errors[0] ?? `Approval gaps: ${selectedNominationSummary.missingGroups.join(", ").replaceAll("_", " ")}`}
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Nominate rater</p>
-                <h3 className="mt-2 text-xl font-black">Add reviewer candidate</h3>
-                {nominationNotice && <div className="mt-3 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse">{nominationNotice}</div>}
+              <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Nominate rater</p>
+                <h3 className="mt-2 text-xl font-semibold">Add reviewer candidate</h3>
+                {nominationNotice && <div className="mt-3 rounded-lg bg-pulse-soft p-3 text-sm font-semibold text-pulse">{nominationNotice}</div>}
                 <div className="mt-5 grid gap-3">
-                  <label className="block text-sm font-black text-muted">
+                  <label className="block text-sm font-semibold text-muted">
                     Name
                     <input
                       value={nomineeName}
                       onChange={(event) => setNomineeName(event.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                       placeholder="Nominee name"
                     />
                   </label>
-                  <label className="block text-sm font-black text-muted">
+                  <label className="block text-sm font-semibold text-muted">
                     Email
                     <input
                       value={nomineeEmail}
                       onChange={(event) => setNomineeEmail(event.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                       placeholder="nominee@company.com"
                     />
                   </label>
-                  <label className="block text-sm font-black text-muted">
+                  <label className="block text-sm font-semibold text-muted">
                     Reviewer group
                     <select
                       value={nomineeGroup}
                       onChange={(event) => setNomineeGroup(event.target.value as ReviewerGroup)}
-                      className="mt-1 w-full rounded-2xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                      className="mt-1 w-full rounded-md border border-ink/8 bg-paper px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                     >
                       {reviewerGroups.map((group) => (
                         <option key={group.key} value={group.key}>
@@ -3167,40 +3167,40 @@ export default function AssessmentsPage() {
                     </select>
                   </label>
                 </div>
-                <button type="button" onClick={handleAddNomination} className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white">
+                <button type="button" onClick={handleAddNomination} className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white">
                   <Users size={16} />
                   Add nomination
                 </button>
               </div>
             </div>
 
-            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+            <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Approval queue</p>
-                  <h3 className="mt-2 text-xl font-black">Manager / HR review</h3>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Approval queue</p>
+                  <h3 className="mt-2 text-xl font-semibold">Manager / HR review</h3>
                 </div>
-                <span className="rounded-2xl bg-paper px-3 py-2 text-sm font-black text-muted">
+                <span className="rounded-lg bg-paper px-3 py-2 text-sm font-semibold text-muted">
                   {approvedNominations}/{selectedNominations.length} approved
                 </span>
               </div>
               <div className="mt-5 space-y-3">
                 {selectedNominations.length === 0 && (
-                  <div className="rounded-[18px] border border-dashed border-ink/15 bg-paper p-6 text-sm font-semibold text-muted">
+                  <div className="rounded-lg border border-dashed border-ink/15 bg-paper p-6 text-sm font-semibold text-muted">
                     No nominations for this leader yet.
                   </div>
                 )}
                 {selectedNominations.map((nomination) => (
-                  <div key={nomination.id} className="rounded-[18px] border border-ink/8 bg-paper p-4">
+                  <div key={nomination.id} className="rounded-lg border border-ink/8 bg-paper p-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black">{nomination.name}</p>
+                        <p className="truncate text-sm font-semibold">{nomination.name}</p>
                         <p className="truncate text-xs text-muted">{nomination.email}</p>
-                        <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-muted">{reviewerGroupLabel(nomination.group)}</p>
+                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">{reviewerGroupLabel(nomination.group)}</p>
                       </div>
                       <span
                         className={clsx(
-                          "w-fit rounded-full px-3 py-1 text-xs font-black capitalize",
+                          "w-fit rounded-full px-3 py-1 text-xs font-semibold capitalize",
                           nomination.status === "approved" && "bg-green-soft text-green",
                           nomination.status === "pending" && "bg-amber-50 text-amber-700",
                           nomination.status === "rejected" && "bg-red-50 text-red-600",
@@ -3213,7 +3213,7 @@ export default function AssessmentsPage() {
                       <button
                         type="button"
                         onClick={() => handleNominationDecision(nomination.id, "approved")}
-                        className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-ink px-3 text-sm font-black text-white"
+                        className="inline-flex min-h-10 items-center gap-2 rounded-md bg-ink px-3 text-sm font-semibold text-white"
                       >
                         <CheckCircle2 size={16} />
                         Approve
@@ -3221,7 +3221,7 @@ export default function AssessmentsPage() {
                       <button
                         type="button"
                         onClick={() => handleNominationDecision(nomination.id, "rejected")}
-                        className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-ink/10 bg-white px-3 text-sm font-black text-muted"
+                        className="inline-flex min-h-10 items-center gap-2 rounded-md border border-ink/10 bg-white px-3 text-sm font-semibold text-muted"
                       >
                         Reject
                       </button>
@@ -3235,9 +3235,9 @@ export default function AssessmentsPage() {
 
         {activeTab === "review" && (
           <div className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
-            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer context</p>
-              <h3 className="mt-2 text-xl font-black">Adaptive 360 form</h3>
+            <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Reviewer context</p>
+              <h3 className="mt-2 text-xl font-semibold">Adaptive 360 form</h3>
               <p className="mt-3 text-sm leading-6 text-muted">
                 The same competency model can render differently for internal leaders and external customers while keeping scores comparable.
               </p>
@@ -3247,59 +3247,59 @@ export default function AssessmentsPage() {
                     key={group.key}
                     onClick={() => setReviewerGroup(group.key)}
                     className={clsx(
-                      "rounded-2xl border px-4 py-3 text-left transition",
+                      "rounded-md border px-4 py-3 text-left transition",
                       reviewerGroup === group.key ? "border-pulse bg-pulse-soft" : "border-ink/8 bg-paper hover:border-pulse/40",
                     )}
                   >
-                    <p className="text-sm font-black">{group.label}</p>
+                    <p className="text-sm font-semibold">{group.label}</p>
                     <p className="mt-1 text-xs leading-5 text-muted">{group.description}</p>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+            <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Preview response</p>
-                  <h3 className="mt-2 text-xl font-black">{reviewerGroupLabel(reviewerGroup)} reviewer</h3>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Preview response</p>
+                  <h3 className="mt-2 text-xl font-semibold">{reviewerGroupLabel(reviewerGroup)} reviewer</h3>
                 </div>
                 <button
                   onClick={handleReviewSubmit}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-pulse px-4 text-sm font-black text-white"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-pulse px-4 text-sm font-semibold text-white"
                 >
                   <Send size={16} />
                   Submit review
                 </button>
               </div>
-              <div className="mt-4 rounded-[18px] border border-ink/8 bg-paper p-4">
-                <label className="block text-sm font-black text-muted">
+              <div className="mt-4 rounded-lg border border-ink/8 bg-paper p-4">
+                <label className="block text-sm font-semibold text-muted">
                   Review token
                   <input
                     value={submissionToken}
                     onChange={(event) => setSubmissionToken(event.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
+                    className="mt-1 w-full rounded-md border border-ink/8 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-pulse/50"
                     placeholder="reviewer-token-123"
                   />
                 </label>
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white p-3">
-                  <span className="text-sm font-black">Aggregate score</span>
-                  <span className="rounded-full bg-pulse-soft px-3 py-1 text-sm font-black text-pulse">{reviewSubmissionSummary.average}/5</span>
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-white p-3">
+                  <span className="text-sm font-semibold">Aggregate score</span>
+                  <span className="rounded-full bg-pulse-soft px-3 py-1 text-sm font-semibold text-pulse">{reviewSubmissionSummary.average}/5</span>
                 </div>
               </div>
-              {notice && <div className="mt-4 rounded-2xl bg-green-soft p-3 text-sm font-black text-green">{notice}</div>}
-              {submissionNotice && <div className="mt-4 rounded-2xl bg-pulse-soft p-3 text-sm font-black text-pulse">{submissionNotice}</div>}
+              {notice && <div className="mt-4 rounded-lg bg-green-soft p-3 text-sm font-semibold text-green">{notice}</div>}
+              {submissionNotice && <div className="mt-4 rounded-lg bg-pulse-soft p-3 text-sm font-semibold text-pulse">{submissionNotice}</div>}
               <div className="mt-5 space-y-5">
                 {assessmentQuestionItems.map((question) => {
                   const competency = configuredCompetencies.find((item) => item.id === question.competencyId);
                   return (
-                    <div key={question.id} className="rounded-[18px] border border-ink/8 bg-paper p-4">
+                    <div key={question.id} className="rounded-lg border border-ink/8 bg-paper p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-black">{competency?.name}</p>
+                          <p className="text-sm font-semibold">{competency?.name}</p>
                           <p className="mt-1 text-sm leading-6 text-muted">{question.prompt}</p>
                         </div>
-                        <span className="rounded-2xl bg-white px-3 py-2 text-sm font-black text-pulse">
+                        <span className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-pulse">
                           {ratings[question.competencyId]}/5
                         </span>
                       </div>
@@ -3324,7 +3324,7 @@ export default function AssessmentsPage() {
                           setSubmissionComments((current) => ({ ...current, [question.competencyId]: nextValue }));
                         }}
                         placeholder="Evidence, example, or coaching note"
-                        className="mt-3 min-h-20 w-full resize-none rounded-2xl border border-ink/8 bg-white p-3 text-sm outline-none transition placeholder:text-muted focus:border-pulse/50"
+                        className="mt-3 min-h-20 w-full resize-none rounded-md border border-ink/8 bg-white p-3 text-sm outline-none transition placeholder:text-muted focus:border-pulse/50"
                       />
                     </div>
                   );
@@ -3336,74 +3336,74 @@ export default function AssessmentsPage() {
 
         {activeTab === "reports" && (
           <div className="space-y-5">
-            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+            <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Board-ready report</p>
-                  <h2 className="mt-2 font-syne text-2xl font-black">{selectedAssessee.name}</h2>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Board-ready report</p>
+                  <h2 className="mt-2 font-syne text-2xl font-semibold">{selectedAssessee.name}</h2>
                   <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{selectedAssessee.portfolio}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-ink/10 px-3 text-sm font-black">
+                  <button className="inline-flex min-h-10 items-center gap-2 rounded-md border border-ink/10 px-3 text-sm font-semibold">
                     <FileText size={16} />
                     PDF
                   </button>
-                  <button className="inline-flex min-h-10 items-center gap-2 rounded-2xl border border-ink/10 px-3 text-sm font-black">
+                  <button className="inline-flex min-h-10 items-center gap-2 rounded-md border border-ink/10 px-3 text-sm font-semibold">
                     <Download size={16} />
                     CSV
                   </button>
                 </div>
               </div>
               <div className="mt-5 grid gap-3 md:grid-cols-4">
-                <div className="rounded-2xl bg-ink p-4 text-white">
-                  <p className="text-xs font-bold text-white/50">Overall score</p>
-                  <p className="mt-2 text-4xl font-black">{selectedReportSummary.overallScore}</p>
+                <div className="rounded-lg bg-ink p-4 text-white">
+                  <p className="text-xs font-semibold text-white/65">Overall score</p>
+                  <p className="mt-2 text-4xl font-semibold">{selectedReportSummary.overallScore}</p>
                 </div>
-                <div className="rounded-2xl bg-paper p-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Report status</p>
-                  <p className="mt-2 text-2xl font-black">{selectedReportSummary.ready && canReleaseSelectedReport ? "Ready" : "Blocked"}</p>
+                <div className="rounded-lg bg-paper p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Report status</p>
+                  <p className="mt-2 text-2xl font-semibold">{selectedReportSummary.ready && canReleaseSelectedReport ? "Ready" : "Blocked"}</p>
                 </div>
-                <div className="rounded-2xl bg-pulse-soft p-4 text-pulse">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em]">Customer gap</p>
-                  <p className="mt-2 text-2xl font-black">{selectedResult.groupScores.customer - selectedResult.groupScores.line_manager}</p>
+                <div className="rounded-lg bg-pulse-soft p-4 text-pulse">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em]">Customer gap</p>
+                  <p className="mt-2 text-2xl font-semibold">{selectedResult.groupScores.customer - selectedResult.groupScores.line_manager}</p>
                 </div>
-                <div className="rounded-2xl bg-green-soft p-4 text-green">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em]">Completion</p>
-                  <p className="mt-2 text-2xl font-black">{completionForAssessee(selectedAssessee.id, reviewerAssignments)}%</p>
+                <div className="rounded-lg bg-green-soft p-4 text-green">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em]">Completion</p>
+                  <p className="mt-2 text-2xl font-semibold">{completionForAssessee(selectedAssessee.id, reviewerAssignments)}%</p>
                 </div>
               </div>
             </div>
 
             <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
               <div className="space-y-5">
-                <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Executive summary</p>
-                  <h3 className="mt-2 text-xl font-black">Leadership narrative</h3>
+                <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Executive summary</p>
+                  <h3 className="mt-2 text-xl font-semibold">Leadership narrative</h3>
                   <div className="mt-5 grid gap-3">
                     {selectedReportSummary.strengths.map((item) => (
-                      <p key={item} className="rounded-2xl bg-green-soft p-3 text-sm font-semibold leading-6 text-green">{item}</p>
+                      <p key={item} className="rounded-lg bg-green-soft p-3 text-sm font-semibold leading-6 text-green">{item}</p>
                     ))}
                     {selectedReportSummary.developmentAreas.map((item) => (
-                      <p key={item} className="rounded-2xl bg-pulse-soft p-3 text-sm font-semibold leading-6 text-pulse">{item}</p>
+                      <p key={item} className="rounded-lg bg-pulse-soft p-3 text-sm font-semibold leading-6 text-pulse">{item}</p>
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Scorecard</p>
-                  <h3 className="mt-2 text-xl font-black">Competency profile</h3>
+                <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Scorecard</p>
+                  <h3 className="mt-2 text-xl font-semibold">Competency profile</h3>
                   <div className="mt-5 space-y-4">
                     {selectedResult.competencyScores.map((item) => {
                       const competencyName = competencyNameById.get(item.competencyId) ?? item.competencyId;
                       const variance = item.score - item.benchmark;
                       return (
-                        <div key={item.competencyId} className="rounded-[18px] bg-paper p-4">
+                        <div key={item.competencyId} className="rounded-lg bg-paper p-4">
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-black">{competencyName}</p>
+                              <p className="truncate text-sm font-semibold">{competencyName}</p>
                               <p className="mt-1 text-xs text-muted">Benchmark {item.benchmark} / Weight {competencyWeights[item.competencyId] ?? 0}%</p>
                             </div>
-                            <span className={clsx("rounded-full px-3 py-1 text-sm font-black", variance >= 0 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                            <span className={clsx("rounded-full px-3 py-1 text-sm font-semibold", variance >= 0 ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
                               {item.score}
                             </span>
                           </div>
@@ -3418,54 +3418,54 @@ export default function AssessmentsPage() {
               </div>
 
               <div className="space-y-5">
-                <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Blind spot analysis</p>
-                  <h3 className="mt-2 text-xl font-black">Signal comparison</h3>
+                <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Blind spot analysis</p>
+                  <h3 className="mt-2 text-xl font-semibold">Signal comparison</h3>
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl bg-green-soft p-4 text-green">
-                      <p className="text-xs font-bold uppercase tracking-[0.14em]">Hidden strength</p>
-                      <p className="mt-2 text-lg font-black">{strongestCompetencyName}</p>
+                    <div className="rounded-lg bg-green-soft p-4 text-green">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em]">Hidden strength</p>
+                      <p className="mt-2 text-lg font-semibold">{strongestCompetencyName}</p>
                     </div>
-                    <div className="rounded-2xl bg-amber-50 p-4 text-amber-700">
-                      <p className="text-xs font-bold uppercase tracking-[0.14em]">Development risk</p>
-                      <p className="mt-2 text-lg font-black">{weakestCompetencyName}</p>
+                    <div className="rounded-lg bg-amber-50 p-4 text-amber-700">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em]">Development risk</p>
+                      <p className="mt-2 text-lg font-semibold">{weakestCompetencyName}</p>
                     </div>
                   </div>
                   <div className="mt-4 space-y-3">
                     {selectedResult.riskNotes.map((note) => (
-                      <p key={note} className="rounded-2xl bg-paper p-3 text-sm font-semibold leading-6 text-muted">{note}</p>
+                      <p key={note} className="rounded-lg bg-paper p-3 text-sm font-semibold leading-6 text-muted">{note}</p>
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Reviewer lens</p>
-                  <h3 className="mt-2 text-xl font-black">Group scores</h3>
+                <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Reviewer lens</p>
+                  <h3 className="mt-2 text-xl font-semibold">Group scores</h3>
                   <div className="mt-5 space-y-4">
                     {reviewerGroups.map((group) => (
                       <div key={group.key} className={clsx("border-l-4 bg-paper p-4", groupTone[group.key])}>
                         <div className="flex items-center justify-between gap-4">
                           <div>
-                            <p className="text-sm font-black">{group.label}</p>
+                            <p className="text-sm font-semibold">{group.label}</p>
                             <p className="mt-1 text-xs text-muted">Weight {reviewerWeights[group.key]}%</p>
                           </div>
-                          <p className="text-2xl font-black">{selectedReportSummary.groupScores[group.key] ?? selectedResult.groupScores[group.key]}</p>
+                          <p className="text-2xl font-semibold">{selectedReportSummary.groupScores[group.key] ?? selectedResult.groupScores[group.key]}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+                <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Release controls</p>
-                      <h3 className="mt-2 text-xl font-black">Approval checklist</h3>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Release controls</p>
+                      <h3 className="mt-2 text-xl font-semibold">Approval checklist</h3>
                     </div>
                     <button
                       disabled={!canReleaseSelectedReport}
                       className={clsx(
-                        "inline-flex min-h-10 items-center gap-2 rounded-2xl px-3 text-sm font-black transition",
+                        "inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold transition",
                         canReleaseSelectedReport ? "bg-ink text-white" : "cursor-not-allowed border border-ink/10 bg-white text-muted",
                       )}
                     >
@@ -3488,34 +3488,34 @@ export default function AssessmentsPage() {
                   </div>
                   <div className="mt-4 space-y-2">
                     {selectedReportSummary.notes.map((note) => (
-                      <p key={note} className="rounded-2xl bg-paper p-3 text-xs font-semibold leading-5 text-muted">{note}</p>
+                      <p key={note} className="rounded-lg bg-paper p-3 text-xs font-semibold leading-5 text-muted">{note}</p>
                     ))}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-[22px] border border-ink/8 bg-white p-5 shadow-sm">
+            <div className="rounded-lg border border-ink/8 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-muted">Cohort reporting</p>
-                  <h3 className="mt-2 text-xl font-black">Leadership portfolio view</h3>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Cohort reporting</p>
+                  <h3 className="mt-2 text-xl font-semibold">Leadership portfolio view</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-right">
-                  <div className="rounded-2xl bg-paper px-3 py-2">
-                    <p className="text-xs font-bold text-muted">Average</p>
-                    <p className="text-lg font-black">{cohortAverageScore}</p>
+                  <div className="rounded-lg bg-paper px-3 py-2">
+                    <p className="text-xs font-semibold text-muted">Average</p>
+                    <p className="text-lg font-semibold">{cohortAverageScore}</p>
                   </div>
-                  <div className="rounded-2xl bg-green-soft px-3 py-2 text-green">
-                    <p className="text-xs font-bold">Ready</p>
-                    <p className="text-lg font-black">{reportReadyCount}/{leaderProgress.length}</p>
+                  <div className="rounded-lg bg-green-soft px-3 py-2 text-green">
+                    <p className="text-xs font-semibold">Ready</p>
+                    <p className="text-lg font-semibold">{reportReadyCount}/{leaderProgress.length}</p>
                   </div>
                 </div>
               </div>
               <div className="mt-5 overflow-x-auto">
                 <table className="w-full min-w-[720px] text-left text-sm">
                   <thead>
-                    <tr className="border-b border-ink/8 text-xs font-black uppercase tracking-[0.14em] text-muted">
+                    <tr className="border-b border-ink/8 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                       <th className="py-3 pr-3">Leader</th>
                       <th className="py-3 pr-3">Function</th>
                       <th className="py-3 pr-3">Region</th>
@@ -3527,12 +3527,12 @@ export default function AssessmentsPage() {
                   <tbody>
                     {cohortReportSummaries.map((entry) => (
                       <tr key={entry.result.assesseeId} className="border-b border-ink/8 last:border-0">
-                        <td className="py-4 pr-3 font-black">{entry.assessee?.name ?? "Unknown leader"}</td>
+                        <td className="py-4 pr-3 font-semibold">{entry.assessee?.name ?? "Unknown leader"}</td>
                         <td className="py-4 pr-3 text-muted">{entry.assessee?.functionName ?? "Not set"}</td>
                         <td className="py-4 pr-3 text-muted">{entry.assessee?.region ?? "Not set"}</td>
-                        <td className="py-4 pr-3 font-black">{entry.summary.overallScore}</td>
+                        <td className="py-4 pr-3 font-semibold">{entry.summary.overallScore}</td>
                         <td className="py-4 pr-3">
-                          <span className={clsx("rounded-full px-2 py-1 text-xs font-black", entry.summary.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
+                          <span className={clsx("rounded-full px-2 py-1 text-xs font-semibold", entry.summary.ready ? "bg-green-soft text-green" : "bg-amber-50 text-amber-700")}>
                             {entry.summary.ready ? "Ready" : "Incomplete"}
                           </span>
                         </td>

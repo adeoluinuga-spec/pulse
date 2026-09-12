@@ -320,7 +320,7 @@ function HRDashboard() {
       <main className="dashboard-page grid min-h-[60vh] place-items-center px-4">
         <div className="max-w-sm rounded-lg border border-border bg-card p-5 text-center">
           <ShieldCheck className="mx-auto text-muted" size={24} />
-          <p className="mt-3 text-sm font-bold text-ink">HR access is restricted.</p>
+          <p className="mt-3 text-sm font-semibold text-ink">HR access is restricted.</p>
           <p className="mt-1 text-xs text-muted">Your profile is not configured as an HR admin.</p>
         </div>
       </main>
@@ -332,7 +332,7 @@ function HRDashboard() {
       <main className="dashboard-page grid min-h-[60vh] place-items-center px-4">
         <div className="text-center">
           <Loader2 className="mx-auto animate-spin text-muted" size={24} />
-          <p className="mt-3 text-sm font-bold text-muted">Loading HR dashboard...</p>
+          <p className="mt-3 text-sm font-semibold text-muted">Loading HR dashboard...</p>
         </div>
       </main>
     );
@@ -341,7 +341,7 @@ function HRDashboard() {
   if (error) {
     return (
       <main className="dashboard-page grid min-h-[60vh] place-items-center px-4">
-        <div className="rounded-lg border border-red/20 bg-red-soft px-5 py-4 text-sm font-bold text-red">{error}</div>
+        <div className="rounded-lg border border-red/20 bg-red-soft px-5 py-4 text-sm font-semibold text-red">{error}</div>
       </main>
     );
   }
@@ -465,24 +465,24 @@ function OperationalDashboard({
       <section className="rounded-lg bg-ink p-5 text-white md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">HR Command Centre</p>
-            <h1 className="mt-1 font-syne text-3xl font-bold leading-tight">{state.org?.name}</h1>
-            <p className="mt-1 text-sm text-white/55">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/65">HR Command Centre</p>
+            <h1 className="mt-1 font-syne text-3xl font-semibold leading-tight">{state.org?.name}</h1>
+            <p className="mt-1 text-sm text-white/65">
               {state.org?.current_cycle ?? "No active cycle"}
               {cycleEnd && ` · closes ${cycleEnd}`}
             </p>
           </div>
           <div className="flex items-start gap-3">
             <div className="rounded-lg border border-white/10 bg-white/[0.06] px-4 py-3 text-center">
-              <p className="font-syne text-3xl font-bold">{avgScore}%</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Org avg score</p>
+              <p className="font-syne text-3xl font-semibold">{avgScore}%</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/65">Org avg score</p>
             </div>
 
             {/* Continue Setup button */}
             <button
               ref={setupBtnRef}
               onClick={toggleSetup}
-              className="flex h-full items-center gap-2 rounded-lg border border-white/20 bg-white/[0.08] px-3 py-2.5 text-xs font-bold text-white transition hover:bg-white/15"
+              className="flex h-full items-center gap-2 rounded-lg border border-white/20 bg-white/[0.08] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-white/15"
             >
               <Settings2 size={14} />
               Continue Setup
@@ -512,7 +512,7 @@ function OperationalDashboard({
         <div className="rounded-lg border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
             <div>
-              <p className="text-sm font-black text-ink">Staff Performance</p>
+              <p className="text-sm font-semibold text-ink">Staff Performance</p>
               <p className="text-[11px] text-muted">Click an employee to view or edit their profile</p>
             </div>
             <div className="flex items-center gap-2">
@@ -521,19 +521,19 @@ function OperationalDashboard({
                 placeholder="Search…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-9 w-40 rounded-xl border border-border bg-paper px-3 text-xs outline-none transition focus:border-pulse"
+                className="h-9 w-40 rounded-md border border-border bg-paper px-3 text-xs outline-none transition focus:border-pulse"
               />
               <button
                 onClick={downloadCSVTemplate}
                 title="Download update template"
-                className="grid h-9 w-9 place-items-center rounded-xl border border-border bg-paper text-muted transition hover:border-pulse hover:text-pulse"
+                className="grid h-9 w-9 place-items-center rounded-md border border-border bg-paper text-muted transition hover:border-pulse hover:text-pulse"
               >
                 <Download size={14} />
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2 border-b border-border bg-paper px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-muted md:grid-cols-[1fr_100px_80px_70px]">
+          <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2 border-b border-border bg-paper px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted md:grid-cols-[1fr_100px_80px_70px]">
             <span>Employee</span>
             <span className="hidden md:block">Badge</span>
             <span>Score</span>
@@ -553,18 +553,18 @@ function OperationalDashboard({
                     className="grid w-full grid-cols-[1fr_auto_auto_auto] items-center gap-2 px-4 py-3 text-left transition hover:bg-paper md:grid-cols-[1fr_100px_80px_70px]"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: emp.avatar_color ?? "#e8440a" }}>
+                      <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full text-xs font-semibold text-white" style={{ backgroundColor: emp.avatar_color ?? "#245de8" }}>
                         {initials(emp.name)}
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-bold text-ink">{emp.name}</span>
+                        <span className="block truncate text-sm font-semibold text-ink">{emp.name}</span>
                         <span className="block truncate text-[11px] text-muted">{accessRoleLabel(emp)}{emp.department ? ` · ${emp.department}` : ""}</span>
                       </span>
                     </div>
-                    <span className={clsx("hidden rounded-full px-2 py-1 text-[10px] font-bold md:inline-block", badgePill(emp.badge))}>
+                    <span className={clsx("hidden rounded-full px-2 py-1 text-[10px] font-semibold md:inline-block", badgePill(emp.badge))}>
                       {emp.badge ?? "–"}
                     </span>
-                    <span className={clsx("w-fit rounded-full px-2.5 py-1 text-xs font-bold", scoreBg(emp.performance_score))}>
+                    <span className={clsx("w-fit rounded-full px-2.5 py-1 text-xs font-semibold", scoreBg(emp.performance_score))}>
                       {emp.performance_score !== null ? `${emp.performance_score}%` : "–"}
                     </span>
                     <span className={clsx("grid h-7 w-7 place-items-center rounded-full text-xs", reported ? "bg-green-soft text-green" : "bg-red-soft text-red")}>
@@ -600,11 +600,11 @@ function OperationalDashboard({
       {setupOpen && (
         <div
           ref={dropdownRef}
-          className="fixed z-[9999] w-64 overflow-hidden rounded-2xl border border-border bg-white shadow-[0_12px_40px_rgba(0,0,0,0.18)]"
+          className="fixed z-[9999] w-64 overflow-hidden rounded-lg border border-border bg-white shadow-[0_12px_40px_rgba(0,0,0,0.18)]"
           style={{ top: dropdownPos.top, right: dropdownPos.right }}
         >
           <div className="border-b border-border px-4 py-3">
-            <p className="text-xs font-bold text-ink">Setup items</p>
+            <p className="text-xs font-semibold text-ink">Setup items</p>
             <p className="text-[11px] text-muted">
               {setupItems.length === 0 ? "All setup steps complete" : `${setupItems.length} item${setupItems.length !== 1 ? "s" : ""} remaining`}
             </p>
@@ -613,14 +613,14 @@ function OperationalDashboard({
             {setupItems.length === 0 ? (
               <div className="flex items-center gap-2 px-4 py-3">
                 <CheckCircle2 size={15} className="text-green" />
-                <span className="text-xs font-bold text-green">Setup complete</span>
+                <span className="text-xs font-semibold text-green">Setup complete</span>
               </div>
             ) : (
               setupItems.map((item) => (
                 <button
                   key={item.tab}
                   onClick={() => { setSetupOpen(false); onGoToSetup(item.tab); }}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs font-bold text-ink transition hover:bg-paper"
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs font-semibold text-ink transition hover:bg-paper"
                 >
                   <Flag size={13} className="flex-shrink-0 text-pulse" />
                   {item.label}
@@ -629,7 +629,7 @@ function OperationalDashboard({
             )}
             <button
               onClick={() => { setSetupOpen(false); onGoToSetup("overview"); }}
-              className="flex w-full items-center gap-2 px-4 py-3 text-left text-[11px] font-bold text-pulse transition hover:bg-pulse-soft"
+              className="flex w-full items-center gap-2 px-4 py-3 text-left text-[11px] font-semibold text-pulse transition hover:bg-pulse-soft"
             >
               View full setup checklist →
             </button>
@@ -735,11 +735,11 @@ function EmployeeEditPanel({ employee, employees, orgId, onClose, onSaved }: {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-full text-sm font-bold text-white" style={{ backgroundColor: employee.avatar_color ?? "#e8440a" }}>
+            <span className="grid h-10 w-10 place-items-center rounded-full text-sm font-semibold text-white" style={{ backgroundColor: employee.avatar_color ?? "#245de8" }}>
               {initials(employee.name)}
             </span>
             <div>
-              <p className="font-bold text-ink">{employee.name}</p>
+              <p className="font-semibold text-ink">{employee.name}</p>
               <p className="text-xs text-muted">{employee.email}</p>
             </div>
           </div>
@@ -759,7 +759,7 @@ function EmployeeEditPanel({ employee, employees, orgId, onClose, onSaved }: {
 
         {/* Form */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted">Managed by HR</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">Managed by HR</p>
 
           <PanelField label="Full Name"><input className={panelInput} {...field("name")} /></PanelField>
           <PanelField label="Job Title / Role"><input className={panelInput} placeholder="e.g. Senior Engineer" {...field("role")} /></PanelField>
@@ -798,11 +798,11 @@ function EmployeeEditPanel({ employee, employees, orgId, onClose, onSaved }: {
 
           {csvResults.length > 0 && (
             <div className="rounded-lg border border-border bg-paper p-3">
-              <p className="mb-2 text-xs font-bold text-ink">CSV update results</p>
+              <p className="mb-2 text-xs font-semibold text-ink">CSV update results</p>
               {csvResults.map((r) => (
                 <div key={r.email} className="flex items-center justify-between py-1 text-xs">
                   <span className="text-muted">{r.email}</span>
-                  <span className={r.status === "updated" ? "font-bold text-green" : "font-bold text-red"}>{r.status}</span>
+                  <span className={r.status === "updated" ? "font-semibold text-green" : "font-semibold text-red"}>{r.status}</span>
                 </div>
               ))}
             </div>
@@ -814,7 +814,7 @@ function EmployeeEditPanel({ employee, employees, orgId, onClose, onSaved }: {
           <button
             onClick={handleSave}
             disabled={saving || csvUploading}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-pulse text-sm font-black text-white disabled:opacity-40"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-pulse text-sm font-semibold text-white disabled:opacity-40"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={15} />}
             {saving ? "Saving…" : "Save changes"}
@@ -830,7 +830,7 @@ const panelInput = "mt-1 h-10 w-full rounded-xl border border-border bg-paper px
 function PanelField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-muted">{label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">{label}</span>
       {children}
     </label>
   );
@@ -847,7 +847,7 @@ function LeavePanel({ leave, employees, leavingId, onAction }: {
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="border-b border-border px-4 py-3">
-        <p className="text-sm font-black text-ink">Leave Requests</p>
+        <p className="text-sm font-semibold text-ink">Leave Requests</p>
         <p className="text-[11px] text-muted">{leave.length ? `${leave.length} pending approval` : "No pending requests"}</p>
       </div>
       {leave.length === 0 ? (
@@ -861,7 +861,7 @@ function LeavePanel({ leave, employees, leavingId, onAction }: {
               <div key={req.id} className="px-4 py-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-bold text-ink">{emp?.name ?? "Employee"}</p>
+                    <p className="truncate text-xs font-semibold text-ink">{emp?.name ?? "Employee"}</p>
                     <p className="mt-0.5 text-[11px] text-muted capitalize">{req.leave_type} · {req.start_date} → {req.end_date}</p>
                   </div>
                   <div className="flex flex-shrink-0 gap-1.5">
@@ -886,7 +886,7 @@ function AtRiskPanel({ employees }: { employees: EmployeeRow[] }) {
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="border-b border-border px-4 py-3">
-        <p className="text-sm font-black text-ink">Needs Attention</p>
+        <p className="text-sm font-semibold text-ink">Needs Attention</p>
         <p className="text-[11px] text-muted">{employees.length ? `${employees.length} flagged` : "No flags"}</p>
       </div>
       {employees.length === 0 ? (
@@ -897,7 +897,7 @@ function AtRiskPanel({ employees }: { employees: EmployeeRow[] }) {
             <div key={emp.id} className="flex items-center gap-3 px-4 py-3">
               <AlertTriangle size={14} className="flex-shrink-0 text-red" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-bold text-ink">{emp.name}</p>
+                <p className="truncate text-xs font-semibold text-ink">{emp.name}</p>
                 <p className="text-[11px] text-muted">{emp.badge} · {emp.performance_score ?? "–"}%</p>
               </div>
             </div>
@@ -912,7 +912,7 @@ function GoalHealthPanel({ goals }: { goals: GoalRow[] }) {
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="border-b border-border px-4 py-3">
-        <p className="text-sm font-black text-ink">Goal Health</p>
+        <p className="text-sm font-semibold text-ink">Goal Health</p>
         <p className="text-[11px] text-muted">{goals.length} goals total</p>
       </div>
       <div className="grid grid-cols-2 gap-2 p-4">
@@ -923,8 +923,8 @@ function GoalHealthPanel({ goals }: { goals: GoalRow[] }) {
           { label: "Completed", status: "completed", cls: "text-pulse" },
         ].map(({ label, status, cls }) => (
           <div key={status} className="rounded-lg bg-paper p-3">
-            <p className={clsx("font-syne text-xl font-bold", cls)}>{goals.filter((g) => g.status === status).length}</p>
-            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-muted">{label}</p>
+            <p className={clsx("font-syne text-xl font-semibold", cls)}>{goals.filter((g) => g.status === status).length}</p>
+            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted">{label}</p>
           </div>
         ))}
       </div>
@@ -935,9 +935,9 @@ function GoalHealthPanel({ goals }: { goals: GoalRow[] }) {
 function StatTile({ label, value, warn, warnLabel }: { label: string; value: string | number; warn?: boolean; warnLabel?: string }) {
   return (
     <div className={clsx("rounded-lg border bg-card p-4", warn ? "border-red/20" : "border-border")}>
-      <p className={clsx("font-syne text-2xl font-bold", warn ? "text-red" : "text-ink")}>{value}</p>
-      <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-muted">{label}</p>
-      {warn && warnLabel && <p className="mt-1 text-[10px] font-bold text-red">{warnLabel}</p>}
+      <p className={clsx("font-syne text-2xl font-semibold", warn ? "text-red" : "text-ink")}>{value}</p>
+      <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
+      {warn && warnLabel && <p className="mt-1 text-[10px] font-semibold text-red">{warnLabel}</p>}
     </div>
   );
 }
@@ -982,8 +982,8 @@ function SetupWizard({ state, orgId, userEmail, activeTab, onTabChange, isOverla
       {/* If coming from operational, show a back button */}
       {isOverlay && (
         <div className="flex items-center justify-between">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted">Organisation Setup</p>
-          <button onClick={onExitSetup} className="flex items-center gap-1.5 text-xs font-bold text-pulse hover:underline">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted">Organisation Setup</p>
+          <button onClick={onExitSetup} className="flex items-center gap-1.5 text-xs font-semibold text-pulse hover:underline">
             ← Back to live dashboard
           </button>
         </div>
@@ -993,13 +993,13 @@ function SetupWizard({ state, orgId, userEmail, activeTab, onTabChange, isOverla
         <div className="rounded-lg bg-ink p-5 text-white md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-white/40">HR setup workspace</p>
-              <h1 className="mt-2 font-syne text-3xl font-bold leading-tight">{state.org?.name ?? "Organisation"}</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/58">Configure the workspace structure before employees start using Pulse.</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/65">HR setup workspace</p>
+              <h1 className="mt-2 font-syne text-3xl font-semibold leading-tight">{state.org?.name ?? "Organisation"}</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65">Configure the workspace structure before employees start using Pulse.</p>
             </div>
             <div className="rounded-lg border border-white/10 bg-white/[0.06] px-4 py-3 text-right">
-              <p className="text-3xl font-bold">{metrics.progress}%</p>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-white/42">setup ready</p>
+              <p className="text-3xl font-semibold">{metrics.progress}%</p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/42">setup ready</p>
             </div>
           </div>
           <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
@@ -1007,12 +1007,12 @@ function SetupWizard({ state, orgId, userEmail, activeTab, onTabChange, isOverla
           </div>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted">Current state</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted">Current state</p>
           <div className="mt-4 grid grid-cols-2 gap-3">
             {[["Employees", metrics.peopleCount], ["Departments", metrics.deptCount], ["Teams", metrics.teamCount], ["Goals", metrics.totalGoals]].map(([label, value]) => (
               <div key={label} className="rounded-lg bg-paper p-3">
-                <p className="font-syne text-2xl font-bold text-ink">{value}</p>
-                <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-muted">{label}</p>
+                <p className="font-syne text-2xl font-semibold text-ink">{value}</p>
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-widest text-muted">{label}</p>
               </div>
             ))}
           </div>
@@ -1028,7 +1028,7 @@ function SetupWizard({ state, orgId, userEmail, activeTab, onTabChange, isOverla
           const Icon = tab.icon;
           const selected = activeTab === tab.key;
           return (
-            <button key={tab.key} onClick={() => onTabChange(tab.key)} className={clsx("inline-flex h-10 flex-shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-bold transition", selected ? "border-pulse bg-pulse-soft text-pulse" : "border-border bg-card text-muted hover:text-ink")}>
+            <button key={tab.key} onClick={() => onTabChange(tab.key)} className={clsx("inline-flex h-10 flex-shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition", selected ? "border-pulse bg-pulse-soft text-pulse" : "border-border bg-card text-muted hover:text-ink")}>
               <Icon size={14} />
               {tab.label}
             </button>
@@ -1045,9 +1045,9 @@ function SetupWizard({ state, orgId, userEmail, activeTab, onTabChange, isOverla
                   {item.done ? <CheckCircle2 size={17} /> : <Flag size={16} />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-black text-ink">{item.title}</span>
+                  <span className="block text-sm font-semibold text-ink">{item.title}</span>
                   <span className="mt-1 block text-xs leading-relaxed text-muted">{item.detail}</span>
-                  <span className="mt-3 inline-flex text-xs font-bold text-pulse">{item.cta}</span>
+                  <span className="mt-3 inline-flex text-xs font-semibold text-pulse">{item.cta}</span>
                 </span>
               </button>
             ))}
@@ -1080,19 +1080,19 @@ function SetupWizard({ state, orgId, userEmail, activeTab, onTabChange, isOverla
 function SetupGuidePanel({ copy }: { copy: { title: string; body: string; actions: string[] } }) {
   return (
     <aside className="rounded-lg border border-border bg-card p-4">
-      <p className="text-xs font-bold uppercase tracking-widest text-muted">What to do here</p>
-      <h2 className="mt-3 font-syne text-xl font-bold text-ink">{copy.title}</h2>
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted">What to do here</p>
+      <h2 className="mt-3 font-syne text-xl font-semibold text-ink">{copy.title}</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted">{copy.body}</p>
       <div className="mt-5 space-y-2">
         {copy.actions.map((action) => (
           <div key={action} className="flex items-center gap-2 rounded-lg bg-paper px-3 py-2">
             <CheckCircle2 size={15} className="text-pulse" />
-            <span className="text-xs font-bold text-ink">{action}</span>
+            <span className="text-xs font-semibold text-ink">{action}</span>
           </div>
         ))}
       </div>
       <div className="mt-5 border-t border-border pt-4">
-        <button onClick={downloadCSVTemplate} className="flex items-center gap-2 text-xs font-bold text-pulse hover:underline">
+        <button onClick={downloadCSVTemplate} className="flex items-center gap-2 text-xs font-semibold text-pulse hover:underline">
           <Download size={13} />
           Download employee CSV template
         </button>
@@ -1173,16 +1173,16 @@ function PeopleSetup({ employees, orgId, hrEmail, onEmployeesChange }: {
           <div className="flex gap-3">
             <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-pulse-soft text-pulse"><Upload size={19} /></span>
             <div>
-              <p className="text-sm font-black text-ink">Bulk import via CSV</p>
+              <p className="text-sm font-semibold text-ink">Bulk import via CSV</p>
               <p className="mt-1 text-xs leading-relaxed text-muted">Download the template, fill in employee data, then upload to update all records at once.</p>
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={downloadCSVTemplate} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-paper px-3 text-xs font-bold text-muted hover:text-pulse">
+            <button onClick={downloadCSVTemplate} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-paper px-3 text-xs font-semibold text-muted hover:text-pulse">
               <Download size={13} />
               Template
             </button>
-            <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-ink px-3 text-xs font-black text-white">
+            <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-ink px-3 text-xs font-semibold text-white">
               {csvUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
               {csvUploading ? "Uploading…" : "Upload CSV"}
               <input ref={csvRef} type="file" accept=".csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCSV(f); }} />
@@ -1191,11 +1191,11 @@ function PeopleSetup({ employees, orgId, hrEmail, onEmployeesChange }: {
         </div>
         {csvResults.length > 0 && (
           <div className="mt-4 rounded-lg bg-paper p-3">
-            <p className="mb-2 text-xs font-bold text-ink">Results</p>
+            <p className="mb-2 text-xs font-semibold text-ink">Results</p>
             {csvResults.map((r) => (
               <div key={r.email} className="flex items-center justify-between py-0.5 text-xs">
                 <span className="text-muted">{r.email}</span>
-                <span className={r.status === "updated" ? "font-bold text-green" : "font-bold text-red"}>{r.status}</span>
+                <span className={r.status === "updated" ? "font-semibold text-green" : "font-semibold text-red"}>{r.status}</span>
               </div>
             ))}
           </div>
@@ -1206,12 +1206,12 @@ function PeopleSetup({ employees, orgId, hrEmail, onEmployeesChange }: {
       <div className="rounded-lg border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div>
-            <p className="text-sm font-black text-ink">Employee list</p>
+            <p className="text-sm font-semibold text-ink">Employee list</p>
             <p className="mt-0.5 text-xs text-muted">{localStaff.length ? `${localStaff.length} employees` : "No employees yet"}</p>
           </div>
           <button
             onClick={() => setShowAdd(true)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-pulse px-3 text-xs font-black text-white"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-pulse px-3 text-xs font-semibold text-white"
           >
             <Plus size={13} />
             Add Employee
@@ -1222,7 +1222,7 @@ function PeopleSetup({ employees, orgId, hrEmail, onEmployeesChange }: {
             <div className="grid min-h-44 place-items-center px-4 py-8 text-center">
               <div>
                 <Users size={22} className="mx-auto text-muted" />
-                <p className="mt-3 text-sm font-black text-ink">No employees yet</p>
+                <p className="mt-3 text-sm font-semibold text-ink">No employees yet</p>
                 <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted">
                   Add employees one by one using the button above, or bulk import with the CSV template.
                 </p>
@@ -1234,21 +1234,21 @@ function PeopleSetup({ employees, orgId, hrEmail, onEmployeesChange }: {
               const isDeleting = deletingId === e.id;
               return (
                 <div key={e.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-ink text-xs font-bold text-white">
+                  <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-ink text-xs font-semibold text-white">
                     {initials(e.name)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold text-ink">{e.name}</span>
+                    <span className="block truncate text-sm font-semibold text-ink">{e.name}</span>
                     <span className="block truncate text-xs text-muted">
                       {e.email} · {accessRoleLabel(e)}{e.department ? ` · ${e.department}` : ""}
                     </span>
                   </span>
                   {isConfirm ? (
                     <div className="flex flex-shrink-0 items-center gap-1.5">
-                      <button onClick={() => handleDelete(e.id)} disabled={isDeleting} className="rounded-lg bg-red px-2.5 py-1.5 text-[10px] font-bold text-white disabled:opacity-40">
+                      <button onClick={() => handleDelete(e.id)} disabled={isDeleting} className="rounded-lg bg-red px-2.5 py-1.5 text-[10px] font-semibold text-white disabled:opacity-40">
                         {isDeleting ? <Loader2 size={11} className="animate-spin" /> : "Confirm"}
                       </button>
-                      <button onClick={() => setConfirmDeleteId(null)} className="rounded-lg border border-border px-2.5 py-1.5 text-[10px] font-bold text-muted hover:text-ink">
+                      <button onClick={() => setConfirmDeleteId(null)} className="rounded-lg border border-border px-2.5 py-1.5 text-[10px] font-semibold text-muted hover:text-ink">
                         Cancel
                       </button>
                     </div>
@@ -1400,7 +1400,7 @@ function AddEmployeePanel({ orgId, employees, onClose, onAdded }: {
       <div className="fixed inset-y-0 right-0 z-[70] flex w-full max-w-md flex-col bg-card shadow-[-8px_0_40px_rgba(0,0,0,0.18)]">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
-            <p className="font-bold text-ink">Add Employee</p>
+            <p className="font-semibold text-ink">Add Employee</p>
             <p className="text-xs text-muted">An invite will be sent to their email automatically</p>
           </div>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg border border-border text-muted hover:text-ink">
@@ -1411,7 +1411,7 @@ function AddEmployeePanel({ orgId, employees, onClose, onAdded }: {
         <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
           <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
             {error && (
-              <div className="rounded-xl bg-red-soft px-3 py-2 text-xs font-bold text-red">{error}</div>
+              <div className="rounded-lg bg-red-soft px-3 py-2 text-xs font-semibold text-red">{error}</div>
             )}
 
             <div className="grid grid-cols-1 gap-3">
@@ -1481,7 +1481,7 @@ function AddEmployeePanel({ orgId, employees, onClose, onAdded }: {
               </PanelField>
             )}
 
-            <div className="rounded-xl border border-border bg-paper p-3 text-xs text-muted leading-relaxed">
+            <div className="rounded-lg border border-border bg-paper p-3 text-xs text-muted leading-relaxed">
               An invite email will be sent to <strong className="text-ink">{form.email || "their address"}</strong> as soon as you submit. They&apos;ll click the link, verify with OTP, and complete their profile.
             </div>
           </div>
@@ -1490,7 +1490,7 @@ function AddEmployeePanel({ orgId, employees, onClose, onAdded }: {
             <button
               type="submit"
               disabled={saving || !form.name.trim() || !form.email.trim()}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-pulse text-sm font-black text-white disabled:opacity-40"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-pulse text-sm font-semibold text-white disabled:opacity-40"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <MailPlus size={15} />}
               {saving ? "Adding & sending invite…" : "Add Employee & Send Invite"}
@@ -1516,7 +1516,7 @@ function TeamsSetup({ employees }: { employees: EmployeeRow[] }) {
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="border-b border-border px-4 py-3">
-        <p className="text-sm font-black text-ink">Team structure</p>
+        <p className="text-sm font-semibold text-ink">Team structure</p>
         <p className="mt-1 text-xs text-muted">Teams reflect your published employee department and team assignments.</p>
         <Link href="/dashboard/organisation" className="mt-3 inline-flex items-center gap-2 rounded-md bg-cobalt px-3 py-2 text-xs font-semibold text-white"><Network size={14} />Edit structure and team leads</Link>
       </div>
@@ -1535,9 +1535,9 @@ function TeamsSetup({ employees }: { employees: EmployeeRow[] }) {
                     selected ? "border-pulse bg-pulse-soft" : "border-border bg-paper",
                   )}
                 >
-                  <p className="text-sm font-black text-ink">{t.name}</p>
+                  <p className="text-sm font-semibold text-ink">{t.name}</p>
                   <p className="mt-1 text-xs text-muted">{t.department}</p>
-                  <p className="mt-4 font-syne text-2xl font-bold text-pulse">{t.members.length}</p>
+                  <p className="mt-4 font-syne text-2xl font-semibold text-pulse">{t.members.length}</p>
                 </button>
               );
             })}
@@ -1546,7 +1546,7 @@ function TeamsSetup({ employees }: { employees: EmployeeRow[] }) {
           {selectedTeam && (
             <div className="rounded-lg border border-border bg-paper">
               <div className="border-b border-border px-4 py-3">
-                <p className="text-sm font-black text-ink">{selectedTeam.name}</p>
+                <p className="text-sm font-semibold text-ink">{selectedTeam.name}</p>
                 <p className="mt-1 text-xs text-muted">
                   {selectedTeam.members.length} employee{selectedTeam.members.length === 1 ? "" : "s"} in {selectedTeam.department}
                 </p>
@@ -1555,10 +1555,10 @@ function TeamsSetup({ employees }: { employees: EmployeeRow[] }) {
                 {selectedTeam.members.map((employee) => (
                   <div key={employee.id} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-ink">{employee.name}</p>
+                      <p className="truncate text-sm font-semibold text-ink">{employee.name}</p>
                       <p className="mt-1 truncate text-xs text-muted">{employee.email}</p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-card px-3 py-1 text-xs font-black text-muted">
+                    <span className="shrink-0 rounded-full bg-card px-3 py-1 text-xs font-semibold text-muted">
                       {employee.role || employee.platform_role || "Role not set"}
                     </span>
                   </div>
@@ -1569,7 +1569,7 @@ function TeamsSetup({ employees }: { employees: EmployeeRow[] }) {
         </div>
       ) : (
         <div className="grid min-h-44 place-items-center px-4 py-8 text-center">
-          <div><Network size={22} className="mx-auto text-muted" /><p className="mt-3 text-sm font-black text-ink">No teams yet</p><p className="mt-1 text-xs text-muted">Update employees with department and team fields via CSV upload.</p></div>
+          <div><Network size={22} className="mx-auto text-muted" /><p className="mt-3 text-sm font-semibold text-ink">No teams yet</p><p className="mt-1 text-xs text-muted">Update employees with department and team fields via CSV upload.</p></div>
         </div>
       )}
     </div>
@@ -1582,16 +1582,16 @@ function GoalsSetup({ goals }: { goals: GoalRow[] }) {
       <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 md:flex-row md:items-center md:justify-between">
         <div className="flex gap-3">
           <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg bg-pulse-soft text-pulse"><FileText size={19} /></span>
-          <div><p className="text-sm font-black text-ink">Goal template</p><p className="mt-1 text-xs leading-relaxed text-muted">Create company goals, cascade team goals, then attach planning documents.</p></div>
+          <div><p className="text-sm font-semibold text-ink">Goal template</p><p className="mt-1 text-xs leading-relaxed text-muted">Create company goals, cascade team goals, then attach planning documents.</p></div>
         </div>
-        <Link href="/goals" className="inline-flex h-10 flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-xs font-black text-white"><Target size={15} />Open goals</Link>
+        <Link href="/goals" className="inline-flex h-10 flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-xs font-semibold text-white"><Target size={15} />Open goals</Link>
       </div>
       <div className="rounded-lg border border-border bg-card">
-        <div className="border-b border-border px-4 py-3"><p className="text-sm font-black text-ink">Goal library</p><p className="mt-1 text-xs text-muted">{goals.length ? `${goals.length} goals` : "No goals yet"}</p></div>
+        <div className="border-b border-border px-4 py-3"><p className="text-sm font-semibold text-ink">Goal library</p><p className="mt-1 text-xs text-muted">{goals.length ? `${goals.length} goals` : "No goals yet"}</p></div>
         {goals.length ? (
-          <div className="divide-y divide-border">{goals.slice(0, 8).map((g) => (<div key={g.id} className="px-4 py-3"><p className="text-sm font-bold text-ink">{g.title}</p><p className="mt-1 text-xs text-muted capitalize">{g.goal_type} · {g.department || g.team || "Organisation wide"} · {g.status}</p></div>))}</div>
+          <div className="divide-y divide-border">{goals.slice(0, 8).map((g) => (<div key={g.id} className="px-4 py-3"><p className="text-sm font-semibold text-ink">{g.title}</p><p className="mt-1 text-xs text-muted capitalize">{g.goal_type} · {g.department || g.team || "Organisation wide"} · {g.status}</p></div>))}</div>
         ) : (
-          <div className="grid min-h-44 place-items-center px-4 py-8 text-center"><div><Target size={22} className="mx-auto text-muted" /><p className="mt-3 text-sm font-black text-ink">No goals yet</p><p className="mt-1 text-xs text-muted">Start with organisation goals before team and individual goals.</p></div></div>
+          <div className="grid min-h-44 place-items-center px-4 py-8 text-center"><div><Target size={22} className="mx-auto text-muted" /><p className="mt-3 text-sm font-semibold text-ink">No goals yet</p><p className="mt-1 text-xs text-muted">Start with organisation goals before team and individual goals.</p></div></div>
         )}
       </div>
     </div>
@@ -1601,14 +1601,14 @@ function GoalsSetup({ goals }: { goals: GoalRow[] }) {
 function AppraisalSetup({ org }: { org: OrgRow | null }) {
   return (
     <div className="rounded-lg border border-border bg-card">
-      <div className="border-b border-border px-4 py-3"><p className="text-sm font-black text-ink">Appraisal configuration</p><p className="mt-1 text-xs text-muted">These settings define how performance reviews will run.</p></div>
+      <div className="border-b border-border px-4 py-3"><p className="text-sm font-semibold text-ink">Appraisal configuration</p><p className="mt-1 text-xs text-muted">These settings define how performance reviews will run.</p></div>
       <div className="grid gap-3 p-4 md:grid-cols-2">
         {[["Cadence", org?.appraisal_cadence ?? "Not set"], ["Current cycle", org?.current_cycle ?? "Not set"], ["Start date", org?.cycle_start_date ?? "Not set"], ["End date", org?.cycle_end_date ?? "Not set"]].map(([label, value]) => (
-          <div key={label} className="rounded-lg bg-paper p-3"><p className="text-xs font-bold uppercase tracking-widest text-muted">{label}</p><p className="mt-2 text-sm font-black text-ink">{value}</p></div>
+          <div key={label} className="rounded-lg bg-paper p-3"><p className="text-xs font-semibold uppercase tracking-widest text-muted">{label}</p><p className="mt-2 text-sm font-semibold text-ink">{value}</p></div>
         ))}
       </div>
       <div className="border-t border-border p-4">
-        <Link href="/appraisal" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-xs font-black text-white"><Settings2 size={15} />Open appraisal cycles and review rules</Link>
+        <Link href="/appraisal" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-pulse px-4 text-xs font-semibold text-white"><Settings2 size={15} />Open appraisal cycles and review rules</Link>
       </div>
     </div>
   );
@@ -1617,17 +1617,17 @@ function AppraisalSetup({ org }: { org: OrgRow | null }) {
 function LaunchSetup({ progress, checklist }: { progress: number; checklist: Array<{ title: string; done: boolean }> }) {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <p className="text-sm font-black text-ink">Launch readiness</p>
+      <p className="text-sm font-semibold text-ink">Launch readiness</p>
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-border"><div className="h-full rounded-full bg-pulse" style={{ width: `${progress}%` }} /></div>
       <div className="mt-4 space-y-2">
         {checklist.map((item) => (
           <div key={item.title} className="flex items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2">
-            <span className="text-xs font-bold text-ink">{item.title}</span>
+            <span className="text-xs font-semibold text-ink">{item.title}</span>
             {item.done ? <CheckCircle2 size={16} className="text-green" /> : <span className="h-2 w-2 rounded-full bg-muted/40" />}
           </div>
         ))}
       </div>
-      <button disabled={progress < 80} className="mt-5 flex h-11 w-full items-center justify-center rounded-lg bg-ink px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">
+      <button disabled={progress < 80} className="mt-5 flex h-11 w-full items-center justify-center rounded-lg bg-ink px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">
         Open workspace
       </button>
     </div>
