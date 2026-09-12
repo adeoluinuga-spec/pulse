@@ -1,4 +1,16 @@
 // Synthetic browser journeys for the missing planning UI. No external requests or live writes.
+//
+// To run it without the shared tools directory: install playwright into this
+// checkout (npm i --no-save playwright, with PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1),
+// start a dev server on the port below, and point PULSE_TEST_BROWSER at a local
+// Chrome or Edge binary so no browser download is needed:
+//
+//   npx next dev -p 3100
+//   PULSE_TEST_BROWSER="/c/Program Files/Google/Chrome/Application/chrome.exe" \n//     node --experimental-strip-types scripts/tests/planning-browser.mjs
+//
+// This run is what catches label/accessibility regressions: a <label> wrapping a
+// <select> takes its accessible name from the option text, which no unit test or
+// typecheck can see.
 import {createRequire} from "node:module";
 import {resolve} from "node:path";
 import {mkdir} from "node:fs/promises";

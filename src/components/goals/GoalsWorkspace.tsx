@@ -268,7 +268,7 @@ export default function GoalsWorkspace() {
           <div className={styles.fieldRow}>
             <label className={styles.field}>
               Owner
-              <select value={draft.ownerId} onChange={(event) => setDraft({ ...draft, ownerId: event.target.value })}>
+              <select aria-label="Owner" value={draft.ownerId} onChange={(event) => setDraft({ ...draft, ownerId: event.target.value })}>
                 <option value="">Choose someone</option>
                 {ownerOptions.map((person) => (
                   <option key={person.id} value={person.id}>
@@ -279,7 +279,7 @@ export default function GoalsWorkspace() {
             </label>
             <label className={styles.field}>
               Type
-              <select
+              <select aria-label="Type"
                 value={draft.goalType}
                 onChange={(event) => setDraft({ ...draft, goalType: event.target.value as GoalType })}
               >
