@@ -105,7 +105,10 @@ function SidebarContent() {
       icon: Users,
       items: [
         { label: "Leave", icon: BriefcaseBusiness, comingSoon: true, description: "Leave management is being prepared for a future Pulse release." },
-        { label: "Payroll", icon: Banknote, comingSoon: true, description: "Payroll is being prepared for a future Pulse release." },
+        // Payroll itself is shown to likely preparers and approvers; the page
+        // refuses anyone else. Everyone can reach their own payslips.
+        ...(isHr || user.platformRole === "executive_view" ? [{ label: "Payroll", href: "/payroll", icon: Banknote }] : []),
+        { label: "My payslips", href: "/payslips", icon: FileText },
       ],
     },
     {

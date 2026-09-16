@@ -5,7 +5,7 @@
 // start a dev server on the port below, and point PULSE_TEST_BROWSER at a local
 // Chrome or Edge binary so no browser download is needed:
 //
-//   npx next dev -p 3100
+//   npx next dev -p 3100   (then use localhost, not 127.0.0.1)
 //   PULSE_TEST_BROWSER="/c/Program Files/Google/Chrome/Application/chrome.exe" \n//     node --experimental-strip-types scripts/tests/planning-browser.mjs
 //
 // This run is what catches label/accessibility regressions: a <label> wrapping a
@@ -17,7 +17,7 @@ import {mkdir} from "node:fs/promises";
 import assert from "node:assert/strict";
 const require=createRequire(resolve(process.env.PULSE_TEST_TOOLS??".","package.json"));
 const {chromium}=require("playwright");
-const root=process.env.PULSE_TEST_URL??"http://127.0.0.1:3100";
+const root=process.env.PULSE_TEST_URL??"http://localhost:3100"; // not 127.0.0.1: Next 16 blocks dev resources for origins outside allowedDevOrigins
 const output=resolve(process.env.TEMP??".","pulse-planning-evidence");await mkdir(output,{recursive:true});
 const browser=await chromium.launch({executablePath:process.env.PULSE_TEST_BROWSER,headless:true});
 const people=[{id:"hr",name:"Ada Davidson",email:"ada@example.test",department:"People"},{id:"staff",name:"Tunde Cole",email:"tunde@example.test",department:"Advisory"},{id:"frozen",name:"Ife Okoro",email:"ife@example.test",department:"Advisory"}];
