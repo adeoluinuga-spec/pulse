@@ -108,6 +108,8 @@ export type PayLine = {
   deductions: Array<{ code: string; label: string; amountKobo: number; statutory: boolean }>;
   employer: Array<{ code: string; label: string; amountKobo: number }>;
   grossKobo: number;
+  /** Basic salary actually paid this month, after proration. The NHF base. */
+  basicKobo: number;
   payeKobo: number;
   payeRecurringKobo: number;
   payeOneOffKobo: number;
@@ -281,6 +283,7 @@ export function calculatePayLine(input: {
     deductions: [],
     employer: [],
     grossKobo: 0,
+    basicKobo: 0,
     payeKobo: 0,
     payeRecurringKobo: 0,
     payeOneOffKobo: 0,
@@ -446,6 +449,7 @@ export function calculatePayLine(input: {
     deductions,
     employer,
     grossKobo,
+    basicKobo: basicThisMonth,
     payeKobo,
     payeRecurringKobo,
     payeOneOffKobo,
