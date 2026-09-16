@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Calculator, CheckCircle2, Download, Loader2, Plus, Send, Trash2, Undo2, XCircle } from "lucide-react";
+import { ArrowLeft, Calculator, CheckCircle2, Download, Loader2, Plus, Send, Sparkles, Trash2, Undo2, XCircle } from "lucide-react";
 
 import { useToast } from "@/components/ui/Toast";
 import PayrollDialog from "./PayrollDialog";
@@ -104,6 +104,69 @@ export default function RunView({ runId }: { runId: string }) {
   const [dialogError, setDialogError] = useState({ message: "", errors: [] as string[] });
   const [adjustment, setAdjustment] = useState({ employeeId: "", label: "", kind: "earning", amount: "", taxable: true, pensionable: false });
   const [people, setPeople] = useState<Array<{ id: string; name: string | null; onPayroll: boolean }>>([]);
+
+  // Performance bonuses from a released appraisal cycle.
+  const [importing, setImporting] = useState(false);
+  const [appraisalCycles, setAppraisalCycles] = useState<Array<{ id: string; name: string; status: string }>>([]);
+  const [appraisalCycleId, setAppraisalCycleId] = useState("");
+  const [bands, setBands] = useState<Array<{ minScore: string; maxScore: string; percent: string }>>([]);
+  const [bonusPlan, setBonusPlan] = useState<{
+    add: Array<{ appraisalId: string; name: string; score: number; percentOfBasicBps: number; amountKobo: number }>;
+    skip: Array<{ employeeId: string; name: string; reason: string }>;
+    totalKobo: number;
+  } | null>(null);
+
+  const bandsPayload = () =>
+    bands.map((band) => ({
+      minScore: Number(band.minScore),
+      maxScore: Number(band.maxScore),
+      percentOfBasicBps: Math.round(Number(band.percent) * 100),
+    }));
+
+  const openImport = async () => {
+    setImporting(true);
+    setBonusPlan(null);
+    setDialogError({ message: "", errors: [] });
+    try {
+      const body = await api<{
+        cycles: Array<{ id: string; name: string; status: string }>;
+        defaultBands: Array<{ minScore: number; maxScore: number; percentOfBasicBps: number }>;
+      }>(`/api/payroll/runs/${runId}/performance`);
+      setAppraisalCycles(body.cycles);
+      setAppraisalCycleId((current) => current || body.cycles[0]?.id || "");
+      setBands(
+        (current) =>
+          current.length
+            ? current
+            : body.defaultBands.map((band) => ({ minScore: String(band.minScore), maxScore: String(band.maxScore), percent: String(band.percentOfBasicBps / 100) })),
+      );
+    } catch (thrown) {
+      setDialogError(errorParts(thrown));
+    }
+  };
+
+  const runImport = async (dryRun: boolean) => {
+    setBusy(dryRun ? "preview" : "import");
+    setDialogError({ message: "", errors: [] });
+    try {
+      const body = await api<{ plan: NonNullable<typeof bonusPlan>; imported?: number }>(`/api/payroll/runs/${runId}/performance`, {
+        method: "POST",
+        body: JSON.stringify({ appraisalCycleId, bands: bandsPayload(), dryRun }),
+      });
+      if (dryRun) {
+        setBonusPlan(body.plan);
+      } else {
+        showToast(`${body.imported ?? 0} performance bonus${body.imported === 1 ? "" : "es"} added. Recalculate to include them.`, "success");
+        setImporting(false);
+        setBonusPlan(null);
+        await load();
+      }
+    } catch (thrown) {
+      setDialogError(errorParts(thrown));
+    } finally {
+      setBusy("");
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -287,6 +350,9 @@ export default function RunView({ runId }: { runId: string }) {
             </button>
             <button type="button" className={styles.button} onClick={() => void openAdjustment()} disabled={!decisions.adjust.allowed || Boolean(busy)} title={reasonOf(decisions.adjust)}>
               <Plus size={14} /> Add adjustment
+            </button>
+            <button type="button" className={styles.button} onClick={() => void openImport()} disabled={!decisions.adjust.allowed || Boolean(busy)} title={reasonOf(decisions.adjust)}>
+              <Sparkles size={14} /> Import performance bonuses
             </button>
             <button type="button" className={`${styles.button} ${styles.danger}`} onClick={() => void act("void")} disabled={!decisions.void.allowed || Boolean(busy)} title={reasonOf(decisions.void)}>
               <XCircle size={14} /> Void
@@ -655,6 +721,137 @@ export default function RunView({ runId }: { runId: string }) {
         ) : (
           <p className={styles.hint}>Deductions are taken after tax.</p>
         )}
+      </PayrollDialog>
+
+      <PayrollDialog
+        open={importing}
+        title="Import performance bonuses"
+        onClose={() => {
+          setImporting(false);
+          setBonusPlan(null);
+          setDialogError({ message: "", errors: [] });
+        }}
+        busy={busy === "preview" || busy === "import"}
+        error={dialogError.message}
+        errors={dialogError.errors}
+        footer={
+          <>
+            <button type="button" className={styles.button} onClick={() => void runImport(true)} disabled={!appraisalCycleId || Boolean(busy)}>
+              {busy === "preview" ? <Loader2 size={14} className="animate-spin" /> : null} Preview
+            </button>
+            <button type="button" className={styles.primary} onClick={() => void runImport(false)} disabled={!bonusPlan?.add.length || Boolean(busy)}>
+              {busy === "import" ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} Add {bonusPlan?.add.length ?? 0} bonus
+              {bonusPlan?.add.length === 1 ? "" : "es"}
+            </button>
+          </>
+        }
+      >
+        <p className={styles.muted}>
+          Only released appraisals pay out — a score still in calibration can change. Each bonus is a share of the person&apos;s own
+          monthly basic, by score band, and is added as a taxable adjustment. Importing makes you a contributor to this run, so you
+          will not be able to approve it.
+        </p>
+        <label className={styles.field}>
+          Appraisal cycle
+          <select
+            aria-label="Appraisal cycle"
+            value={appraisalCycleId}
+            onChange={(event) => {
+              setAppraisalCycleId(event.target.value);
+              setBonusPlan(null);
+            }}
+          >
+            {appraisalCycles.length ? null : <option value="">No appraisal cycles yet</option>}
+            {appraisalCycles.map((cycle) => (
+              <option key={cycle.id} value={cycle.id}>
+                {cycle.name} ({cycle.status})
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <h3 className={styles.eyebrow}>Score bands</h3>
+        {bands.map((band, index) => (
+          <div key={index} className={styles.grid3}>
+            <label className={styles.field}>
+              From score
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={band.minScore}
+                onChange={(event) => {
+                  setBands(bands.map((entry, i) => (i === index ? { ...entry, minScore: event.target.value } : entry)));
+                  setBonusPlan(null);
+                }}
+              />
+            </label>
+            <label className={styles.field}>
+              Up to score
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={band.maxScore}
+                onChange={(event) => {
+                  setBands(bands.map((entry, i) => (i === index ? { ...entry, maxScore: event.target.value } : entry)));
+                  setBonusPlan(null);
+                }}
+              />
+            </label>
+            <label className={styles.field}>
+              Bonus (% of monthly basic)
+              <input
+                type="number"
+                min={0}
+                value={band.percent}
+                onChange={(event) => {
+                  setBands(bands.map((entry, i) => (i === index ? { ...entry, percent: event.target.value } : entry)));
+                  setBonusPlan(null);
+                }}
+              />
+            </label>
+          </div>
+        ))}
+
+        {bonusPlan ? (
+          <>
+            <h3 className={styles.eyebrow} style={{ marginTop: 12 }}>
+              {bonusPlan.add.length} bonus{bonusPlan.add.length === 1 ? "" : "es"} totalling {naira(bonusPlan.totalKobo)}
+            </h3>
+            {bonusPlan.add.length ? (
+              <table className={styles.table}>
+                <tbody>
+                  {bonusPlan.add.map((bonus) => (
+                    <tr key={bonus.appraisalId}>
+                      <td>
+                        <strong>{bonus.name}</strong>
+                        <small>
+                          Score {bonus.score} · {bonus.percentOfBasicBps / 100}% of basic
+                        </small>
+                      </td>
+                      <td className={styles.num}>{naira(bonus.amountKobo)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : null}
+            {bonusPlan.skip.length ? (
+              <>
+                <h3 className={styles.eyebrow} style={{ marginTop: 12 }}>
+                  Not included
+                </h3>
+                <ul className={styles.issues}>
+                  {bonusPlan.skip.map((entry) => (
+                    <li key={`${entry.employeeId}-${entry.reason}`} data-kind="warning">
+                      {entry.name}: {entry.reason}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </>
+        ) : null}
       </PayrollDialog>
     </div>
   );

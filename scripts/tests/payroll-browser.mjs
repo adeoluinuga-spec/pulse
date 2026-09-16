@@ -108,6 +108,23 @@ await context.route("**/*", async (route) => {
     return json({ ok: true, revision: 4 });
   }
   if (url.pathname === "/api/payroll/runs/run-sep/adjustments") return json({ id: "adj-1" }, 201);
+  if (url.pathname === "/api/payroll/runs/run-sep/performance") {
+    if (request.method() === "GET") {
+      return json({
+        cycles: [{ id: "cycle-h1", name: "2026 H1", status: "closed" }],
+        defaultBands: [
+          { minScore: 90, maxScore: 100, percentOfBasicBps: 10000 },
+          { minScore: 0, maxScore: 90, percentOfBasicBps: 0 },
+        ],
+      });
+    }
+    const plan = {
+      add: [{ appraisalId: "appr-ada", employeeId: ADA, name: "Ada Obi", score: 92, percentOfBasicBps: 10000, basicKobo: N(300_000), amountKobo: N(300_000), label: "Performance bonus — 2026 H1" }],
+      skip: [{ employeeId: CEO, name: "Chidi Eze", reason: "Appraisal not released yet, so its score can still change." }],
+      totalKobo: N(300_000),
+    };
+    return body.dryRun === false ? json({ imported: 1, plan }, 201) : json({ dryRun: true, plan });
+  }
   if (url.pathname === "/api/payroll/runs/run-sep/export") {
     return route.fulfill({ status: 200, headers: { "Content-Type": "text/csv", "Content-Disposition": 'attachment; filename="pulse-bank-2026-09.csv"', "X-Pulse-Omitted": "0" }, body: "Account name\r\nADA OBI\r\n" });
   }
@@ -201,6 +218,19 @@ try {
   assert.equal(adj.body.employeeId, ADA);
   assert.equal(adj.body.amount, "100000");
 
+  // Performance bonuses: preview first, see who is left out and why, then import.
+  await page.getByRole("button", { name: /Import performance bonuses/ }).click();
+  await page.getByLabel("Appraisal cycle", { exact: true }).selectOption("cycle-h1");
+  assert.equal(await page.getByRole("button", { name: /Add 0 bonuses/ }).isDisabled(), true, "nothing can be imported before a preview");
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByText("Chidi Eze: Appraisal not released yet, so its score can still change.").waitFor();
+  const preview = posts.find((p) => p.path.endsWith("/performance") && p.body.dryRun === true);
+  assert.equal(preview.body.appraisalCycleId, "cycle-h1");
+  assert.deepEqual(preview.body.bands[0], { minScore: 90, maxScore: 100, percentOfBasicBps: 10000 }, "percent typed as 100 is sent as 10000 basis points");
+  await page.getByRole("button", { name: /Add 1 bonus$/ }).click();
+  await page.waitForTimeout(300);
+  assert.ok(posts.some((p) => p.path.endsWith("/performance") && p.body.dryRun === false), "importing sends a real, non-preview request");
+
   await page.getByRole("button", { name: /Submit for approval/ }).click();
   await page.waitForTimeout(300);
   assert.equal(runStatus, "submitted");
@@ -262,7 +292,7 @@ try {
 
   assert.deepEqual(consoleErrors, [], "no uncaught errors in the browser");
 
-  console.log("PASS: workspace warnings, people and setup tabs; approval grant and tax-state default; starting a run; calculate carrying its revision; the PAYE breakdown; adding an adjustment; submitting; a contributor shown why they cannot approve; a named approver approving; the bank file downloading; editing payroll details and adding a pay record from the previous one; viewing and downloading a payslip; no sideways scroll on a phone; no browser errors.");
+  console.log("PASS: workspace warnings, people and setup tabs; approval grant and tax-state default; starting a run; calculate carrying its revision; the PAYE breakdown; adding an adjustment; previewing and importing performance bonuses with exclusions named; submitting; a contributor shown why they cannot approve; a named approver approving; the bank file downloading; editing payroll details and adding a pay record from the previous one; viewing and downloading a payslip; no sideways scroll on a phone; no browser errors.");
 } finally {
   await browser.close();
 }
