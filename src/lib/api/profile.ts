@@ -69,6 +69,30 @@ function mapDocument(row: Record<string, unknown>): EmployeeDocument {
 
 // ── API functions ─────────────────────────────────────────────────────────────
 
+/**
+ * Every employee column the browser may read about the signed-in user.
+ *
+ * Named rather than `*` because `compensation` is not readable from the browser:
+ * migration 20260916_000001 revokes it, since row-level security let every
+ * colleague read every salary. `*` would include the revoked column and fail
+ * the whole query, signing everybody out. Pay is fetched from the server instead.
+ */
+const SELF_COLUMNS = "id, user_id, org_id, name, initials, email, phone, home_address, emergency_contact, next_of_kin, avatar_url, onboarding_completed, onboarding_completed_at, avatar_color, staff_id, department, team, role, line_manager_id, cadre, people_responsibility, platform_role, employment_type, work_location, join_date, band_current, band_next, band_requirements, performance_score, consistency_index, peer_rating, week_streak, badge, ai_rec, created_at";
+
+type Compensation = Employee["compensation"];
+
+/** Your own pay, from the server. Never another person's. */
+async function fetchMyCompensation(): Promise<Compensation | null> {
+  try {
+    const response = await fetch("/api/payroll/me", { cache: "no-store" });
+    if (!response.ok) return null;
+    const body = (await response.json()) as { compensation?: Compensation | null };
+    return body.compensation ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getMyProfile(): Promise<Employee | null> {
   try {
     const supabase = getSupabase();
@@ -80,14 +104,14 @@ export async function getMyProfile(): Promise<Employee | null> {
     // Try by user_id first, fall back to email match (handles edge cases)
     let { data } = await supabase
       .from("employees")
-      .select("*")
+      .select(SELF_COLUMNS)
       .eq("user_id", authUser.id)
       .maybeSingle();
 
     if (!data && authUser.email) {
       const result = await supabase
         .from("employees")
-        .select("*")
+        .select(SELF_COLUMNS)
         .eq("email", authUser.email)
         .maybeSingle();
       data = result.data;
@@ -105,9 +129,11 @@ export async function getMyProfile(): Promise<Employee | null> {
     if (!data) return null;
 
     const partial = mapEmployee(data as Record<string, unknown>);
+    const compensation = await fetchMyCompensation();
 
     return {
       ...partial,
+      ...(compensation ? { compensation } : {}),
       // Sub-entities are loaded by their own API calls; start empty for real users
       goals: [],
       kpis: [],
