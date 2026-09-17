@@ -1,6 +1,6 @@
 import { periodBounds } from "@/lib/payrollGrossToNet";
 import { ruleSetFor } from "@/lib/payrollRules";
-import { databaseFailure, logEvent, payrollContext, reply, RUN_COLUMNS, type RunRow } from "@/lib/payrollServer";
+import { databaseFailure, logEvent, payrollContext, reply, RUN_COLUMNS, type RunRow, handled } from "@/lib/payrollServer";
 
 /**
  * Starting a payroll run for a month.
@@ -12,7 +12,7 @@ import { databaseFailure, logEvent, payrollContext, reply, RUN_COLUMNS, type Run
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+async function postHandler(request: Request) {
   const auth = await payrollContext();
   if (!auth.ok) return auth.response;
   const { admin, orgId, actor, can } = auth.ctx;
@@ -51,3 +51,5 @@ export async function POST(request: Request) {
   await logEvent(admin, { orgId, runId: data.id, actorId: actor.employeeId, action: "created", payload: { year, month } });
   return reply({ run: data }, 201);
 }
+
+export const POST = handled(postHandler);

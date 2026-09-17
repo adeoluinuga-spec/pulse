@@ -1,5 +1,5 @@
 import { validateProfile } from "@/lib/payrollInputs";
-import { databaseFailure, employeeInOrg, logEvent, payrollContext, reply } from "@/lib/payrollServer";
+import { databaseFailure, employeeInOrg, logEvent, payrollContext, reply, handled } from "@/lib/payrollServer";
 
 /**
  * One person's payroll record: their pay history and their payroll profile —
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ employeeId: string }> };
 
-export async function GET(_request: Request, { params }: Params) {
+async function getHandler(_request: Request, { params }: Params) {
   const { employeeId } = await params;
   const auth = await payrollContext();
   if (!auth.ok) return auth.response;
@@ -41,7 +41,7 @@ export async function GET(_request: Request, { params }: Params) {
   return reply({ person, compensation: compensation.data ?? [], profile: profile.data ?? null });
 }
 
-export async function PUT(request: Request, { params }: Params) {
+async function putHandler(request: Request, { params }: Params) {
   const { employeeId } = await params;
   const auth = await payrollContext();
   if (!auth.ok) return auth.response;
@@ -80,3 +80,6 @@ export async function PUT(request: Request, { params }: Params) {
 
   return reply({ saved: true });
 }
+
+export const GET = handled(getHandler);
+export const PUT = handled(putHandler);

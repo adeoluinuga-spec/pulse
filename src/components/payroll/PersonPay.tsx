@@ -81,7 +81,12 @@ export default function PersonPay({ employeeId }: { employeeId: string }) {
   }, [employeeId]);
 
   useEffect(() => {
-    void load();
+    // Loaded after mount, in a callback, so the fetch never sets state during the effect itself.
+    let cancelled = false;
+    void Promise.resolve().then(() => (cancelled ? undefined : load()));
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   const saveProfile = async () => {

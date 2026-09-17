@@ -74,6 +74,24 @@ function SidebarContent() {
   const teamEnabled = user.peopleResponsibility !== "none";
   const isHr = user.platformRole === "hr_admin" || user.platformRole === "super_admin";
   const assessmentHref = isHr ? "/assessments" : "/dashboard/360";
+  const likelyPayrollRole = isHr || user.platformRole === "executive_view";
+  const [grantedPayroll, setGrantedPayroll] = useState(false);
+
+  // Payroll can be delegated by name to somebody without an admin role, so for
+  // everyone else ask the server whether they have been granted it.
+  useEffect(() => {
+    if (likelyPayrollRole) return;
+    let cancelled = false;
+    fetch("/api/payroll/access", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { canAccessPayroll?: boolean } | null) => {
+        if (!cancelled) setGrantedPayroll(body?.canAccessPayroll === true);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [likelyPayrollRole, user.id]);
 
   const workspaceGroups: NavigationGroup[] = [
     {
@@ -105,9 +123,9 @@ function SidebarContent() {
       icon: Users,
       items: [
         { label: "Leave", icon: BriefcaseBusiness, comingSoon: true, description: "Leave management is being prepared for a future Pulse release." },
-        // Payroll itself is shown to likely preparers and approvers; the page
-        // refuses anyone else. Everyone can reach their own payslips.
-        ...(isHr || user.platformRole === "executive_view" ? [{ label: "Payroll", href: "/payroll", icon: Banknote }] : []),
+        // Payroll is shown to admin roles and to anyone granted it by name; the
+        // page itself still refuses anyone else. Everyone can reach their own payslips.
+        ...(likelyPayrollRole || grantedPayroll ? [{ label: "Payroll", href: "/payroll", icon: Banknote }] : []),
         { label: "My payslips", href: "/payslips", icon: FileText },
       ],
     },

@@ -1,4 +1,4 @@
-import { loadSettings, payrollContext, reply, RUN_COLUMNS, type RunRow } from "@/lib/payrollServer";
+import { loadSettings, payrollContext, reply, RUN_COLUMNS, type RunRow, handled } from "@/lib/payrollServer";
 import { ruleSetFor } from "@/lib/payrollRules";
 
 /**
@@ -11,7 +11,7 @@ import { ruleSetFor } from "@/lib/payrollRules";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+async function getHandler() {
   const auth = await payrollContext();
   if (!auth.ok) return auth.response;
   const { admin, orgId, actor, can } = auth.ctx;
@@ -107,3 +107,5 @@ export async function GET() {
     approverCount: (permissions.data ?? []).filter((row) => row.can_approve).length,
   });
 }
+
+export const GET = handled(getHandler);

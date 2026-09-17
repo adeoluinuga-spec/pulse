@@ -60,7 +60,7 @@ test("somebody not on this month's payroll is skipped", () => {
 test("nothing is imported twice", () => {
   const result = plan([appraisal()], undefined, new Set(["a1"]));
   assert.equal(result.add.length, 0);
-  assert.match(result.skip[0].reason, /Already imported/);
+  assert.match(result.skip[0].reason, /Already paid from this appraisal/);
 });
 
 test("an appraisal with no final score is skipped", () => {

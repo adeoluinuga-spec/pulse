@@ -1,6 +1,6 @@
 import { toKobo } from "@/lib/payrollMoney";
 import { decideRunAction } from "@/lib/payrollWorkflow";
-import { databaseFailure, employeeInOrg, loadRun, logEvent, payrollContext, reply, runStateFor } from "@/lib/payrollServer";
+import { controlFailure, databaseFailure, employeeInOrg, loadRun, logEvent, payrollContext, reply, runStateFor } from "@/lib/payrollServer";
 
 /**
  * One-off earnings and deductions inside a draft run: a bonus, arrears, a loan
@@ -8,7 +8,9 @@ import { databaseFailure, employeeInOrg, loadRun, logEvent, payrollContext, repl
  *
  * Adding or removing one makes the adder a contributor to the run, so they can
  * no longer approve it. That is the point — an adjustment is exactly where a
- * payroll fraud would be hidden.
+ * payroll fraud would be hidden. The database knows an adjustment's author from
+ * the row itself, and records a removal in the same transaction as the delete,
+ * so neither can happen without leaving the person's involvement on record.
  */
 
 export const dynamic = "force-dynamic";
@@ -20,14 +22,18 @@ async function guard(runId: string) {
   if (!auth.ok) return { ok: false as const, response: auth.response };
   const { admin, orgId, actor } = auth.ctx;
 
-  const run = await loadRun(admin, orgId, runId);
-  if (!run) return { ok: false as const, response: reply({ error: "Payroll run not found." }, 404) };
+  try {
+    const run = await loadRun(admin, orgId, runId);
+    if (!run) return { ok: false as const, response: reply({ error: "Payroll run not found." }, 404) };
 
-  const { state } = await runStateFor(admin, orgId, run);
-  const decision = decideRunAction({ action: "adjust", actor, run: state });
-  if (!decision.allowed) return { ok: false as const, response: reply({ error: decision.reason }, 409) };
+    const { state } = await runStateFor(admin, orgId, run);
+    const decision = decideRunAction({ action: "adjust", actor, run: state });
+    if (!decision.allowed) return { ok: false as const, response: reply({ error: decision.reason }, 409) };
 
-  return { ok: true as const, admin, orgId, actor, run };
+    return { ok: true as const, admin, orgId, actor, run };
+  } catch (thrown) {
+    return { ok: false as const, response: controlFailure(thrown) };
+  }
 }
 
 export async function POST(request: Request, { params }: Params) {
@@ -55,7 +61,12 @@ export async function POST(request: Request, { params }: Params) {
   if (!body.employeeId) errors.push("Choose who this adjustment is for.");
   if (errors.length) return reply({ error: "This adjustment is not complete.", errors }, 422);
 
-  const person = await employeeInOrg(admin, orgId, body.employeeId as string);
+  let person;
+  try {
+    person = await employeeInOrg(admin, orgId, body.employeeId as string);
+  } catch (thrown) {
+    return controlFailure(thrown);
+  }
   if (!person) return reply({ error: "That person is not in your organisation." }, 404);
 
   const isEarning = body.kind === "earning";
@@ -80,13 +91,20 @@ export async function POST(request: Request, { params }: Params) {
 
   if (error) return databaseFailure(error);
 
-  await logEvent(admin, {
-    orgId,
-    runId: run.id,
-    actorId: actor.employeeId,
-    action: "adjustment_added",
-    payload: { employeeId: person.id, name: person.name, label, kind: body.kind, amountKobo: toKobo(amount) },
-  });
+  // The adjustment's created_by already makes its author a contributor, so a
+  // failure here cannot let them approve. It is still reported, because the
+  // history would otherwise be missing a line.
+  try {
+    await logEvent(admin, {
+      orgId,
+      runId: run.id,
+      actorId: actor.employeeId,
+      action: "adjustment_added",
+      payload: { employeeId: person.id, name: person.name, label, kind: body.kind, amountKobo: toKobo(amount) },
+    });
+  } catch {
+    return reply({ id: data.id, error: "The adjustment was added, but its history entry could not be recorded. Tell whoever looks after Pulse." }, 500);
+  }
 
   return reply({ id: data.id }, 201);
 }
@@ -95,29 +113,17 @@ export async function DELETE(request: Request, { params }: Params) {
   const { runId } = await params;
   const checked = await guard(runId);
   if (!checked.ok) return checked.response;
-  const { admin, orgId, actor, run } = checked;
+  const { admin, actor, run } = checked;
 
   const adjustmentId = new URL(request.url).searchParams.get("id");
   if (!adjustmentId) return reply({ error: "Say which adjustment to remove." }, 400);
 
-  const { data, error } = await admin
-    .from("payroll_adjustments")
-    .delete()
-    .eq("id", adjustmentId)
-    .eq("org_id", orgId)
-    .eq("run_id", run.id)
-    .select("id, label, employee_id, amount_kobo");
-
-  if (error) return databaseFailure(error);
-  if (!data?.length) return reply({ error: "That adjustment was not found." }, 404);
-
-  await logEvent(admin, {
-    orgId,
-    runId: run.id,
-    actorId: actor.employeeId,
-    action: "adjustment_removed",
-    payload: { employeeId: data[0].employee_id, label: data[0].label, amountKobo: data[0].amount_kobo },
+  const { error } = await admin.rpc("payroll_remove_adjustment", {
+    p_run: run.id,
+    p_adjustment: adjustmentId,
+    p_actor: actor.employeeId,
   });
+  if (error) return databaseFailure(error);
 
   return reply({ removed: true });
 }

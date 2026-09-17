@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   compensationForPeriod,
+  paymentSnapshotFrom,
   toPayrollProfile,
   validateCompensation,
   validateProfile,
@@ -166,4 +167,22 @@ test("an impossible exit date is refused with a message, not a crash", () => {
 test("a bank without an account number, or the reverse, is refused", () => {
   assert.equal(validateProfile({ bankName: "Access" }).ok, false);
   assert.equal(validateProfile({ accountNumber: "0123456789" }).ok, false);
+});
+
+test("a payment snapshot copies where money goes, and treats blanks as missing", () => {
+  const snapshot = paymentSnapshotFrom({ bank_name: " Access Bank ", account_number: "0123456789", account_name: "", rsa_pin: null });
+  assert.deepEqual(snapshot, {
+    bankName: "Access Bank",
+    bankCode: null,
+    accountNumber: "0123456789",
+    accountName: null,
+    pfaName: null,
+    rsaPin: null,
+    nhfNumber: null,
+    tin: null,
+  });
+});
+
+test("no profile gives an empty snapshot rather than failing", () => {
+  assert.equal(paymentSnapshotFrom(null).accountNumber, null);
 });

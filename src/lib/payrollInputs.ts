@@ -308,3 +308,37 @@ export function validateProfile(input: Record<string, unknown>):
 
   return errors.length ? { ok: false, errors } : { ok: true, row };
 }
+
+export type PaymentSnapshot = {
+  bankName: string | null;
+  bankCode: string | null;
+  accountNumber: string | null;
+  accountName: string | null;
+  pfaName: string | null;
+  rsaPin: string | null;
+  nhfNumber: string | null;
+  tin: string | null;
+};
+
+/**
+ * Where a person's money and contributions go, frozen with a calculation.
+ *
+ * Stored on each payroll line and included in the run's input fingerprint.
+ * That does two things: a change to an account number before approval makes
+ * the calculation stale, so it has to be recalculated and seen again; and a
+ * change after approval cannot redirect the approved payment, because the bank
+ * file reads this copy and never the live profile.
+ */
+export function paymentSnapshotFrom(row: Partial<ProfileRow> | null): PaymentSnapshot {
+  const clean = (value: string | null | undefined) => (value && value.trim() ? value.trim() : null);
+  return {
+    bankName: clean(row?.bank_name),
+    bankCode: clean(row?.bank_code),
+    accountNumber: clean(row?.account_number),
+    accountName: clean(row?.account_name),
+    pfaName: clean(row?.pfa_name),
+    rsaPin: clean(row?.rsa_pin),
+    nhfNumber: clean(row?.nhf_number),
+    tin: clean(row?.tin),
+  };
+}

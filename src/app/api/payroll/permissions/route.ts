@@ -1,4 +1,4 @@
-import { databaseFailure, employeeInOrg, logEvent, payrollContext, reply } from "@/lib/payrollServer";
+import { databaseFailure, employeeInOrg, logEvent, payrollContext, reply, handled } from "@/lib/payrollServer";
 
 /**
  * Who prepares, who approves, who may see every salary.
@@ -11,7 +11,7 @@ import { databaseFailure, employeeInOrg, logEvent, payrollContext, reply } from 
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+async function postHandler(request: Request) {
   const auth = await payrollContext();
   if (!auth.ok) return auth.response;
   const { admin, orgId, actor, can } = auth.ctx;
@@ -55,3 +55,5 @@ export async function POST(request: Request) {
 
   return reply({ saved: true, employeeId: body.employeeId, ...grant });
 }
+
+export const POST = handled(postHandler);

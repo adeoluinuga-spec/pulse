@@ -108,7 +108,7 @@ export function planPerformanceBonuses(input: {
   cycleName: string;
   /** Monthly basic in force for the run's period, for people on payroll. */
   basicByEmployee: Map<string, number>;
-  /** Appraisal ids that already have a bonus adjustment in this run. */
+  /** Appraisal ids already paid as a bonus in a live (not voided) run of the organisation. An appraisal pays out once. */
   alreadyImported: Set<string>;
 }): BonusPlan {
   const plan: BonusPlan = { add: [], skip: [], totalKobo: 0 };
@@ -117,7 +117,7 @@ export function planPerformanceBonuses(input: {
     const skip = (reason: string) => plan.skip.push({ employeeId: appraisal.employeeId, name: appraisal.name, reason });
 
     if (input.alreadyImported.has(appraisal.appraisalId)) {
-      skip("Already imported into this run.");
+      skip("Already paid from this appraisal in a payroll run.");
       continue;
     }
     if (!RELEASED.has(appraisal.workflowStatus)) {

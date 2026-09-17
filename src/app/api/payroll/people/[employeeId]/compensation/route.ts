@@ -1,5 +1,5 @@
 import { validateCompensation } from "@/lib/payrollInputs";
-import { databaseFailure, employeeInOrg, logEvent, payrollContext, reply } from "@/lib/payrollServer";
+import { databaseFailure, employeeInOrg, logEvent, payrollContext, reply, handled } from "@/lib/payrollServer";
 
 /**
  * Adding and withdrawing compensation records.
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ employeeId: string }> };
 
-export async function POST(request: Request, { params }: Params) {
+async function postHandler(request: Request, { params }: Params) {
   const { employeeId } = await params;
   const auth = await payrollContext();
   if (!auth.ok) return auth.response;
@@ -60,7 +60,7 @@ export async function POST(request: Request, { params }: Params) {
   return reply({ id: data.id }, 201);
 }
 
-export async function DELETE(request: Request, { params }: Params) {
+async function deleteHandler(request: Request, { params }: Params) {
   const { employeeId } = await params;
   const auth = await payrollContext();
   if (!auth.ok) return auth.response;
@@ -95,3 +95,6 @@ export async function DELETE(request: Request, { params }: Params) {
 
   return reply({ withdrawn: true });
 }
+
+export const POST = handled(postHandler);
+export const DELETE = handled(deleteHandler);

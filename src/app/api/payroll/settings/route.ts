@@ -1,5 +1,5 @@
 import { NIGERIAN_STATES } from "@/lib/payrollInputs";
-import { databaseFailure, logEvent, payrollContext, reply } from "@/lib/payrollServer";
+import { databaseFailure, logEvent, payrollContext, reply, handled } from "@/lib/payrollServer";
 
 /**
  * Organisation-wide payroll settings.
@@ -11,7 +11,7 @@ import { databaseFailure, logEvent, payrollContext, reply } from "@/lib/payrollS
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(request: Request) {
+async function patchHandler(request: Request) {
   const auth = await payrollContext();
   if (!auth.ok) return auth.response;
   const { admin, orgId, actor, can } = auth.ctx;
@@ -50,3 +50,5 @@ export async function PATCH(request: Request) {
   await logEvent(admin, { orgId, runId: null, actorId: actor.employeeId, action: "settings_changed", payload: patch });
   return reply({ saved: true });
 }
+
+export const PATCH = handled(patchHandler);

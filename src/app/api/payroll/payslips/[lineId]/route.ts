@@ -5,7 +5,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { periodLabel } from "@/lib/payrollExports";
 import { PayslipDocument, type PayslipData } from "@/lib/payrollPayslipDocument";
 import { canReadPayslip, type RunStatus } from "@/lib/payrollWorkflow";
-import { logEvent, payrollContext, PRIVATE, reply } from "@/lib/payrollServer";
+import { logEvent, payrollContext, PRIVATE, reply, handled } from "@/lib/payrollServer";
 
 /**
  * One payslip, as data or as a PDF.
@@ -39,7 +39,7 @@ type LineRow = {
   payroll_runs: { period_year: number; period_month: number; status: RunStatus; approved_at: string | null; rule_set_id: string | null };
 };
 
-export async function GET(request: Request, { params }: Params) {
+async function getHandler(request: Request, { params }: Params) {
   const { lineId } = await params;
   const auth = await payrollContext();
   if (!auth.ok) return auth.response;
@@ -103,3 +103,5 @@ export async function GET(request: Request, { params }: Params) {
 
   return reply({ payslip, taxWorking: line.tax_working, status: line.payroll_runs.status });
 }
+
+export const GET = handled(getHandler);
