@@ -1,3 +1,5 @@
+> **Superseded.** This document is out of date. For the current state of Pulse, see [PULSE_BIBLE.md](PULSE_BIBLE.md). It is kept for history.
+
 # Pulse Milestone Plan
 
 ## Objective

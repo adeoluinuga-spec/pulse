@@ -1,3 +1,5 @@
+> **Superseded.** This document is out of date. For the current state of Pulse, see [PULSE_BIBLE.md](PULSE_BIBLE.md). It is kept for history.
+
 # Pulse — Operator Roadmap
 
 Two journeys, step by step, as they actually run on the platform today. Every step names the exact screen or endpoint, what happens underneath, and whether you can do it in a browser. Written so you can follow it with real data and see for yourself.

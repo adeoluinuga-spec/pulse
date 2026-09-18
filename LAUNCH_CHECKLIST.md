@@ -1,3 +1,5 @@
+> **Superseded.** This document is out of date. For the current state of Pulse, see [PULSE_BIBLE.md](PULSE_BIBLE.md). It is kept for history.
+
 # Pulse Launch Checklist
 
 This is the working checklist for taking Pulse from the current prototype into a premium HR platform with a Telco-ready 360-degree assessment product.
