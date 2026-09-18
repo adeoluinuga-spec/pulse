@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   AlertCircle,
@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { getSupabase } from "@/lib/supabase";
-import { updateProfile } from "@/lib/api/profile";
+import { getMyDocuments, updateProfile, uploadDocument } from "@/lib/api/profile";
 import type { Document as EmployeeDocument } from "@/types";
 
 type SectionKey = "personal" | "documents" | "compensation";
@@ -34,31 +34,11 @@ type EditableKey =
 
 type RequiredStatus = "verified" | "pending" | "rejected" | "missing";
 
-interface RequiredDocument {
-  type: string;
-  status: RequiredStatus;
-  reason?: string;
-}
-
 const sections: { key: SectionKey; label: string }[] = [
   { key: "personal", label: "Personal Info" },
   { key: "documents", label: "Documents" },
   { key: "compensation", label: "Band & Compensation" },
 ];
-
-const requiredDocuments: RequiredDocument[] = [
-  { type: "Employment Contract", status: "verified" },
-  { type: "Government ID", status: "verified" },
-  { type: "Tax Form", status: "verified" },
-  { type: "Bank Details", status: "verified" },
-  { type: "Medical Form", status: "verified" },
-  { type: "Performance Agreement", status: "verified" },
-  { type: "Training Certificate", status: "pending" },
-  { type: "Next of Kin Form", status: "missing" },
-  { type: "Address Verification", status: "missing" },
-];
-
-const bandSteps = ["Entry", "Associate", "Senior Associate", "Principal", "Director"];
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString("en-US", {
@@ -147,6 +127,7 @@ export default function ProfilePage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState("");
   const [hideAmounts, setHideAmounts] = useState(false);
+  const [documents, setDocuments] = useState<EmployeeDocument[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const profileImageInputRef = useRef<HTMLInputElement | null>(null);
   const pendingUploadType = useRef<string>("General Document");
@@ -172,37 +153,20 @@ export default function ProfilePage() {
         if (data) setManagerName((data as { name: string }).name);
       });
   }, [user.lineManagerId]);
-  const verifiedRequired = requiredDocuments.filter((doc) => doc.status === "verified" || doc.status === "pending").length;
-  const requiredPercent = Math.round((verifiedRequired / requiredDocuments.length) * 100);
-  const profilePercent = 82;
+  // Profile completeness from the fields a person can actually fill in.
+  const completionFields = [user.phone, user.homeAddress, profile.emergencyContact, profile.nextOfKin, profileImages[user.id]];
+  const profilePercent = Math.round((completionFields.filter((value) => Boolean(value && String(value).trim())).length / completionFields.length) * 100);
 
-  const orgDocs = useMemo<EmployeeDocument[]>(
-    () => [
-      { id: "org-1", name: "Employee Handbook 2026", type: "Policy", status: "verified", uploadDate: "2026-01-08", size: "820 KB" },
-      { id: "org-2", name: "Q2 Performance Policy", type: "Policy", status: "verified", uploadDate: "2026-04-01", size: "340 KB" },
-      { id: "org-3", name: "Formal Warning Letter", type: "Warning Letter", status: "verified", uploadDate: "2025-11-16", size: "120 KB" },
-    ],
-    [],
-  );
-
-  const currentBandIndex = 2;
-  const currentTier =
-    [...user.compensation.bonusStructure]
-      .sort((a, b) => b.scoreThreshold - a.scoreThreshold)
-      .find((tier) => user.performanceScore >= tier.scoreThreshold) ??
-    user.compensation.bonusStructure[user.compensation.bonusStructure.length - 1];
-  const nextTier = [...user.compensation.bonusStructure]
-    .sort((a, b) => a.scoreThreshold - b.scoreThreshold)
-    .find((tier) => tier.scoreThreshold > user.performanceScore);
-
-  const requirements = [
-    { label: "Performance score ≥ 80%", met: user.performanceScore >= 80, detail: `${user.performanceScore}% current score` },
-    { label: "Minimum 18 months at current band", met: true, detail: "38 months tenure" },
-    { label: "Complete PMP Certification", met: false, detail: "Training suggestion available" },
-    { label: "Manager recommendation", met: false, detail: "Pending" },
-    { label: "Peer rating ≥ 4.0", met: user.peerRating >= 4, detail: `${user.peerRating}/5 peer rating` },
-  ];
-  const metCount = requirements.filter((item) => item.met).length;
+  useEffect(() => {
+    if (!user.id) return;
+    let cancelled = false;
+    getMyDocuments(user.id).then((rows) => {
+      if (!cancelled) setDocuments(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user.id]);
 
   function beginEdit(key: EditableKey) {
     setEditing(key);
@@ -238,21 +202,22 @@ export default function ProfilePage() {
       setUploadError("File is too large. Maximum upload size is 10MB.");
       return;
     }
-    setUploadingType(pendingUploadType.current);
-    setUploadProgress(0);
-    const steps = [24, 55, 82, 100];
-    steps.forEach((value, index) => {
-      setTimeout(() => {
-        setUploadProgress(value);
-        if (value === 100) {
-          setToast("Upload complete");
-          setTimeout(() => {
-            setUploadingType(null);
-            setToast("");
-          }, 900);
-        }
-      }, 280 * (index + 1));
-    });
+    const type = pendingUploadType.current;
+    setUploadingType(type);
+    setUploadProgress(10);
+    void (async () => {
+      const { data: row } = await getSupabase().from("employees").select("org_id").eq("id", user.id).maybeSingle<{ org_id: string | null }>();
+      const saved = row?.org_id ? await uploadDocument(file, type, user.id, row.org_id) : null;
+      setUploadingType(null);
+      setUploadProgress(0);
+      if (!saved) {
+        setUploadError("The upload did not go through. Please try again, or send the document to HR.");
+        return;
+      }
+      setToast("Uploaded — HR will review it");
+      setTimeout(() => setToast(""), 1800);
+      setDocuments(await getMyDocuments(user.id));
+    })();
   }
 
   function handleProfileImage(file: File | undefined) {
@@ -343,7 +308,6 @@ export default function ProfilePage() {
             <LockedCard label="Date of hire" value={formatDate(user.joinDate)} />
             <LockedCard label="Team" value={user.team} />
             <LockedCard label="Employment type" value={employmentLabel(user.employmentType)} />
-            <LockedCard label="Work location" value="Lagos HQ · Hybrid" />
             </div>
           </section>
         </>
@@ -352,48 +316,29 @@ export default function ProfilePage() {
       {active === "documents" && (
         <>
           <section className="px-4">
-            <div className="rounded-lg border border-border bg-card p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-ink">7 of 9 required documents submitted</p>
-                  <p className="mt-1 text-xs text-muted">Keep required documents current for HR compliance.</p>
-                </div>
-                <span className="text-xl font-semibold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>
-                  {requiredPercent}%
-                </span>
-              </div>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-border">
-                <div className="h-full rounded-full bg-pulse" style={{ width: `${requiredPercent}%` }} />
-              </div>
-              <div className="mt-4 grid gap-2 md:grid-cols-3">
-                {requiredDocuments.map((doc) => (
-                  <div key={doc.type} className="flex items-center justify-between gap-2 rounded-lg bg-paper px-3 py-2">
-                    <span className="truncate text-xs font-semibold text-ink">{doc.type}</span>
-                    <span className={clsx("rounded-full border px-2 py-0.5 text-[10px] font-semibold", docStatus(doc.status))}>
-                      {statusLabel(doc.status)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
+              <p className="text-sm text-muted">Upload documents HR has asked for. Each one is reviewed by HR and marked verified or returned.</p>
+              <button onClick={() => startUpload("General Document")} className="flex flex-shrink-0 items-center gap-1 rounded-lg bg-pulse px-3 py-2 text-xs font-semibold text-white">
+                <Upload size={13} /> Upload
+              </button>
             </div>
           </section>
 
           <section className="space-y-3 px-4">
             <SectionHeader title="My Documents" />
-            {user.documents.length === 0 ? (
-              <EmptyState title="No employee documents yet" body="Upload your first document to begin HR review." />
+            {documents === null ? (
+              <EmptyState title="Loading documents…" body="" />
+            ) : documents.length === 0 ? (
+              <EmptyState title="No documents yet" body="Documents you upload will appear here with their review status." />
             ) : (
               <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-                {user.documents.map((doc) => (
+                {documents.map((doc) => (
                   <DocumentRow
                     key={doc.id}
                     doc={doc}
-                    onRejected={() => setRejectReason("The uploaded copy is unclear. Please upload a sharper scan.")}
                     onUpload={() => startUpload(doc.type)}
                   />
                 ))}
-                <MissingRow name="Next of Kin Form" onUpload={() => startUpload("Next of Kin Form")} />
-                <MissingRow name="Address Verification" onUpload={() => startUpload("Address Verification")} />
               </div>
             )}
             {uploadingType && (
@@ -415,25 +360,6 @@ export default function ProfilePage() {
             )}
           </section>
 
-          <section className="space-y-3 px-4">
-            <SectionHeader title="Org Documents" />
-            {orgDocs.length === 0 ? (
-              <EmptyState title="No organisation documents" body="Company-issued documents will appear here." />
-            ) : (
-              <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-                {orgDocs.map((doc) => (
-                  <DocumentRow
-                    key={doc.id}
-                    doc={doc}
-                    org
-                    locked={doc.type === "Warning Letter"}
-                    onLocked={() => setConfirmDoc(doc)}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
           <input
             ref={fileInputRef}
             type="file"
@@ -448,54 +374,20 @@ export default function ProfilePage() {
         <>
           <section className="px-4">
             <div className="rounded-lg bg-ink p-5 text-white">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/65">Band & Cadre</p>
-              <h2 className="mt-2 text-xl font-semibold" style={{ fontFamily: "var(--font-syne)" }}>
-                {user.band.current.replace("–", "—")}
-              </h2>
-              <div className="mt-6 flex items-center">
-                {bandSteps.map((step, index) => {
-                  const activeNode = index === currentBandIndex;
-                  return (
-                    <div key={step} className="flex flex-1 items-center last:flex-none">
-                      <div className="flex flex-col items-center">
-                        <div className={clsx("rounded-full border-2", activeNode ? "h-5 w-5 border-pulse bg-pulse" : "h-3.5 w-3.5 border-white/25 bg-white/10")} />
-                        <span className={clsx("mt-2 max-w-[70px] text-center text-[10px]", activeNode ? "font-semibold text-pulse" : "text-white/65")}>
-                          {step}
-                        </span>
-                      </div>
-                      {index < bandSteps.length - 1 && <div className={clsx("mb-6 h-px flex-1", index < currentBandIndex ? "bg-pulse" : "bg-white/15")} />}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
-          <section className="px-4">
-            <div className="rounded-lg border border-border bg-card p-4">
-              <p className="text-sm font-semibold text-ink">Path to {user.band.next.replace("–", "—")}</p>
-              <div className="mt-4 space-y-3">
-                {requirements.map((item) => (
-                  <div key={item.label} className="flex items-start gap-3">
-                    <div className={clsx("mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full", item.met ? "bg-green text-white" : "bg-red-soft text-red")}>
-                      {item.met ? <Check size={12} /> : <X size={12} />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-ink">{item.label}</p>
-                      <p className="text-xs text-muted">{item.detail}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-4 text-sm text-muted">
-                You meet {metCount} of {requirements.length} requirements for promotion to Principal
-              </p>
-              <button
-                onClick={() => document.getElementById("training-suggestions")?.scrollIntoView({ behavior: "smooth" })}
-                className="mt-3 w-full rounded-lg bg-pulse px-4 py-3 text-sm font-semibold text-white"
-              >
-                See training suggestions
-              </button>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/65">Band</p>
+              {user.band.current ? (
+                <>
+                  <h2 className="mt-2 text-xl font-semibold" style={{ fontFamily: "var(--font-syne)" }}>{user.band.current}</h2>
+                  {user.band.next && <p className="mt-2 text-sm text-white/65">Next: {user.band.next}</p>}
+                  {user.band.requirements.length > 0 && (
+                    <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-white/80">
+                      {user.band.requirements.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  )}
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-white/70">HR has not recorded a band for you yet.</p>
+              )}
             </div>
           </section>
 
@@ -524,39 +416,16 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="rounded-lg bg-ink p-5 text-white">
-              <div className="mb-4 flex items-center gap-2">
-                <span className="h-4 w-1 rounded-full bg-pulse" />
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-pulse">Performance-linked bonus</p>
-              </div>
-              <p className="text-sm text-white/60">
-                At your current score of {user.performanceScore}%, your Q2 bonus is
+            <div className="rounded-lg border border-border bg-card p-4">
+              <p className="text-sm font-semibold text-ink">Bonuses and payslips</p>
+              <p className="mt-2 text-sm text-muted">
+                Performance bonuses are set from your released appraisal and paid through payroll. Every payment appears on your payslip.
               </p>
-              <p className="mt-2 text-4xl font-semibold text-pulse" style={{ fontFamily: "var(--font-syne)" }}>
-                {formatMoney(currentTier.bonusAmount, hideAmounts)}
-              </p>
-              <div className="mt-5 divide-y divide-white/10 rounded-lg border border-white/10">
-                {[...user.compensation.bonusStructure]
-                  .sort((a, b) => a.scoreThreshold - b.scoreThreshold)
-                  .map((tier) => {
-                    const isCurrent = tier.scoreThreshold === currentTier.scoreThreshold;
-                    return (
-                      <div key={tier.scoreThreshold} className={clsx("flex items-center justify-between px-3 py-3 text-sm", isCurrent && "bg-pulse/15 text-pulse")}>
-                        <span>Score ≥ {tier.scoreThreshold}%</span>
-                        <span className="font-semibold">{formatMoney(tier.bonusAmount, hideAmounts)}</span>
-                      </div>
-                    );
-                  })}
-              </div>
-              <p className="mt-4 text-sm text-white/60">
-                {nextTier
-                  ? `Reach ${nextTier.scoreThreshold}% to unlock ${formatMoney(nextTier.bonusAmount, hideAmounts)}`
-                  : "You are already in the highest bonus tier"}
-              </p>
+              <a href="/payslips" className="mt-3 inline-block rounded-lg bg-pulse px-4 py-2 text-sm font-semibold text-white">My payslips</a>
             </div>
           </section>
 
-          <section id="training-suggestions" className="px-4">
+          {user.trainingSuggestions.length > 0 && <section id="training-suggestions" className="px-4">
             <div className="rounded-lg border border-border bg-card p-4">
               <p className="text-sm font-semibold text-ink">Training Suggestions</p>
               <div className="mt-3 space-y-2">
@@ -568,7 +437,7 @@ export default function ProfilePage() {
                 ))}
               </div>
             </div>
-          </section>
+          </section>}
         </>
       )}
 
@@ -709,14 +578,12 @@ function DocumentRow({
   org = false,
   locked = false,
   onLocked,
-  onRejected,
   onUpload,
 }: {
   doc: EmployeeDocument;
   org?: boolean;
   locked?: boolean;
   onLocked?: () => void;
-  onRejected?: () => void;
   onUpload?: () => void;
 }) {
   const row = (
@@ -743,29 +610,7 @@ function DocumentRow({
   if (locked) {
     return <button onClick={onLocked} className="block w-full">{row}</button>;
   }
-  if (doc.status === "pending") {
-    return <button onClick={onRejected} className="block w-full">{row}</button>;
-  }
   return row;
-}
-
-function MissingRow({ name, onUpload }: { name: string; onUpload: () => void }) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <FileIcon type="Missing" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-ink">{name}</p>
-        <p className="text-xs text-muted">Not submitted</p>
-      </div>
-      <span className="flex-shrink-0 rounded-full border border-red/35 px-2.5 py-1 text-[10px] font-semibold text-red">
-        Missing
-      </span>
-      <button onClick={onUpload} className="flex flex-shrink-0 items-center gap-1 rounded-lg bg-pulse px-3 py-1.5 text-xs font-semibold text-white">
-        <Upload size={12} />
-        Upload
-      </button>
-    </div>
-  );
 }
 
 function MoneyRow({ label, value, hidden }: { label: string; value: number; hidden: boolean }) {

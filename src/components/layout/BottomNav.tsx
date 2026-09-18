@@ -23,7 +23,8 @@ function isActive(id: string, href: string, pathname: string): boolean {
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useUser();
-  const tabs = user.peopleResponsibility === "none" ? TABS.filter((tab) => tab.id !== "team") : TABS;
+  // Everyone has a team page: tasks, chat and escalations are for all staff.
+  const tabs = TABS;
   const assessmentHref = user.platformRole === "hr_admin" || user.platformRole === "super_admin"
     ? "/assessments"
     : "/dashboard/360";

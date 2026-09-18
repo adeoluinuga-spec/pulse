@@ -1,5 +1,4 @@
 import { getSupabase } from "@/lib/supabase";
-import { employees } from "@/data/mockData";
 import type { Goal } from "@/types";
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
@@ -222,10 +221,4 @@ export async function getGoalDetail(goalId: string): Promise<Goal | null> {
   } catch {
     return null;
   }
-}
-
-// ── Mock fallbacks ─────────────────────────────────────────────────────────────
-
-export function getMockGoalsForUser(employeeId: string): Goal[] {
-  return employees.find((e) => e.id === employeeId)?.goals ?? [];
 }

@@ -1,5 +1,4 @@
 import { getSupabase } from "@/lib/supabase";
-import { employees } from "@/data/mockData";
 import type { Task } from "@/types";
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
@@ -170,10 +169,4 @@ export async function getTeamTasks(): Promise<
   } catch {
     return [];
   }
-}
-
-// ── Mock fallbacks ─────────────────────────────────────────────────────────────
-
-export function getMockTasksForUser(employeeId: string): Task[] {
-  return employees.find((e) => e.id === employeeId)?.tasks ?? [];
 }

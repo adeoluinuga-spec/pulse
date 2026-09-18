@@ -29,7 +29,7 @@ export default function DashboardTabBar() {
 
   const tabs = [
     ...BASE_TABS,
-    ...(user.peopleResponsibility !== "none" ? [TEAM_TAB] : []),
+    TEAM_TAB,
     ...(["hr_admin", "super_admin"].includes(user.platformRole) ? [
       { id: "hr", label: "HR", href: "/dashboard/hr" },
       { id: "structure", label: "Org Structure", href: "/dashboard/organisation" },

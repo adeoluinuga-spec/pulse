@@ -4,7 +4,7 @@ import {
   createContext, useContext, useState, useCallback,
   type ReactNode,
 } from "react";
-import { notifications as seed, type AppNotification } from "@/data/mockData";
+import type { AppNotification } from "@/data/mockData";
 
 interface NotifContextValue {
   notifications: AppNotification[];
@@ -23,7 +23,7 @@ const NotifContext = createContext<NotifContextValue>({
 });
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifs, setNotifs] = useState<AppNotification[]>(seed);
+  const [notifs, setNotifs] = useState<AppNotification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
   const hasUnread = notifs.some((n) => !n.read);

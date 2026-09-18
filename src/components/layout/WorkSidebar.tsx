@@ -71,7 +71,6 @@ function SidebarContent() {
   const { showToast } = useToast();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const profileImage = profileImages[user.id];
-  const teamEnabled = user.peopleResponsibility !== "none";
   const isHr = user.platformRole === "hr_admin" || user.platformRole === "super_admin";
   const assessmentHref = isHr ? "/assessments" : "/dashboard/360";
   const likelyPayrollRole = isHr || user.platformRole === "executive_view";
@@ -198,27 +197,26 @@ function SidebarContent() {
         </div>
       </nav>
 
-      {(teamEnabled || hrGroup || user.platformRole === "executive_view" || user.platformRole === "super_admin") && (
-        <div className="border-t border-paper-200 px-3 py-4">
-          <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-300">Adaptive access</p>
-          <div className="space-y-0.5">
-            {teamEnabled && <SidebarLink item={{ label: "Team", href: "/dashboard/team", icon: Users }} pathname={pathname} searchParams={searchParams} />}
-            {hrGroup && (
-              <NavigationGroupView
-                group={hrGroup}
-                expanded={expanded[hrGroup.id] ?? false}
-                onToggle={() => setExpanded((current) => ({ ...current, [hrGroup.id]: !current[hrGroup.id] }))}
-                pathname={pathname}
-                searchParams={searchParams}
-                onComingSoon={openComingSoon}
-              />
-            )}
-            {(user.platformRole === "executive_view" || user.platformRole === "super_admin") && (
-              <SidebarLink item={{ label: "Executive", href: "/executive", icon: Building2 }} pathname={pathname} searchParams={searchParams} />
-            )}
-          </div>
+      {/* Team is for everyone: tasks, chat and escalations are not only for managers. */}
+      <div className="border-t border-paper-200 px-3 py-4">
+        <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-300">Adaptive access</p>
+        <div className="space-y-0.5">
+          <SidebarLink item={{ label: "Team", href: "/dashboard/team", icon: Users }} pathname={pathname} searchParams={searchParams} />
+          {hrGroup && (
+            <NavigationGroupView
+              group={hrGroup}
+              expanded={expanded[hrGroup.id] ?? false}
+              onToggle={() => setExpanded((current) => ({ ...current, [hrGroup.id]: !current[hrGroup.id] }))}
+              pathname={pathname}
+              searchParams={searchParams}
+              onComingSoon={openComingSoon}
+            />
+          )}
+          {(user.platformRole === "executive_view" || user.platformRole === "super_admin") && (
+            <SidebarLink item={{ label: "Executive", href: "/executive", icon: Building2 }} pathname={pathname} searchParams={searchParams} />
+          )}
         </div>
-      )}
+        </div>
 
       <div className="border-t border-paper-200 px-5 py-4">
         <div className="flex items-center gap-3">

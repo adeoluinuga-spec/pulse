@@ -1,5 +1,4 @@
 import { getSupabase } from "@/lib/supabase";
-import { employees } from "@/data/mockData";
 import type { LeaveRequest, LeaveBalance } from "@/types";
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
@@ -215,21 +214,4 @@ export async function getTeamLeaveCalendar(): Promise<
   } catch {
     return [];
   }
-}
-
-// ── Mock fallbacks ─────────────────────────────────────────────────────────────
-
-export function getMockLeaveForUser(employeeId: string): {
-  balance: LeaveBalance;
-  history: LeaveRequest[];
-} {
-  const emp = employees.find((e) => e.id === employeeId);
-  return {
-    balance: emp?.leaveBalance ?? {
-      annual: { total: 20, used: 0, remaining: 20 },
-      sick: { total: 10, used: 0, remaining: 10 },
-      compassionate: { total: 3, used: 0, remaining: 3 },
-    },
-    history: emp?.leaveHistory ?? [],
-  };
 }

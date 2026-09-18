@@ -1,5 +1,4 @@
 import { getSupabase } from "@/lib/supabase";
-import { employees } from "@/data/mockData";
 import type { WellbeingEntry, Mood } from "@/types";
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
@@ -155,10 +154,4 @@ export async function getOrgMoodSummary(orgId: string): Promise<{
   } catch {
     return { energised: 0, good: 0, okay: 0, drained: 0, total: 0 };
   }
-}
-
-// ── Mock fallbacks ─────────────────────────────────────────────────────────────
-
-export function getMockWellbeingForUser(employeeId: string): WellbeingEntry[] {
-  return employees.find((e) => e.id === employeeId)?.wellbeingHistory ?? [];
 }

@@ -1,5 +1,4 @@
 import { getSupabase } from "@/lib/supabase";
-import { employees } from "@/data/mockData";
 import type { AppraisalComponent } from "@/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -277,12 +276,4 @@ export async function getAppraisalHistory(): Promise<AppraisalRecord[]> {
   } catch {
     return [];
   }
-}
-
-// ── Mock fallbacks ─────────────────────────────────────────────────────────────
-
-export function getMockAppraisalForUser(
-  employeeId: string,
-): AppraisalComponent[] {
-  return employees.find((e) => e.id === employeeId)?.appraisalComponents ?? [];
 }

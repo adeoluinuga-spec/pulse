@@ -199,14 +199,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Track whether we matched a real Supabase employee so we show live data
   const [liveEmployee, setLiveEmployee] = useState<Employee | null>(null);
   // True once we've finished the first auth check — prevents flash of mock data
-  const [resolved, setResolved] = useState(false);
+  const [, setResolved] = useState(false);
   const realtimeRef = useRef<ReturnType<ReturnType<typeof getSupabase>["channel"]> | null>(null);
 
   const demoModeEnabled = isDemoModeEnabled();
 
   // Default to live SaaS behavior. Demo/mock data is only used when explicitly enabled.
   const user = liveEmployee ??
-    (demoModeEnabled && (process.env.NODE_ENV === "development" || !resolved)
+    // Demo people only ever appear in local development with demo mode on —
+    // never in a deployed app, not even for the moment before sign-in resolves.
+    (demoModeEnabled && process.env.NODE_ENV === "development"
       ? employees.find((e) => e.id === userId) ?? employees[0]
       : EMPTY_USER);
 

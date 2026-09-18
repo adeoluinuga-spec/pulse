@@ -1,5 +1,4 @@
 import { getSupabase } from "@/lib/supabase";
-import { employees } from "@/data/mockData";
 import type { Notification } from "@/types";
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
@@ -115,10 +114,4 @@ export async function createNotification(
   } catch {
     return false;
   }
-}
-
-// ── Mock fallbacks ─────────────────────────────────────────────────────────────
-
-export function getMockNotificationsForUser(employeeId: string): Notification[] {
-  return employees.find((e) => e.id === employeeId)?.notifications ?? [];
 }

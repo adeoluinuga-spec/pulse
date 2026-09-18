@@ -1,5 +1,4 @@
 import { getSupabase } from "@/lib/supabase";
-import { employees } from "@/data/mockData";
 import type { Report, ReportMetric } from "@/types";
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
@@ -189,10 +188,4 @@ export async function updateReportStatus(
   } catch {
     return false;
   }
-}
-
-// ── Mock fallbacks ─────────────────────────────────────────────────────────────
-
-export function getMockReportsForUser(employeeId: string): Report[] {
-  return employees.find((e) => e.id === employeeId)?.reports ?? [];
 }

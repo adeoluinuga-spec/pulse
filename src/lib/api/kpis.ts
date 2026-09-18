@@ -1,5 +1,4 @@
 import { getSupabase } from "@/lib/supabase";
-import { employees } from "@/data/mockData";
 import type { KPI } from "@/types";
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
@@ -135,10 +134,4 @@ export async function createKPI(data: {
   } catch {
     return null;
   }
-}
-
-// ── Mock fallbacks ─────────────────────────────────────────────────────────────
-
-export function getMockKPIsForUser(employeeId: string): KPI[] {
-  return employees.find((e) => e.id === employeeId)?.kpis ?? [];
 }

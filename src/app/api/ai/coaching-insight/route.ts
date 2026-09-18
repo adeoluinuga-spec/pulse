@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient, extractText } from "@/lib/anthropic";
 import { getRouteUser } from "@/lib/apiAuth";
 
-function fallback(employeeName?: string, score?: number) {
-  const current = typeof score === "number" ? score : 78;
-  const projected = Math.min(96, current + 4);
-  return {
-    insight: `Where You Stand\n${employeeName ?? "You"} are in a strong position this cycle, with a current score of ${current}% and clear evidence of steady delivery. Your best leverage now is converting active goal progress into measurable end-of-cycle outcomes.\n\nTop 2 Priorities\n1. Focus your next two weekly updates on the highest-weight goals so your appraisal evidence is easy to trace.\n2. Close the most delayed goal milestone and document the support or dependencies needed.\n\nTrajectory\nAt your current pace, your end-of-cycle score will be approximately ${projected}%.\n\nWatch Out\nDo not let report consistency slip; it carries meaningful weight in the appraisal score and is easiest to protect with short, specific updates.`,
-    projectedScore: projected,
-  };
+// When the AI is unavailable, say so. The old fallback described "a strong
+// position" and a projected score for whoever asked, with no data behind it.
+function fallback() {
+  return { insight: "The coach is not available right now. Your goals, KPIs and reports are unchanged — try again shortly." };
 }
 
 export async function POST(request: NextRequest) {
@@ -26,17 +23,16 @@ export async function POST(request: NextRequest) {
     const response = await getAnthropicClient().messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 1000,
-      system: `You are Pulse's AI performance coach. Analyze this employee's performance data and write a personal coaching insight. Structure your response with four sections: (1) Where You Stand — 2-3 sentences on current position, (2) Top 2 Priorities — the two most impactful actions right now, (3) Trajectory — projected end-of-cycle score based on current pace, (4) Watch Out — one risk flag if relevant. Tone: warm, direct, coach not judge. Specific to the data, not generic. Cadre context: ${cadre} [entry=foundational/mid=delivery/senior=strategic/executive=org-level]. Return plain text with section headers.`,
+      system: `You are Pulse's AI performance coach. Analyze this employee's performance data and write a personal coaching insight. Structure your response with four sections: (1) Where You Stand — 2-3 sentences on current position, (2) Top 2 Priorities — the two most impactful actions right now, (3) Trajectory — where the goals and KPIs are heading, in words, (4) Watch Out — one risk flag if relevant. Use ONLY the goals, KPIs and reports provided; never invent scores, percentages or events. If something is missing (no goals, no recent reports), say so plainly. Tone: warm, direct, coach not judge. Specific to the data, not generic. Cadre context: ${cadre} [entry=foundational/mid=delivery/senior=strategic/executive=org-level]. Return plain text with section headers.`,
       messages: [{ role: "user", content: JSON.stringify(body) }],
     });
 
     const text = extractText(response);
     return NextResponse.json({
-      insight: text || fallback(body.employee?.name, body.employee?.performanceScore).insight,
-      projectedScore: Math.min(98, Math.round((body.employee?.performanceScore ?? 78) + 4)),
+      insight: text || fallback().insight,
     });
   } catch (error) {
     console.error("coaching-insight fallback:", error);
-    return NextResponse.json(fallback(body.employee?.name, body.employee?.performanceScore));
+    return NextResponse.json(fallback());
   }
 }

@@ -1,6 +1,6 @@
 # Pulse: the platform bible
 
-**Last updated:** 18 September 2026, from `main` at `bd9ba6b`
+**Last updated:** 18 September 2026, after the team workspace rebuild
 **Status:** The single reference for what Pulse is, what it can do, who can do what, and what is still unfinished. Where an older document disagrees with this one, this one wins (section 17 lists which documents it replaces).
 
 **How this was written:** from the code as it stands, not from earlier notes. Where a claim depends on something outside the code (a migration having been run, an email actually arriving), the text says so.
@@ -84,11 +84,11 @@ It covers five connected areas:
 | Payroll | `/payroll` | Live, rehearse first | Calculate, adjust, approve, export bank/PAYE/pension/NHF files. |
 | Payslips | `/payslips` | Live | Everyone sees and downloads their own approved payslips. |
 | Role dashboards | `/dashboard` | Partial | Routes each person to an HR, executive, manager or employee view. |
-| Work reports | `/reports/submit` vs `/dashboard/reports` | Partial | One form saves, the other does not (section 10). |
-| Legacy performance dashboard | `/dashboard/performance` | Demo | Shows invented appraisal history. |
-| Team workspace | `/dashboard/team` | Demo | Chat, meetings and tasks are illustrative only. |
-| AI and wellbeing | `/dashboard/ai-wellbeing` | Partial | Real AI calls over partly invented context. |
-| Leave, PIPs, learning, development plans | sidebar | Not built | Shown as "coming soon". |
+| Work reports | `/dashboard/reports`, `/reports/submit` | Live | Write, list and (for managers) review real reports. |
+| Performance hub | `/dashboard/performance` | Live | Live counts and links to Goals, KPIs, Appraisal, Strategy. |
+| Team workspace | `/dashboard/team` | Live, rehearse first | My Team from the org chart, tasks, chat and escalations (section 10). |
+| AI and wellbeing | `/dashboard/ai-wellbeing` | Live | AI coach on your real goals, KPIs and reports; saved wellbeing check-ins. |
+| Leave, meetings, PIPs, learning, development plans | sidebar | Not built | Shown as "coming soon", or not shown. |
 
 ---
 
@@ -376,23 +376,38 @@ Each run keeps a full copy of the rules it used. All three are marked **unverifi
 
 ---
 
-## 10. Dashboards, reports, team and wellbeing: what is real and what is demo
+## 10. Team workspace, dashboards, reports and wellbeing
+
+**No screen shows invented data to a signed-in user.** Until 18 September several did: the Team page, the sidebar Reports page, the Performance page, AI & wellbeing and parts of Profile drew people, messages, escalations, appraisal history and documents from a demo company. All of that was removed or replaced with real data. Demo data now only appears on a developer's own machine with demo mode deliberately switched on.
+
+### 10.1 The Team workspace (`/dashboard/team`)
+
+**Status:** Live, rehearse first. Open to everyone, not only managers. Everything on it follows the **published org chart** (section 5): move someone on the chart and their team, channels and escalation routing move with them.
+
+| Tab | Who sees it | What it does |
+|---|---|---|
+| **My Team** | Anyone with people reporting to them | Team leads and managers see their direct reports. Senior managers and directors see their whole reporting line, grouped by manager. For each person: goal count and average progress, goals at risk, last work report and whether it awaits review, open and overdue tasks. A "needs attention" list states the actual reason (goal at risk, overdue task, report waiting, no goals set, no reports yet). Actions: message them, give them a task, open goals. An AI summary uses only this data. There is deliberately no invented "performance score" — the real score is on the appraisal page once released. Someone with no reports sees a plain message saying so. |
+| **Tasks** | Everyone | Your tasks and the ones you have set. You can give a task to yourself or anyone **below you** on the org chart, never sideways or upwards. Tasks can link to a goal. The assignee is notified. The assignee or the setter can tick it off. |
+| **Chat** | Everyone | Three kinds of conversation: **team** (a manager and their direct reports, so most people are in two — the team they lead and the team they sit in), **department**, and **direct messages** with anyone in the organisation. Messages are saved; an open conversation checks for new ones every five seconds. |
+| **Escalations** | Everyone | Raise a concern with a title, kind, description and urgency. **Operational** and **general** concerns go to your line manager; **people** concerns (which may be about the manager) and **wellbeing** concerns go to HR. A people concern can be raised **anonymously**: managers never see who raised it; HR can, so it can be followed up. The person it was sent to (or HR) moves it from raised → acknowledged → in progress → resolved, and resolving needs a note. The raiser is notified at every step. |
+
+**Not included:** meetings and leave (both "coming soon" platform-wide), HR broadcasts, file sharing in chat, unread-message counts, and real-time push (chat checks every few seconds instead).
+
+### 10.2 Other screens
 
 | Screen | Status | Detail |
 |---|---|---|
-| HR dashboard `/dashboard/hr` | Live | Reads real staff, goals, reports, leave requests and organisation data. Only shows demo data on a developer machine with sign-in bypass switched on. |
+| HR dashboard `/dashboard/hr` | Live | Real staff, goals, reports, leave requests and organisation data. |
 | Executive dashboard `/dashboard/executive` | Live | Real staff and goals; AI executive briefing. |
 | Manager dashboard `/dashboard/manager` | Live | Real team, goals and reports. |
-| Employee dashboard `/dashboard/employee` | Live | 360 status card; links to the real report form. |
+| Employee dashboard `/dashboard/employee` | Live | 360 status card; link to write a report. |
 | 360 status `/dashboard/360` | Live | The participant's own cycle status. |
-| Profile `/dashboard/profile` | Partial | Profile edits save; the photo upload progress bar is simulated. |
-| **Report form `/reports/submit`** | **Live** | Saves the report to the database and can update goal progress. Reached from the employee dashboard. |
-| **Reports `/dashboard/reports`** (sidebar) | **Demo** | Submission only lives in the page and says "your manager has been notified" without notifying anyone. Refreshing loses it, so these reports never reach the appraisal. |
-| Performance `/dashboard/performance` | Demo | Fixed appraisal history and locally editable goals. Contradicts the real `/goals` and `/appraisal`. |
-| Team `/dashboard/team` | Demo | Team, meetings, tasks and chat are sample data; the AI team summary is real but works on sample content. |
-| AI & wellbeing `/dashboard/ai-wellbeing` | Partial | Real AI coaching and wellbeing responses, over hard-coded peer history and suggestions. |
-| `/team`, `/reports` (top level) | Not built | "Coming soon" placeholders. |
-| Leave, PIPs, learning, development plans | Not built | "Coming soon" in the sidebar. Appraisal development commitments do exist separately. |
+| Reports `/dashboard/reports` | Live | Your saved reports with status and manager comment; managers see their direct reports' reports and mark them reviewed with an optional comment. "Write a report" opens `/reports/submit`, which saves. Reports feed the appraisal's report-consistency score. |
+| Performance `/dashboard/performance` | Live | A hub: your goal count, average progress and goals at risk, your KPI count, and links to Goals, KPIs, Appraisal, Strategy and Reports. The old invented appraisal history and page-only goals are gone. |
+| AI & wellbeing `/dashboard/ai-wellbeing` | Live | **Coach:** on request, reads your real goals, KPIs and reports and gives priorities; says plainly when there is nothing to work from. **Wellbeing check-in:** mood, workload and support, saved weekly and visible to you and HR (not your manager), with an AI response; a difficult week offers a link to raise it confidentially with HR. |
+| Profile `/dashboard/profile` | Live | Personal details save. Documents are real uploads to private storage, listed with HR's review status. Band shows only what HR has recorded. Pay comes from payroll; bonuses point to payslips. The invented document checklist, company documents, band ladder, promotion checklist and bonus projection are gone. |
+| `/team`, `/reports` (top level) | Not built | "Coming soon" placeholders; the real pages are under `/dashboard`. |
+| Leave, PIPs, learning, development plans | Not built | "Coming soon" in the sidebar. Appraisal development commitments exist separately. |
 
 ---
 
@@ -405,7 +420,7 @@ Each run keeps a full copy of the rules it used. All three are marked **unverifi
   - 360 rater invitations, naming the person being reviewed
   - launch notices
   - reminders
-- **In-app notifications** appear in the notification panel.
+- **In-app notifications** appear in the notification panel. The team workspace adds them for a new task, a new escalation (to the assignee or to HR) and every escalation status change (to the raiser).
 - **Background delivery:** two Supabase Edge Functions (`send-notification`, `send-reminders`) and a `pg_cron` schedule for 360 reminders.
 - **Not yet built:** delivery, bounce and complaint tracking from Resend (HR cannot see whether an email bounced), and per-cycle reminder scheduling.
 
@@ -420,9 +435,9 @@ All AI runs through Anthropic Claude on the server. AI never writes to scores or
 | 360 comment synthesis, individual and group | 360 reports, with HR review |
 | Report analysis | Report form |
 | Appraisal recommendation text | Appraisal |
-| Coaching insight, wellbeing response | AI & wellbeing |
+| Coaching insight (from your real goals, KPIs and reports), wellbeing response | AI & wellbeing |
 | Executive briefing | Executive dashboard |
-| Team summary | Team workspace |
+| Team summary (from real goals, reports and tasks only) | Team workspace |
 | Training suggestions | Development areas |
 
 The 360 synthesis treats rater anonymity as a hard requirement: it works from pseudonymised comments and is instructed not to reveal who said what.
@@ -442,6 +457,7 @@ A second AI provider client (DeepSeek) exists in the code but is not used.
   - pseudonymised comments
   - no comment-to-rater links in exports
   - released-only access for participants and managers
+- **Team chat and escalations** are closed to browsers entirely; the server decides who is in which conversation, and who may see who raised an escalation, from the org chart on every request. Task writes also go only through the server.
 - **Audit trails** are kept for payroll, appraisal, org publishing and 360 release, access and export.
 - **Spreadsheet exports** escape formula characters, so a name like `=HYPERLINK(...)` cannot run.
 - **Security housekeeping outstanding:** the Supabase service-role key and the database password were exposed earlier (including in git history) and should be rotated.
@@ -460,8 +476,6 @@ A second AI provider client (DeepSeek) exists in the code but is not used.
 
 | Gap | Effect | Fix |
 |---|---|---|
-| Sidebar "Reports" doesn't save | Reports submitted there never reach the appraisal's 20% | Point the sidebar at the real form, or connect this page to it |
-| Legacy Performance dashboard shows invented history | Staff may update goals in the wrong place | Retire it or rebuild it on live data |
 | An older appraisal evidence endpoint can still attach evidence without the review checks | An HR-only side door around the workflow rules | Retire its write actions (the current screen doesn't use them) |
 | Planning screens don't page through very large result sets | Very large organisations could see incomplete rollups | Add paging, as payroll now does |
 | Executives see a Payroll link they cannot open until HR grants them a right | Confusing first click | Show the link only when granted, or grant "approve" during setup |
@@ -519,8 +533,9 @@ Migrations live in `supabase/migrations/` and run in date order. Never edit one 
 | `20260916_000002_payroll` | Payroll tables and guards | Live |
 | `20260916_000003_payroll_atomic_calculation` | All-or-nothing calculation | Live |
 | `20260917_000001_payroll_control_hardening` | Frozen payment details, database maker-checker, once-only bonuses | Live |
+| `20260918_000001_team_workspace` | Team chat table; escalations and task writes closed to browsers | **Pending: run before using Team chat** |
 
-All fifteen were confirmed present in the live database on 18 September 2026 by read-only checks: each migration's distinguishing column or function was queried. A new migration should be added to this table when it is written and marked live once run.
+The first fifteen were confirmed present in the live database on 18 September 2026 by read-only checks: each migration's distinguishing column or function was queried. A new migration should be added to this table when it is written and marked live once run.
 
 ---
 
@@ -529,7 +544,7 @@ All fifteen were confirmed present in the live database on 18 September 2026 by 
 | What | How |
 |---|---|
 | Rules and calculations (about 395 tests) | `node --experimental-strip-types --test src/lib/*.test.ts` |
-| Database behaviour against real Postgres | `node --experimental-strip-types scripts/tests/<name>-db.mjs`: payroll, payroll-calculation, payroll-controls, salary-visibility, appraisal, organisation-structure |
+| Database behaviour against real Postgres | `node --experimental-strip-types scripts/tests/<name>-db.mjs`: payroll, payroll-calculation, payroll-controls, salary-visibility, appraisal, organisation-structure, team-workspace |
 | Browser journeys | `scripts/tests/*-browser.mjs` against `npx next dev -p 3100`, using Chrome (`PULSE_TEST_BROWSER`). Use `localhost`, not `127.0.0.1`. |
 | Type check and build | `npx tsc --noEmit` and `npx next build` |
 
@@ -575,4 +590,4 @@ Browser tests use invented data and block outside traffic. Passing tests prove t
 | 12–14 Sept | Shared visual theme; planning screens; accessibility fixes |
 | 16 Sept | Salaries hidden from browsers; payroll engine, API and screens; payslips; performance bonuses |
 | 17 Sept | Independent audit; payroll controls hardened in response |
-| 18 Sept | This document |
+| 18 Sept | This document; demo data removed from every signed-in screen; Team workspace rebuilt on the org chart with real tasks, chat and escalations; Reports, Performance, AI & wellbeing and Profile rebuilt on real data |
