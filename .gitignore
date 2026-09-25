@@ -52,3 +52,6 @@ scripts/rehearsal/.seed-state.json
 
 # generated study PDFs
 *.pdf
+
+.vercel
+.env*

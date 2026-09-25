@@ -74,6 +74,7 @@ type SurveyRow = {
 type QuestionRow = {
   id: string;
   section: string | null;
+  scale_labels: string[] | null;
   position: number;
   question_type: "scale" | "text";
   prompt: string;
@@ -91,6 +92,7 @@ function toQuestion(row: QuestionRow): SurveyQuestion {
     type: row.question_type,
     prompt: row.prompt,
     section: row.section,
+    scaleLabels: row.scale_labels,
     lowLabel: row.low_label,
     highLabel: row.high_label,
     required: row.required,
@@ -122,7 +124,7 @@ export async function loadSurvey(admin: Admin, by: { id: string; orgId: string }
 
   const { data: questions, error: questionError } = await admin
     .from("survey_questions")
-    .select("id, section, position, question_type, prompt, low_label, high_label, required")
+    .select("id, section, scale_labels, position, question_type, prompt, low_label, high_label, required")
     .eq("survey_id", survey.id)
     .order("position");
   if (questionError) throw new Error("questions");

@@ -11,7 +11,7 @@ import clsx from "clsx";
  * and is not collected, and it collects nothing else.
  */
 
-type Question = { id: string; type: "scale" | "text"; prompt: string; section: string | null; lowLabel: string | null; highLabel: string | null; required: boolean };
+type Question = { id: string; type: "scale" | "text"; prompt: string; section: string | null; scaleLabels: string[] | null; lowLabel: string | null; highLabel: string | null; required: boolean };
 type GroupField = { key: string; label: string; options: string[]; required: boolean };
 type Survey = { title: string; intro: string | null; status: "open" | "closed"; closingNote: string | null; groupFields: GroupField[]; questions: Question[] };
 
@@ -121,7 +121,8 @@ export default function SurveyForm({ slug }: { slug: string }) {
           <p className="font-semibold text-ink">This is anonymous.</p>
           <p className="mt-1">
             You are not signing in and your name, email address and device are not recorded. Answers are reported as averages
-            across everyone, and any group too small to stay anonymous is left out of the results entirely.
+            across everyone. Any group too small to stay anonymous — a small department, say — is never named: those answers are
+            combined with other small groups, or counted only in the overall totals.
           </p>
         </div>
         {alreadySent && (
@@ -165,31 +166,64 @@ export default function SurveyForm({ slug }: { slug: string }) {
               {!question.required && <span className="font-normal text-muted"> (optional)</span>}
             </legend>
             {question.type === "scale" ? (
-              <>
-                <div className="mt-4 grid grid-cols-5 gap-2">
-                  {SCALE.map((value) => {
-                    const chosen = answers[question.id] === value;
+              question.scaleLabels?.length === 5 ? (
+                // Five named points, stacked. On a phone five words will not sit
+                // side by side without wrapping into something unreadable.
+                <div className="mt-4 grid gap-2">
+                  {question.scaleLabels.map((label, value) => {
+                    const chosen = answers[question.id] === value + 1;
                     return (
                       <button
-                        key={value}
+                        key={label}
                         type="button"
                         aria-pressed={chosen}
-                        onClick={() => setAnswers({ ...answers, [question.id]: value })}
+                        onClick={() => setAnswers({ ...answers, [question.id]: value + 1 })}
                         className={clsx(
-                          "min-h-[52px] rounded-lg border text-base font-semibold transition-colors",
+                          "flex min-h-[52px] items-center gap-3 rounded-lg border px-4 text-left text-base transition-colors",
                           chosen ? "border-pulse bg-pulse text-white" : "border-border bg-card text-ink hover:border-pulse",
                         )}
                       >
-                        {value}
+                        <span
+                          className={clsx(
+                            "grid h-5 w-5 flex-shrink-0 place-items-center rounded-full border-2",
+                            chosen ? "border-white" : "border-border",
+                          )}
+                          aria-hidden="true"
+                        >
+                          {chosen && <span className="h-2.5 w-2.5 rounded-full bg-white" />}
+                        </span>
+                        {label}
                       </button>
                     );
                   })}
                 </div>
-                <div className="mt-2 flex justify-between text-xs text-muted">
-                  <span>{question.lowLabel || "Strongly disagree"}</span>
-                  <span>{question.highLabel || "Strongly agree"}</span>
-                </div>
-              </>
+              ) : (
+                <>
+                  <div className="mt-4 grid grid-cols-5 gap-2">
+                    {SCALE.map((value) => {
+                      const chosen = answers[question.id] === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          aria-pressed={chosen}
+                          onClick={() => setAnswers({ ...answers, [question.id]: value })}
+                          className={clsx(
+                            "min-h-[52px] rounded-lg border text-base font-semibold transition-colors",
+                            chosen ? "border-pulse bg-pulse text-white" : "border-border bg-card text-ink hover:border-pulse",
+                          )}
+                        >
+                          {value}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-2 flex justify-between text-xs text-muted">
+                    <span>{question.lowLabel || "Strongly disagree"}</span>
+                    <span>{question.highLabel || "Strongly agree"}</span>
+                  </div>
+                </>
+              )
             ) : (
               <textarea
                 value={String(answers[question.id] ?? "")}

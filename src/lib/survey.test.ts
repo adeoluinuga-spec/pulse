@@ -9,6 +9,7 @@ import {
   validateMinimumGroup,
   validateQuestions,
   validateSubmission,
+  OTHER_LABEL,
   type StoredResponse,
   type SurveyDefinition,
 } from "./survey.ts";
@@ -129,27 +130,66 @@ test("at the minimum, means and the spread of answers are reported", () => {
   assert.deepEqual(commentsFor(report), ["More clarity please", "Fewer meetings"]);
 });
 
-test("a group below the minimum is hidden, and hiding it does not leak its size", () => {
+test("groups too small to name are pooled into Other, not thrown away", () => {
   const responses = [
     answer("Sales", "Junior", 5, 5),
     answer("Sales", "Junior", 4, 4),
     answer("Sales", "Senior", 3, 3),
     answer("Studio", "Senior", 1, 1),
+    answer("Studio", "Senior", 2, 2),
+    answer("Ops", "Senior", 1, 1),
   ];
   const report = buildReport(survey, responses);
   const departments = report.breakdowns.find((breakdown) => breakdown.key === "department");
-  const sales = departments?.groups.find((group) => group.value === "Sales");
-  const studio = departments?.groups.find((group) => group.value === "Studio");
 
-  assert.equal(sales?.suppressed, false);
+  const sales = departments?.groups.find((group) => group.value === "Sales");
   assert.equal(sales?.responses, 3);
   assert.equal(sales?.mean, 4);
+  assert.equal(sales?.pooled, false);
 
-  assert.equal(studio?.suppressed, true);
-  assert.equal(studio?.responses, 0, "a hidden group reports no count");
-  assert.equal(studio?.mean, null);
-  assert.deepEqual(studio?.questions.map((question) => question.mean), [null, null]);
+  // Studio (2) and Ops (1) are each too small, so they answer as one row of 3.
+  assert.equal(departments?.groups.some((group) => group.value === "Studio"), false, "a small department is never named");
+  assert.equal(departments?.groups.some((group) => group.value === "Ops"), false);
+  const other = departments?.groups.find((group) => group.pooled);
+  assert.equal(other?.value, OTHER_LABEL);
+  assert.equal(other?.responses, 3);
+  assert.equal(other?.pooledFrom, 2, "two departments were folded together");
+  assert.equal(other?.mean, 1.33); // ratings 1, 2, 1 on each rated question
+  assert.equal(departments?.hiddenGroups, 2);
+  assert.equal(departments?.pooledWithheld, false);
+});
+
+test("a pooled row that is itself too small is withheld, so one department cannot hide inside Other", () => {
+  const report = buildReport(survey, [
+    answer("Sales", "Junior", 5, 5),
+    answer("Sales", "Junior", 4, 4),
+    answer("Sales", "Senior", 3, 3),
+    answer("Studio", "Senior", 1, 1),
+    answer("Studio", "Senior", 2, 2),
+  ]);
+  const departments = report.breakdowns.find((breakdown) => breakdown.key === "department");
+  assert.equal(departments?.groups.length, 1, "only Sales is shown");
+  assert.equal(departments?.groups.some((group) => group.pooled), false, "two people are not shown as Other either");
+  assert.equal(departments?.pooledWithheld, true);
   assert.equal(departments?.hiddenGroups, 1);
+  // Their answers still count in the overall figures.
+  assert.equal(report.responses, 5);
+});
+
+test("a pooled row big enough to show always mixes at least two groups", () => {
+  // Each pooled group holds at most minimum-1 people, so a pooled row reaching
+  // the minimum cannot be one group. Checked here so the reasoning cannot rot.
+  const report = buildReport(survey, [
+    answer("Sales", "Junior", 4, 4),
+    answer("Sales", "Junior", 4, 4),
+    answer("Studio", "Senior", 2, 2),
+    answer("Ops", "Senior", 2, 2),
+    answer("Ops", "Junior", 2, 2),
+  ]);
+  const departments = report.breakdowns.find((breakdown) => breakdown.key === "department");
+  const other = departments?.groups.find((group) => group.pooled);
+  assert.equal(other?.responses, 5, "Sales (2), Studio (1) and Ops (2) are all too small, so all five pool");
+  assert.ok((other?.pooledFrom ?? 0) >= 2);
 });
 
 test("departments and levels are separate lists, never crossed", () => {
@@ -168,7 +208,7 @@ test("departments and levels are separate lists, never crossed", () => {
     }
   }
   const levels = report.breakdowns.find((breakdown) => breakdown.key === "level");
-  assert.equal(levels?.groups.every((group) => group.suppressed), true, "two of each level is below the minimum");
+  assert.deepEqual(levels?.groups.map((group) => group.value), [OTHER_LABEL], "two of each level, so they pool into one row");
 });
 
 test("comments carry no group, so a sentence cannot be traced to a team of three", () => {
@@ -192,5 +232,8 @@ test("the export carries the aggregate only, and is safe to open in a spreadshee
   assert.ok(csv.includes("Department"));
   assert.ok(csv.includes("Sales,3,4"));
   assert.equal(csv.includes("=cmd"), false, "comments are not exported at all");
-  assert.equal(csv.includes("Junior"), true);
+  // One Junior and two Seniors: neither reaches three, so the export names
+  // neither and shows them pooled instead.
+  assert.equal(csv.includes("Junior"), false);
+  assert.ok(csv.includes(OTHER_LABEL), "the export shows the pooled row rather than the small groups");
 });

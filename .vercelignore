@@ -1,0 +1,12 @@
+# Never upload local secrets or local build output when deploying from a
+# machine. Environment variables belong in the Vercel project's settings, not in
+# a file that rides along with the source.
+.env
+.env.*
+!.env.example
+
+.next
+node_modules
+buildlog.txt
+*.pdf
+scratchpad

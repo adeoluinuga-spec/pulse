@@ -182,7 +182,7 @@ function Builder({ onCancel, onCreated }: { onCancel: () => void; onCreated: (id
       </Field>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Smallest group that can be reported" hint="Any group with fewer answers than this is left out entirely. Three is the lowest allowed.">
+        <Field label="Smallest group that can be reported" hint="A group with fewer answers than this is never named — it is combined with other small groups, or counted only in the totals. Three is the lowest allowed.">
           <select value={minimumGroup} onChange={(e) => setMinimumGroup(Number(e.target.value))} className={INPUT}>
             {[3, 4, 5, 6, 8, 10].map((value) => <option key={value} value={value}>{value} people</option>)}
           </select>

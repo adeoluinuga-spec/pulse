@@ -14,8 +14,8 @@ import { Alert, Muted, StatusPill } from "./SurveysWorkspace";
  * that shows one person's submission — see src/lib/survey.ts for why.
  */
 
-type Question = { questionId: string; prompt: string; section: string | null; type: "scale" | "text"; answered: number; mean: number | null; distribution: number[]; comments: string[] };
-type Breakdown = { key: string; label: string; hiddenGroups: number; groups: Array<{ value: string; responses: number; suppressed: boolean; mean: number | null; questions: Array<{ questionId: string; mean: number | null; answered: number }> }> };
+type Question = { questionId: string; prompt: string; section: string | null; scaleLabels: string[] | null; topTwoBox: number | null; type: "scale" | "text"; answered: number; mean: number | null; distribution: number[]; comments: string[] };
+type Breakdown = { key: string; label: string; hiddenGroups: number; pooledWithheld: boolean; groups: Array<{ value: string; responses: number; suppressed: boolean; pooled: boolean; pooledFrom: number; mean: number | null; questions: Array<{ questionId: string; mean: number | null; answered: number }> }> };
 type Report = { responses: number; minimumGroup: number; suppressed: boolean; overallMean: number | null; questions: Question[]; breakdowns: Breakdown[] };
 type Survey = { id: string; title: string; slug: string; status: "draft" | "open" | "closed"; minimumGroup: number; questions: Array<{ id: string; prompt: string }> };
 
@@ -140,7 +140,13 @@ export default function SurveyReportView({ surveyId, onChanged }: { surveyId: st
 
           <section className="rounded-lg border border-border bg-card p-5">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-ink">Question by question</p>
+              <div>
+                <p className="text-sm font-semibold text-ink">Question by question</p>
+                <p className="mt-1 text-xs text-muted">
+                  The big figure is the share who chose one of the top two answers — the one to compare across surveys measured on
+                  different scales. The average is there for depth.
+                </p>
+              </div>
               <a href={`/api/surveys/${surveyId}?format=csv`} className="flex items-center gap-2 text-sm font-semibold text-pulse">
                 <Download size={15} /> CSV
               </a>
@@ -153,8 +159,16 @@ export default function SurveyReportView({ surveyId, onChanged }: { surveyId: st
                   )}
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="text-sm text-ink">{question.prompt}</p>
-                    <p className="text-sm font-semibold text-ink">{question.mean ?? "—"}</p>
+                    <p className="flex-shrink-0 text-right">
+                      <span className="text-lg font-semibold text-ink">{question.topTwoBox === null ? "—" : `${question.topTwoBox}%`}</span>
+                      <span className="ml-2 text-xs text-muted">avg {question.mean ?? "—"}</span>
+                    </p>
                   </div>
+                  {question.scaleLabels && question.topTwoBox !== null && (
+                    <p className="text-xs text-muted">
+                      chose &ldquo;{question.scaleLabels[3]}&rdquo; or &ldquo;{question.scaleLabels[4]}&rdquo;
+                    </p>
+                  )}
                   <div className="mt-2 flex gap-1" aria-hidden="true">
                     {question.distribution.map((count, index) => (
                       <div key={index} className="flex-1">
@@ -164,7 +178,7 @@ export default function SurveyReportView({ surveyId, onChanged }: { surveyId: st
                             style={{ height: `${question.answered ? (count / Math.max(...question.distribution)) * 100 : 0}%` }}
                           />
                         </div>
-                        <p className="mt-1 text-center text-[10px] text-muted">{index + 1}</p>
+                        <p className="mt-1 text-center text-[10px] leading-tight text-muted">{question.scaleLabels?.[index] ?? index + 1}</p>
                       </div>
                     ))}
                   </div>
@@ -189,10 +203,12 @@ export default function SurveyReportView({ surveyId, onChanged }: { surveyId: st
                   </thead>
                   <tbody>
                     {breakdown.groups.map((group) => (
-                      <tr key={group.value} className={clsx("border-b border-border last:border-0", group.suppressed && "text-muted")}>
-                        <td className="py-2">{group.value}</td>
-                        <td className="py-2">{group.suppressed ? "—" : group.responses}</td>
-                        <td className="py-2">{group.suppressed ? <span className="text-xs">too few to show</span> : group.mean ?? "—"}</td>
+                      <tr key={group.value} className={clsx("border-b border-border last:border-0", group.pooled && "text-muted")}>
+                        <td className="py-2">
+                          {group.pooled ? `Other — ${group.pooledFrom} groups combined` : group.value}
+                        </td>
+                        <td className="py-2">{group.responses}</td>
+                        <td className="py-2">{group.mean ?? "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -200,8 +216,10 @@ export default function SurveyReportView({ surveyId, onChanged }: { surveyId: st
               </div>
               {breakdown.hiddenGroups > 0 && (
                 <p className="mt-3 text-xs text-muted">
-                  {breakdown.hiddenGroups} {breakdown.hiddenGroups === 1 ? "group is" : "groups are"} hidden for having fewer than {report.minimumGroup} answers.
-                  Their answers are still counted in the totals above.
+                  {breakdown.hiddenGroups} {breakdown.hiddenGroups === 1 ? "group had" : "groups had"} fewer than {report.minimumGroup} answers, so
+                  {breakdown.pooledWithheld
+                    ? " there were too few of them even to combine. Those answers count in the totals above, and nowhere else."
+                    : " they are combined into one row above rather than named."}
                 </p>
               )}
             </section>

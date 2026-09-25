@@ -13,9 +13,9 @@ const SLUG = "abc123def456abc123def456";
 const browser = await chromium.launch({ executablePath: process.env.PULSE_TEST_BROWSER, headless: true });
 
 const questions = [
-  { id: "q1", type: "scale", prompt: "I am clear about what is expected of me in my role", lowLabel: "Strongly disagree", highLabel: "Strongly agree", required: true },
-  { id: "q2", type: "scale", prompt: "Decisions here are made quickly enough", lowLabel: null, highLabel: null, required: true },
-  { id: "q3", type: "text", prompt: "What should we start doing?", lowLabel: null, highLabel: null, required: false },
+  { id: "q1", type: "scale", prompt: "I am clear about what is expected of me in my role", section: "A — Clarity", scaleLabels: ["Strongly disagree", "Disagree", "Neither agree nor disagree", "Agree", "Strongly agree"], lowLabel: "Strongly disagree", highLabel: "Strongly agree", required: true },
+  { id: "q2", type: "scale", prompt: "Decisions here are made quickly enough", section: "A — Clarity", scaleLabels: null, lowLabel: null, highLabel: null, required: true },
+  { id: "q3", type: "text", prompt: "What should we start doing?", section: null, scaleLabels: null, lowLabel: null, highLabel: null, required: false },
 ];
 const groupFields = [
   { key: "department", label: "Department", options: ["Sales", "Studio", "Operations"], required: true },
@@ -41,22 +41,23 @@ const report = {
   suppressed: false,
   overallMean: 3.4,
   questions: [
-    { questionId: "q1", prompt: questions[0].prompt, type: "scale", answered: 12, mean: 3.8, distribution: [1, 1, 3, 4, 3], comments: [] },
-    { questionId: "q2", prompt: questions[1].prompt, type: "scale", answered: 12, mean: 3.0, distribution: [2, 2, 4, 3, 1], comments: [] },
-    { questionId: "q3", prompt: questions[2].prompt, type: "text", answered: 3, mean: null, distribution: [], comments: ["Clearer priorities", "Fewer meetings", "More feedback"] },
+    { questionId: "q1", prompt: questions[0].prompt, section: "A — Clarity", scaleLabels: questions[0].scaleLabels, topTwoBox: 58, type: "scale", answered: 12, mean: 3.8, distribution: [1, 1, 3, 4, 3], comments: [] },
+    { questionId: "q2", prompt: questions[1].prompt, section: "A — Clarity", scaleLabels: null, topTwoBox: 33, type: "scale", answered: 12, mean: 3.0, distribution: [2, 2, 4, 3, 1], comments: [] },
+    { questionId: "q3", prompt: questions[2].prompt, section: null, scaleLabels: null, topTwoBox: null, type: "text", answered: 3, mean: null, distribution: [], comments: ["Clearer priorities", "Fewer meetings", "More feedback"] },
   ],
   breakdowns: [
     {
       key: "department",
       label: "Department",
-      hiddenGroups: 1,
+      hiddenGroups: 2,
+      pooledWithheld: false,
       groups: [
-        { value: "Sales", responses: 6, suppressed: false, mean: 3.9, questions: [] },
-        { value: "Studio", responses: 4, suppressed: false, mean: 3.1, questions: [] },
-        { value: "Operations", responses: 0, suppressed: true, mean: null, questions: [] },
+        { value: "Sales", responses: 6, suppressed: false, pooled: false, pooledFrom: 0, mean: 3.9, questions: [] },
+        { value: "Studio", responses: 4, suppressed: false, pooled: false, pooledFrom: 0, mean: 3.1, questions: [] },
+        { value: "Other (too small to name)", responses: 3, suppressed: false, pooled: true, pooledFrom: 2, mean: 2.8, questions: [] },
       ],
     },
-    { key: "level", label: "Level", hiddenGroups: 0, groups: [{ value: "Junior", responses: 7, suppressed: false, mean: 3.2, questions: [] }, { value: "Senior", responses: 5, suppressed: false, mean: 3.7, questions: [] }] },
+    { key: "level", label: "Level", hiddenGroups: 0, pooledWithheld: false, groups: [{ value: "Junior", responses: 7, suppressed: false, pooled: false, pooledFrom: 0, mean: 3.2, questions: [] }, { value: "Senior", responses: 5, suppressed: false, pooled: false, pooledFrom: 0, mean: 3.7, questions: [] }] },
   ],
 };
 
@@ -115,7 +116,8 @@ try {
 
   await page.getByLabel("Department").selectOption("Sales");
   await page.getByLabel(/^Level/).selectOption("Senior");
-  await page.getByRole("group", { name: /clear about what is expected/ }).getByRole("button", { name: "4", exact: true }).click();
+  // The labelled question is answered by its words, not by a number.
+  await page.getByRole("group", { name: /clear about what is expected/ }).getByRole("button", { name: "Agree", exact: true }).click();
   await page.getByRole("group", { name: /Decisions here are made/ }).getByRole("button", { name: "2", exact: true }).click();
   await page.getByRole("textbox").fill("Agree priorities before the week starts");
   await page.getByRole("button", { name: "Send my answers" }).click();
@@ -145,10 +147,14 @@ try {
   await page.getByText("The link to send").waitFor({ timeout: 60_000 });
   await page.getByText(`${root}/s/${SLUG}`).waitFor();
   await page.getByText("12", { exact: true }).first().waitFor();
+  await page.getByText("58%").waitFor();
+  await page.getByText(/chose .Agree. or .Strongly agree./).waitFor();
   await page.getByText("By department").waitFor();
   await page.getByText("By level").waitFor();
-  await page.getByText("too few to show").waitFor();
-  await page.getByText("1 group is hidden for having fewer than 3 answers.", { exact: false }).waitFor();
+  await page.getByText("Other — 2 groups combined").waitFor();
+  await page.getByText("2 groups had fewer than 3 answers", { exact: false }).waitFor();
+  const departmentsTable = await page.locator("table").first().innerText();
+  assert.equal(departmentsTable.includes("Operations"), false, "a department too small to report is never named");
 
   // The report shows one grouping at a time — never a department crossed with a level.
   const reportText = await page.locator("body").innerText();

@@ -31,6 +31,7 @@ try {
   await db.query("insert into employees(id, org_id, name, email, platform_role) values ($1,$2,'Owner','hello@stuartdavidson.org','super_admin')", [OWNER, ORG]);
   await db.exec(await readFile("supabase/migrations/20260925_000001_surveys.sql", "utf8"));
   await db.exec(await readFile("supabase/migrations/20260925_000002_survey_sections.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/20260925_000003_survey_scale_labels.sql", "utf8"));
 
   const stored = {};
   for (const [name, survey] of [["staff", STAFF], ["managers", MANAGERS]]) {
@@ -54,8 +55,8 @@ try {
 
     for (const [index, question] of survey.questions.entries()) {
       await db.query(
-        "insert into survey_questions(survey_id, position, question_type, prompt, section, low_label, high_label, required) values ($1,$2,$3,$4,$5,$6,$7,$8)",
-        [row.id, index + 1, question.type, question.prompt, question.section, question.lowLabel ?? null, question.highLabel ?? null, question.required],
+        "insert into survey_questions(survey_id, position, question_type, prompt, section, low_label, high_label, required, scale_labels) values ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb)",
+        [row.id, index + 1, question.type, question.prompt, question.section, question.lowLabel ?? null, question.highLabel ?? null, question.required, question.scaleLabels ? JSON.stringify(question.scaleLabels) : null],
       );
     }
     stored[name] = row.id;
@@ -63,7 +64,7 @@ try {
   }
 
   // ── the instrument is what was intended ────────────────────────────────────
-  const staffQuestions = (await db.query("select prompt, section, question_type, low_label, high_label from survey_questions where survey_id = $1 order by position", [stored.staff])).rows;
+  const staffQuestions = (await db.query("select prompt, section, question_type, low_label, high_label, scale_labels from survey_questions where survey_id = $1 order by position", [stored.staff])).rows;
   assert.equal(staffQuestions.filter((q) => q.question_type === "scale").length, 17, "seventeen rated questions");
   assert.equal(staffQuestions.filter((q) => q.question_type === "text").length, 2, "two free-text questions");
   assert.deepEqual(
@@ -72,14 +73,12 @@ try {
     "the four sections, in order",
   );
   for (const question of staffQuestions.filter((q) => q.question_type === "scale")) {
-    assert.equal(question.low_label, "Strongly disagree");
-    assert.equal(question.high_label, "Strongly agree");
+    assert.deepEqual(question.scale_labels, ["Strongly disagree", "Disagree", "Neither agree nor disagree", "Agree", "Strongly agree"], "all five points are named");
   }
 
-  const managerQuestions = (await db.query("select prompt, question_type, low_label, high_label from survey_questions where survey_id = $1 order by position", [stored.managers])).rows;
+  const managerQuestions = (await db.query("select prompt, question_type, low_label, high_label, scale_labels from survey_questions where survey_id = $1 order by position", [stored.managers])).rows;
   assert.equal(managerQuestions.filter((q) => q.question_type === "scale").length, 10);
-  assert.equal(managerQuestions[0].low_label, "Never", "the manager scale runs Never to Always");
-  assert.equal(managerQuestions[0].high_label, "Always");
+  assert.deepEqual(managerQuestions[0].scale_labels, ["Never", "Rarely", "Sometimes", "Usually", "Always"], "the manager scale runs Never to Always");
 
   const groups = (await db.query("select group_fields from surveys where id = $1", [stored.staff])).rows[0].group_fields;
   assert.deepEqual(groups.map((field) => field.key), ["department", "time_at_bracken", "do_you_manage_or_supervise_anyone"]);
@@ -94,12 +93,13 @@ try {
     status: "open",
     minimumGroup: STAFF.minimumGroup,
     groupFields: groups,
-    questions: (await db.query("select id, position, question_type, prompt, section, required from survey_questions where survey_id = $1 order by position", [stored.staff])).rows.map((row) => ({
+    questions: (await db.query("select id, position, question_type, prompt, section, scale_labels, required from survey_questions where survey_id = $1 order by position", [stored.staff])).rows.map((row) => ({
       id: row.id,
       position: row.position,
       type: row.question_type,
       prompt: row.prompt,
       section: row.section,
+      scaleLabels: row.scale_labels,
       required: row.required,
     })),
   };
@@ -135,10 +135,9 @@ try {
   const byDepartment = report.breakdowns.find((breakdown) => breakdown.key === "department");
   assert.equal(byDepartment.groups.find((group) => group.value === "Creative").responses, 6);
   assert.equal(byDepartment.groups.find((group) => group.value === "Production").responses, 4);
-  const legal = byDepartment.groups.find((group) => group.value === "Legal");
-  assert.equal(legal.suppressed, true, "two people in Legal are never reported on their own");
-  assert.equal(legal.responses, 0);
-  assert.equal(legal.mean, null);
+  assert.equal(byDepartment.groups.some((group) => group.value === "Legal"), false, "two people in Legal are never named");
+  assert.equal(byDepartment.pooledWithheld, true, "and with no other small department to combine with, they appear only in the totals");
+  assert.equal(byDepartment.hiddenGroups, 1);
 
   assert.deepEqual(report.breakdowns.map((breakdown) => breakdown.key), ["department", "time_at_bracken", "do_you_manage_or_supervise_anyone"]);
   const asJson = JSON.stringify(report);
@@ -146,12 +145,18 @@ try {
   assert.equal(asJson.includes("respondent"), false);
 
   // The comment is in the report, with nothing about who wrote it.
+  // Top-two-box is what the February slide compares across the two surveys.
+  for (const question of report.questions.filter((q) => q.type === "scale")) {
+    const fromDistribution = Math.round(((question.distribution[3] + question.distribution[4]) / question.answered) * 100);
+    assert.equal(question.topTwoBox, fromDistribution, "top-two-box is the share choosing the top two points");
+  }
+
   const commentQuestion = report.questions.find((question) => question.type === "text" && question.comments.length);
   assert.deepEqual(commentQuestion.comments, ["Clearer handovers between departments"]);
   assert.equal(JSON.stringify(commentQuestion).includes("Creative"), false, "a comment carries no department");
 
   console.log(
-    "\nPASS: both Bracken surveys store cleanly — 17 rated and 2 written questions across four named sections for staff, 10 on a Never-to-Always scale for managers, and the department, tenure and manages-anyone groupings as the report expects; on 12 realistic answers the report gives per-question averages, reports Creative (6) and Production (4) but hides Legal (2) entirely, keeps the three groupings apart, and shows the written comment with no department attached.",
+    "\nPASS: both Bracken surveys store cleanly — 17 rated and 2 written questions across four named sections for staff, 10 on a Never-to-Always scale for managers, and the department, tenure and manages-anyone groupings as the report expects; on 12 realistic answers the report gives per-question averages, reports Creative (6) and Production (4) but never names Legal (2), whose answers reach only the totals, keeps the three groupings apart, and shows the written comment with no department attached.",
   );
 } finally {
   await db.close();

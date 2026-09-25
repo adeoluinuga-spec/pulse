@@ -24,8 +24,19 @@ export const DEPARTMENTS = [
 // Whose workspace the surveys belong to. Yours, not the client's: Bracken is
 // not on Pulse, and does not need to be for a baseline.
 
-const AGREE = { lowLabel: "Strongly disagree", highLabel: "Strongly agree" };
-const FREQUENCY = { lowLabel: "Never", highLabel: "Always" };
+// Five named points, as specified. The answer is still stored as 1 to 5, so
+// averages and comparisons work — but January must use these exact words, or
+// the two runs are not measuring the same thing.
+const AGREE = {
+  lowLabel: "Strongly disagree",
+  highLabel: "Strongly agree",
+  scaleLabels: ["Strongly disagree", "Disagree", "Neither agree nor disagree", "Agree", "Strongly agree"],
+};
+const FREQUENCY = {
+  lowLabel: "Never",
+  highLabel: "Always",
+  scaleLabels: ["Never", "Rarely", "Sometimes", "Usually", "Always"],
+};
 
 const scale = (section, ends, prompts) => prompts.map((prompt) => ({ type: "scale", prompt, section, required: true, ...ends }));
 const comment = (section, prompt) => ({ type: "text", prompt, section, required: false });
@@ -82,7 +93,9 @@ export const MANAGERS = {
   intro: [
     "This short self-assessment takes about three minutes. It does two things: it gives us a starting picture of management practice across Bracken, and it gets you thinking about your own before the first session on 2 October.",
     "",
-    "Answers are anonymous and are reported only as a group. There are no right answers, and nothing here feeds into your appraisal. An honest low score is more useful to you than a generous one.",
+    "Your answers are anonymous. Responses go to Stuart Davidson, the external consultants running the programme — not to Bracken management — and are reported only as a group.",
+    "",
+    "There are no right answers, and nothing here feeds into your appraisal. An honest low score is more useful to you than a generous one.",
   ].join("\n"),
   closingNote: "Thank you — see you on 2 October.",
   minimumGroup: 3,

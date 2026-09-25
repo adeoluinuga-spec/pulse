@@ -41,6 +41,8 @@ export type SurveyQuestion = {
   prompt: string;
   /** Shown as a heading above this question. Presentation only — nothing is averaged by section. */
   section?: string | null;
+  /** Five words for the five points, lowest first. Without them the question shows 1 to 5 with the ends named. */
+  scaleLabels?: string[] | null;
   /** A scale question may carry its own wording for the ends of the scale. */
   lowLabel?: string | null;
   highLabel?: string | null;
@@ -93,6 +95,7 @@ export function validateQuestions(input: unknown): { ok: true; questions: Omit<S
       type,
       prompt,
       section: text(raw.section) || null,
+      scaleLabels: Array.isArray(raw.scaleLabels) && raw.scaleLabels.length === SCALE_MAX ? raw.scaleLabels.map(text) : null,
       lowLabel: type === "scale" ? text(raw.lowLabel) || null : null,
       highLabel: type === "scale" ? text(raw.highLabel) || null : null,
       // A free-text question is optional unless it is deliberately made required:
@@ -199,6 +202,16 @@ export type QuestionResult = {
   questionId: string;
   prompt: string;
   section: string | null;
+  scaleLabels: string[] | null;
+  /**
+   * The share who chose one of the top two points, as a percentage.
+   *
+   * This is the figure to compare across questions measured on different
+   * scales. "68% of managers say usually or always" and "34% of staff agree or
+   * strongly agree" can sit side by side; a mean of 3.8 on frequency and 3.2 on
+   * agreement cannot, because they are not the same quantity.
+   */
+  topTwoBox: number | null;
   type: QuestionType;
   answered: number;
   mean: number | null;
@@ -215,12 +228,21 @@ export type GroupResult = {
     value: string;
     responses: number;
     suppressed: boolean;
-    /** Per-question means, or null where the group is too small to report. */
+    /** True for the pooled row holding every group too small to name. */
+    pooled: boolean;
+    /** How many named groups were folded into this row. Only set on the pooled row. */
+    pooledFrom: number;
+    /** Per-question means, or null where the row is too small to report. */
     questions: Array<{ questionId: string; mean: number | null; answered: number }>;
     mean: number | null;
   }>;
+  /** Named groups that are not shown on their own, whether pooled or withheld. */
   hiddenGroups: number;
+  /** True when even the pooled row was too small to show, so those answers appear only in the totals. */
+  pooledWithheld: boolean;
 };
+
+export const OTHER_LABEL = "Other (too small to name)";
 
 export type SurveyReport = {
   responses: number;
@@ -260,11 +282,23 @@ export function buildReport(survey: SurveyDefinition, responses: StoredResponse[
       const comments = responses
         .map((response) => response.answers.find((answer) => answer.questionId === question.id)?.text)
         .filter((comment): comment is string => Boolean(comment && comment.trim()));
-      return { questionId: question.id, prompt: question.prompt, section: question.section ?? null, type: "text", answered: comments.length, mean: null, distribution: [], comments };
+      return { questionId: question.id, prompt: question.prompt, section: question.section ?? null, scaleLabels: null, topTwoBox: null, type: "text", answered: comments.length, mean: null, distribution: [], comments };
     }
     const ratings = ratingsFor(question.id, responses);
     const distribution = Array.from({ length: SCALE_MAX }, (_, index) => ratings.filter((rating) => rating === index + 1).length);
-    return { questionId: question.id, prompt: question.prompt, section: question.section ?? null, type: "scale", answered: ratings.length, mean: mean(ratings), distribution, comments: [] };
+    const topTwo = ratings.filter((rating) => rating >= SCALE_MAX - 1).length;
+    return {
+      questionId: question.id,
+      prompt: question.prompt,
+      section: question.section ?? null,
+      scaleLabels: question.scaleLabels ?? null,
+      type: "scale",
+      answered: ratings.length,
+      mean: mean(ratings),
+      topTwoBox: ratings.length ? Math.round((topTwo / ratings.length) * 100) : null,
+      distribution,
+      comments: [],
+    };
   });
 
   const scaleMeans = questions.filter((question) => question.type === "scale" && question.mean !== null).map((question) => question.mean as number);
@@ -280,27 +314,41 @@ export function buildReport(survey: SurveyDefinition, responses: StoredResponse[
       else buckets.set(value, [response]);
     }
 
-    const groups = field.options
-      .filter((option) => buckets.has(option))
-      .map((option) => {
-        const members = buckets.get(option) as StoredResponse[];
-        const suppressed = members.length < minimum;
-        const perQuestion = ordered
-          .filter((question) => question.type === "scale")
-          .map((question) => {
-            const ratings = ratingsFor(question.id, members);
-            return { questionId: question.id, mean: suppressed ? null : mean(ratings), answered: suppressed ? 0 : ratings.length };
-          });
-        return {
-          value: option,
-          responses: suppressed ? 0 : members.length,
-          suppressed,
-          questions: perQuestion,
-          mean: suppressed ? null : mean(perQuestion.map((row) => row.mean).filter((value): value is number => value !== null)),
-        };
-      });
+    const summarise = (value: string, members: StoredResponse[], pooled: boolean, pooledFrom: number) => {
+      const perQuestion = ordered
+        .filter((question) => question.type === "scale")
+        .map((question) => {
+          const ratings = ratingsFor(question.id, members);
+          return { questionId: question.id, mean: mean(ratings), answered: ratings.length };
+        });
+      return {
+        value,
+        responses: members.length,
+        suppressed: false,
+        pooled,
+        pooledFrom,
+        questions: perQuestion,
+        mean: mean(perQuestion.map((row) => row.mean).filter((value): value is number => value !== null)),
+      };
+    };
 
-    return { key: field.key, label: field.label, groups, hiddenGroups: groups.filter((group) => group.suppressed).length };
+    const named = field.options.filter((option) => buckets.has(option));
+    const bigEnough = named.filter((option) => (buckets.get(option) as StoredResponse[]).length >= minimum);
+    const tooSmall = named.filter((option) => !bigEnough.includes(option));
+
+    const groups = bigEnough.map((option) => summarise(option, buckets.get(option) as StoredResponse[], false, 0));
+
+    // Everyone in a group too small to name is pooled, so their answers still
+    // count somewhere visible. Because each pooled group holds fewer than the
+    // minimum, a pooled row that is big enough to show always mixes at least
+    // two of them — which is what keeps it from naming anybody.
+    const pooledMembers = tooSmall.flatMap((option) => buckets.get(option) as StoredResponse[]);
+    const pooledWithheld = pooledMembers.length > 0 && pooledMembers.length < minimum;
+    if (pooledMembers.length >= minimum) {
+      groups.push(summarise(OTHER_LABEL, pooledMembers, true, tooSmall.length));
+    }
+
+    return { key: field.key, label: field.label, groups, hiddenGroups: tooSmall.length, pooledWithheld };
   });
 
   return {
@@ -326,17 +374,18 @@ export function reportCsv(report: SurveyReport): string {
     const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
     return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
   };
-  const lines = [["Question", "Answers", "Average"].map(cell).join(",")];
+  const lines = [["Question", "Answers", "Average", "Top two (%)"].map(cell).join(",")];
   for (const question of report.questions) {
     if (question.type !== "scale") continue;
-    lines.push([question.prompt, question.answered, question.mean].map(cell).join(","));
+    lines.push([question.prompt, question.answered, question.mean, question.topTwoBox].map(cell).join(","));
   }
   for (const breakdown of report.breakdowns) {
     lines.push("");
     lines.push([breakdown.label, "Responses", "Average"].map(cell).join(","));
     for (const group of breakdown.groups) {
-      lines.push([group.value, group.suppressed ? "too few to show" : group.responses, group.suppressed ? "" : group.mean].map(cell).join(","));
+      lines.push([group.value, group.responses, group.mean].map(cell).join(","));
     }
+    if (breakdown.pooledWithheld) lines.push(["Too small to report, counted in the totals only", "", ""].map(cell).join(","));
   }
   return lines.join("\n");
 }
