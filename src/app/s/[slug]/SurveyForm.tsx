@@ -11,7 +11,7 @@ import clsx from "clsx";
  * and is not collected, and it collects nothing else.
  */
 
-type Question = { id: string; type: "scale" | "text"; prompt: string; lowLabel: string | null; highLabel: string | null; required: boolean };
+type Question = { id: string; type: "scale" | "text"; prompt: string; section: string | null; lowLabel: string | null; highLabel: string | null; required: boolean };
 type GroupField = { key: string; label: string; options: string[]; required: boolean };
 type Survey = { title: string; intro: string | null; status: "open" | "closed"; closingNote: string | null; groupFields: GroupField[]; questions: Question[] };
 
@@ -154,7 +154,11 @@ export default function SurveyForm({ slug }: { slug: string }) {
       )}
 
       {survey.questions.map((question, index) => (
-        <Card key={question.id}>
+        <div key={question.id} className="space-y-4">
+          {question.section && question.section !== survey.questions[index - 1]?.section && (
+            <h2 className="px-1 pt-2 text-sm font-semibold uppercase tracking-widest text-muted">{question.section}</h2>
+          )}
+          <Card>
           <fieldset>
             <legend className="text-sm font-semibold leading-snug text-ink">
               {index + 1}. {question.prompt}
@@ -197,7 +201,8 @@ export default function SurveyForm({ slug }: { slug: string }) {
               />
             )}
           </fieldset>
-        </Card>
+          </Card>
+        </div>
       ))}
 
       <Card>

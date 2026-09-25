@@ -309,7 +309,7 @@ Returning a review to the employee or manager requires a reason, and the earlier
 
 A survey is **not** a 360 and shares none of its plumbing. A 360 knows who rates whom; a survey must not know anything about who answered. Use it for a baseline before an organisation is onboarded — it needs no staff list, no invitations and no accounts.
 
-- **Build:** a title, opening words, rated (1–5) and free-text questions, and "grouping questions" the respondent answers about themselves (department, level — you define them and their options).
+- **Build:** a title, opening words, rated (1–5, with the ends named) and free-text questions grouped under section headings, and "grouping questions" the respondent answers about themselves (department, tenure, level — you define them and their options).
 - **Send:** one public link for everyone. No token, no sign-in. It stops working when you close the survey.
 - **Answer:** on a phone or a computer, in one page. The page states plainly what is not recorded.
 - **Read:** responses, averages per question with the spread of answers, and a breakdown per grouping question, plus every comment and AI themes across them.
@@ -557,6 +557,7 @@ Migrations live in `supabase/migrations/` and run in date order. Never edit one 
 | `20260917_000001_payroll_control_hardening` | Frozen payment details, database maker-checker, once-only bonuses | Live |
 | `20260918_000001_team_workspace` | Team chat table; escalations and task writes closed to browsers | **Pending: run before using Team chat** |
 | `20260925_000001_surveys` | Anonymous staff surveys, closed to browsers | **Pending: run before using surveys** |
+| `20260925_000002_survey_sections` | Section headings on survey questions | **Pending: run with the one above** |
 
 The first fifteen were confirmed present in the live database on 18 September 2026 by read-only checks: each migration's distinguishing column or function was queried. A new migration should be added to this table when it is written and marked live once run.
 
@@ -567,7 +568,7 @@ The first fifteen were confirmed present in the live database on 18 September 20
 | What | How |
 |---|---|
 | Rules and calculations (about 395 tests) | `node --experimental-strip-types --test src/lib/*.test.ts` |
-| Database behaviour against real Postgres | `node --experimental-strip-types scripts/tests/<name>-db.mjs`: payroll, payroll-calculation, payroll-controls, salary-visibility, appraisal, organisation-structure, team-workspace, survey |
+| Database behaviour against real Postgres | `node --experimental-strip-types scripts/tests/<name>-db.mjs`: payroll, payroll-calculation, payroll-controls, salary-visibility, appraisal, organisation-structure, team-workspace, survey, bracken-survey |
 | Browser journeys | `scripts/tests/*-browser.mjs` against `npx next dev -p 3100`, using Chrome (`PULSE_TEST_BROWSER`). Use `localhost`, not `127.0.0.1`. |
 | Type check and build | `npx tsc --noEmit` and `npx next build` |
 

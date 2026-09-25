@@ -55,6 +55,7 @@ export async function GET(_request: Request, { params }: Params) {
         id: question.id,
         type: question.type,
         prompt: question.prompt,
+        section: question.section ?? null,
         lowLabel: question.lowLabel,
         highLabel: question.highLabel,
         required: question.required,

@@ -1,5 +1,6 @@
--- DOCUMENTATION ONLY. Applied via supabase/migrations/20260925_000001_surveys.sql.
--- Do not run this file; change the schema with a new migration and update this file to match.
+-- DOCUMENTATION ONLY. Applied via supabase/migrations/20260925_000001_surveys.sql
+-- and 20260925_000002_survey_sections.sql. Do not run this file; change the schema
+-- with a new migration and update this file to match.
 
 -- ANONYMOUS STAFF SURVEYS
 --
@@ -133,3 +134,14 @@ alter table public.survey_answers enable row level security;
 
 revoke all on public.surveys, public.survey_questions, public.survey_responses, public.survey_answers from anon, authenticated;
 grant all on public.surveys, public.survey_questions, public.survey_responses, public.survey_answers to service_role;
+
+-- SURVEY SECTIONS
+--
+-- A seventeen-question survey reads better in parts: "Clarity of expectations",
+-- "My line manager", "Working relationships". The heading is shown above the
+-- first question that carries it, on the answering page and in the report.
+--
+-- It is presentation only: nothing is aggregated by section, because a section
+-- average mixes questions that were never meant to be averaged together.
+
+alter table public.survey_questions add column if not exists section text;

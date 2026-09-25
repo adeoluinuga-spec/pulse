@@ -39,6 +39,8 @@ export type SurveyQuestion = {
   position: number;
   type: QuestionType;
   prompt: string;
+  /** Shown as a heading above this question. Presentation only — nothing is averaged by section. */
+  section?: string | null;
   /** A scale question may carry its own wording for the ends of the scale. */
   lowLabel?: string | null;
   highLabel?: string | null;
@@ -90,6 +92,7 @@ export function validateQuestions(input: unknown): { ok: true; questions: Omit<S
       position: index + 1,
       type,
       prompt,
+      section: text(raw.section) || null,
       lowLabel: type === "scale" ? text(raw.lowLabel) || null : null,
       highLabel: type === "scale" ? text(raw.highLabel) || null : null,
       // A free-text question is optional unless it is deliberately made required:
@@ -195,6 +198,7 @@ export function validateSubmission(
 export type QuestionResult = {
   questionId: string;
   prompt: string;
+  section: string | null;
   type: QuestionType;
   answered: number;
   mean: number | null;
@@ -256,11 +260,11 @@ export function buildReport(survey: SurveyDefinition, responses: StoredResponse[
       const comments = responses
         .map((response) => response.answers.find((answer) => answer.questionId === question.id)?.text)
         .filter((comment): comment is string => Boolean(comment && comment.trim()));
-      return { questionId: question.id, prompt: question.prompt, type: "text", answered: comments.length, mean: null, distribution: [], comments };
+      return { questionId: question.id, prompt: question.prompt, section: question.section ?? null, type: "text", answered: comments.length, mean: null, distribution: [], comments };
     }
     const ratings = ratingsFor(question.id, responses);
     const distribution = Array.from({ length: SCALE_MAX }, (_, index) => ratings.filter((rating) => rating === index + 1).length);
-    return { questionId: question.id, prompt: question.prompt, type: "scale", answered: ratings.length, mean: mean(ratings), distribution, comments: [] };
+    return { questionId: question.id, prompt: question.prompt, section: question.section ?? null, type: "scale", answered: ratings.length, mean: mean(ratings), distribution, comments: [] };
   });
 
   const scaleMeans = questions.filter((question) => question.type === "scale" && question.mean !== null).map((question) => question.mean as number);

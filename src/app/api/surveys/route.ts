@@ -86,6 +86,7 @@ export async function POST(request: Request) {
       position: question.position,
       question_type: question.type,
       prompt: question.prompt,
+      section: question.section,
       low_label: question.lowLabel,
       high_label: question.highLabel,
       required: question.required,

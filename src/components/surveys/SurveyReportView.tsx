@@ -14,7 +14,7 @@ import { Alert, Muted, StatusPill } from "./SurveysWorkspace";
  * that shows one person's submission — see src/lib/survey.ts for why.
  */
 
-type Question = { questionId: string; prompt: string; type: "scale" | "text"; answered: number; mean: number | null; distribution: number[]; comments: string[] };
+type Question = { questionId: string; prompt: string; section: string | null; type: "scale" | "text"; answered: number; mean: number | null; distribution: number[]; comments: string[] };
 type Breakdown = { key: string; label: string; hiddenGroups: number; groups: Array<{ value: string; responses: number; suppressed: boolean; mean: number | null; questions: Array<{ questionId: string; mean: number | null; answered: number }> }> };
 type Report = { responses: number; minimumGroup: number; suppressed: boolean; overallMean: number | null; questions: Question[]; breakdowns: Breakdown[] };
 type Survey = { id: string; title: string; slug: string; status: "draft" | "open" | "closed"; minimumGroup: number; questions: Array<{ id: string; prompt: string }> };
@@ -146,8 +146,11 @@ export default function SurveyReportView({ surveyId, onChanged }: { surveyId: st
               </a>
             </div>
             <div className="mt-4 space-y-4">
-              {report.questions.filter((question) => question.type === "scale").map((question) => (
+              {report.questions.filter((question) => question.type === "scale").map((question, index, shown) => (
                 <div key={question.questionId}>
+                  {question.section && question.section !== shown[index - 1]?.section && (
+                    <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-widest text-muted first:mt-0">{question.section}</p>
+                  )}
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="text-sm text-ink">{question.prompt}</p>
                     <p className="text-sm font-semibold text-ink">{question.mean ?? "—"}</p>
