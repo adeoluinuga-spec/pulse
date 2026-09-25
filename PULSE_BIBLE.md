@@ -1,6 +1,6 @@
 # Pulse: the platform bible
 
-**Last updated:** 18 September 2026, after the team workspace rebuild
+**Last updated:** 25 September 2026
 **Status:** The single reference for what Pulse is, what it can do, who can do what, and what is still unfinished. Where an older document disagrees with this one, this one wins (section 17 lists which documents it replaces).
 
 **How this was written:** from the code as it stands, not from earlier notes. Where a claim depends on something outside the code (a migration having been run, an email actually arriving), the text says so.
@@ -80,6 +80,7 @@ It covers five connected areas:
 | KPIs | `/kpis` | Live, rehearse first | Standing measures with targets, direction and frequency. |
 | Performance appraisal | `/appraisal` | Live, rehearse first | Self-review, manager review, peer feedback, independent HR release. |
 | 360 assessments | `/assessments` and sub-pages | Live, rehearse first | Full cycle from setup to released reports and exports. |
+| Anonymous staff surveys | `/surveys`, public link `/s/<link>` | Live, rehearse first | One link, no accounts, aggregate-only results (section 8.7). |
 | 360 rater links | `/review/...` | Live | Raters answer on their phone without a Pulse account. |
 | Payroll | `/payroll` | Live, rehearse first | Calculate, adjust, approve, export bank/PAYE/pension/NHF files. |
 | Payslips | `/payslips` | Live | Everyone sees and downloads their own approved payslips. |
@@ -301,6 +302,27 @@ Returning a review to the employee or manager requires a reason, and the earlier
   - CSV and XLSX exports
   - a batch PDF job
 - **AI narrative synthesis** of comments, written to keep raters unidentifiable, with an HR review step (section 12).
+
+### 8.7 Anonymous staff surveys
+
+**Where:** `/surveys` (HR builds and reads), `/s/<link>` (anyone answers). **Status:** Live, rehearse first.
+
+A survey is **not** a 360 and shares none of its plumbing. A 360 knows who rates whom; a survey must not know anything about who answered. Use it for a baseline before an organisation is onboarded — it needs no staff list, no invitations and no accounts.
+
+- **Build:** a title, opening words, rated (1–5) and free-text questions, and "grouping questions" the respondent answers about themselves (department, level — you define them and their options).
+- **Send:** one public link for everyone. No token, no sign-in. It stops working when you close the survey.
+- **Answer:** on a phone or a computer, in one page. The page states plainly what is not recorded.
+- **Read:** responses, averages per question with the spread of answers, and a breakdown per grouping question, plus every comment and AI themes across them.
+
+**How anonymity is kept**
+
+- Nothing identifying is stored: no account, token, email, address or device. The time is kept only to the hour, so it cannot fingerprint who was at their desk.
+- **Groupings are never crossed.** Department and level are separate lists. "Senior in Sales" can be one person, so the product cannot show it.
+- **Small groups are hidden.** Any group below the minimum you set (3 to 10, default 3) shows "too few to show", and the whole report stays hidden until the minimum is reached.
+- **Comments carry no grouping**, and the AI themes are told never to quote anything identifying.
+- Questions freeze once the first person answers; answers can never be edited or deleted.
+
+**Limits.** Duplicate submissions can be discouraged (the browser remembers) but not prevented — that is the price of taking no identity. Whoever holds direct database credentials could combine the groupings that the product keeps apart.
 
 ### 8.6 Governance
 
@@ -534,6 +556,7 @@ Migrations live in `supabase/migrations/` and run in date order. Never edit one 
 | `20260916_000003_payroll_atomic_calculation` | All-or-nothing calculation | Live |
 | `20260917_000001_payroll_control_hardening` | Frozen payment details, database maker-checker, once-only bonuses | Live |
 | `20260918_000001_team_workspace` | Team chat table; escalations and task writes closed to browsers | **Pending: run before using Team chat** |
+| `20260925_000001_surveys` | Anonymous staff surveys, closed to browsers | **Pending: run before using surveys** |
 
 The first fifteen were confirmed present in the live database on 18 September 2026 by read-only checks: each migration's distinguishing column or function was queried. A new migration should be added to this table when it is written and marked live once run.
 
@@ -544,7 +567,7 @@ The first fifteen were confirmed present in the live database on 18 September 20
 | What | How |
 |---|---|
 | Rules and calculations (about 395 tests) | `node --experimental-strip-types --test src/lib/*.test.ts` |
-| Database behaviour against real Postgres | `node --experimental-strip-types scripts/tests/<name>-db.mjs`: payroll, payroll-calculation, payroll-controls, salary-visibility, appraisal, organisation-structure, team-workspace |
+| Database behaviour against real Postgres | `node --experimental-strip-types scripts/tests/<name>-db.mjs`: payroll, payroll-calculation, payroll-controls, salary-visibility, appraisal, organisation-structure, team-workspace, survey |
 | Browser journeys | `scripts/tests/*-browser.mjs` against `npx next dev -p 3100`, using Chrome (`PULSE_TEST_BROWSER`). Use `localhost`, not `127.0.0.1`. |
 | Type check and build | `npx tsc --noEmit` and `npx next build` |
 
@@ -590,4 +613,5 @@ Browser tests use invented data and block outside traffic. Passing tests prove t
 | 12–14 Sept | Shared visual theme; planning screens; accessibility fixes |
 | 16 Sept | Salaries hidden from browsers; payroll engine, API and screens; payslips; performance bonuses |
 | 17 Sept | Independent audit; payroll controls hardened in response |
+| 25 Sept | Anonymous staff surveys: public link, aggregate-only reporting, suppression of small groups |
 | 18 Sept | This document; demo data removed from every signed-in screen; Team workspace rebuilt on the org chart with real tasks, chat and escalations; Reports, Performance, AI & wellbeing and Profile rebuilt on real data |

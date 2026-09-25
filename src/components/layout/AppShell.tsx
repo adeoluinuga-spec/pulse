@@ -11,6 +11,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/onboarding") ||
     pathname.startsWith("/welcome") ||
     pathname.startsWith("/review") ||
+    // A public survey link: the person answering has no account, so they get no
+    // sign-in chrome — no sidebar, no notification bell, no avatar.
+    pathname.startsWith("/s/") ||
     pathname === "/admin";
   const isImmersivePortal = pathname === "/hr" || pathname === "/executive";
 

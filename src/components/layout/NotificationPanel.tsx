@@ -1,5 +1,7 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+
 import clsx from "clsx";
 import { X, Bell } from "lucide-react";
 import { useUser } from "@/context/UserContext";
@@ -41,8 +43,15 @@ function formatDate(dateStr: string): string {
 }
 
 export default function NotificationPanel() {
+  const pathname = usePathname();
   const { notifications, notifOpen, closeNotif, hasUnread } = useUser();
+
+  // Pages people reach without an account — a survey link, a 360 review link —
+  // have no notifications to show and should carry nothing that implies a login.
+  const isPublic = pathname.startsWith("/s/") || pathname.startsWith("/review");
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  if (isPublic) return null;
 
   return (
     <>

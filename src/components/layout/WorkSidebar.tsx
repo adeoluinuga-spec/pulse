@@ -11,6 +11,7 @@ import {
   Building2,
   ChevronDown,
   ClipboardList,
+  MessageSquare,
   FileText,
   GitBranch,
   GraduationCap,
@@ -113,6 +114,7 @@ function SidebarContent() {
       icon: ClipboardList,
       items: [
         { label: "360 assessments", href: assessmentHref, icon: ClipboardList },
+        ...(isHr ? [{ label: "Staff surveys", href: "/surveys", icon: MessageSquare }] : []),
         { label: "Performance appraisal", href: "/appraisal", icon: Star },
       ],
     },
