@@ -121,11 +121,29 @@ async function create(survey, owner) {
 
 const { data: owner, error: ownerError } = await admin
   .from("employees")
-  .select("id, org_id, name")
+  .select("id, org_id, name, platform_role")
   .eq("email", OWNER_EMAIL)
   .maybeSingle();
 if (ownerError) throw new Error(`Could not find the owner: ${ownerError.message}`);
-if (!owner?.org_id) throw new Error(`No employee with the email ${OWNER_EMAIL}. Set PULSE_SURVEY_OWNER to the account that should own these surveys.`);
+
+// The owner has to be an account that can actually open Surveys in Pulse, or
+// the links would exist with nobody able to read the results.
+if (!owner?.org_id || !["hr_admin", "super_admin"].includes(owner.platform_role)) {
+  const { data: eligible } = await admin
+    .from("employees")
+    .select("email, platform_role, organisations(name)")
+    .in("platform_role", ["hr_admin", "super_admin"])
+    .order("email");
+  console.error(
+    owner?.org_id
+      ? `\n${OWNER_EMAIL} is "${owner.platform_role}", and only HR admins and super admins can open Surveys.`
+      : `\nThere is no Pulse account with the email ${OWNER_EMAIL}.`,
+  );
+  console.error("\nAccounts that can own these surveys today:\n");
+  for (const row of eligible ?? []) console.error(`  ${row.email}  (${row.platform_role}, ${row.organisations?.name ?? "no organisation"})`);
+  console.error("\nRun it with one of them, for example:\n  PULSE_SURVEY_OWNER=hr@stuartdavidson.org node scripts/surveys/bracken.mjs\n");
+  process.exit(1);
+}
 
 console.log(`Owner: ${owner.name} (${OWNER_EMAIL})\n`);
 console.log(STAFF.title);
