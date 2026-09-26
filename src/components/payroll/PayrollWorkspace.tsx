@@ -8,6 +8,7 @@ import { AlertTriangle, Banknote, CalendarPlus, Loader2, ShieldCheck, Users } fr
 import { useToast } from "@/components/ui/Toast";
 import { NIGERIAN_STATES } from "@/lib/payrollInputs";
 import PayrollDialog from "./PayrollDialog";
+import SalaryStructureEditor from "./SalaryStructureEditor";
 import { api, errorParts, monthLabel, naira, STATUS_LABEL } from "./payrollClient";
 import styles from "./payroll.module.css";
 
@@ -44,7 +45,7 @@ type Person = {
 
 type Overview = {
   viewer: { employeeId: string; canPrepare: boolean; canApprove: boolean; canViewAll: boolean; canManagePermissions: boolean };
-  settings: { pensionEnabled: boolean; nhfEnabled: boolean; nsitfEnabled: boolean; itfEnabled: boolean; defaultTaxState: string | null; payDay: number | null; stored: boolean };
+  settings: { pensionEnabled: boolean; nhfEnabled: boolean; nsitfEnabled: boolean; itfEnabled: boolean; defaultTaxState: string | null; payDay: number | null; stored: boolean; salaryStructure: Array<{ code: string; label: string; percentBps: number; taxable: boolean; pensionable: boolean; isBasic: boolean }> | null; salaryStructureVersion: number };
   currentRules: { id: string; label: string; verification: string } | null;
   people: Person[];
   runs: Run[];
@@ -130,6 +131,7 @@ export default function PayrollWorkspace() {
   const setupGaps = useMemo(() => {
     if (!data) return [];
     const gaps: string[] = [];
+    if (!data.settings.salaryStructure?.length) gaps.push("Set the organisation salary structure on the Setup tab before entering annual gross for new pay records.");
     if (!data.people.some((person) => person.onPayroll)) gaps.push("Nobody has pay set up yet. Add pay for each person on the People tab.");
     if (data.approverCount === 0) gaps.push("No payroll approver is named. A run cannot be approved until someone other than the preparer is given approval rights on the Setup tab.");
     if (data.currentRules?.verification !== "verified") {
@@ -339,6 +341,7 @@ export default function PayrollWorkspace() {
 
       {tab === "setup" ? (
         <>
+          <SalaryStructureEditor structure={data.settings.salaryStructure} version={data.settings.salaryStructureVersion} canEdit={data.viewer.canManagePermissions} onSaved={load} />
           <div className={styles.panel}>
             <h2>Tax rules in force</h2>
             {data.currentRules ? (

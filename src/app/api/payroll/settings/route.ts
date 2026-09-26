@@ -1,4 +1,5 @@
 import { NIGERIAN_STATES } from "@/lib/payrollInputs";
+import { validateSalaryStructure } from "@/lib/payrollSalaryStructure";
 import { databaseFailure, logEvent, payrollContext, reply, handled } from "@/lib/payrollServer";
 
 /**
@@ -29,9 +30,16 @@ async function patchHandler(request: Request) {
   const payDay = body.payDay === undefined || body.payDay === null || body.payDay === "" ? null : Number(body.payDay);
   if (payDay !== null && (!Number.isInteger(payDay) || payDay < 1 || payDay > 31)) errors.push("Pay day must be between 1 and 31.");
 
+  const structure = body.salaryStructure === undefined ? null : validateSalaryStructure(body.salaryStructure);
+  if (structure && !structure.ok) errors.push(...structure.errors);
   if (errors.length) return reply({ error: "These settings are not valid.", errors }, 422);
 
-  const patch: Record<string, unknown> = { org_id: orgId, updated_by: actor.employeeId, updated_at: new Date().toISOString() };
+  const { data: existing, error: readError } = await admin.from("payroll_settings")
+    .select("*")
+    .eq("org_id", orgId).maybeSingle<{ salary_structure_version: number }>();
+  if (readError) return databaseFailure(readError);
+
+  const patch: Record<string, unknown> = { updated_by: actor.employeeId, updated_at: new Date().toISOString() };
   for (const [key, column] of [
     ["pensionEnabled", "pension_enabled"],
     ["nhfEnabled", "nhf_enabled"],
@@ -44,7 +52,13 @@ async function patchHandler(request: Request) {
   if (defaultTaxState !== undefined) patch.default_tax_state = defaultTaxState;
   if (body.payDay !== undefined) patch.pay_day = payDay;
 
-  const { error } = await admin.from("payroll_settings").upsert(patch, { onConflict: "org_id" });
+  if (structure?.ok) {
+    patch.salary_structure = structure.components;
+    patch.salary_structure_version = (existing?.salary_structure_version ?? 0) + 1;
+  }
+  const { error } = existing
+    ? await admin.from("payroll_settings").update(patch).eq("org_id", orgId)
+    : await admin.from("payroll_settings").insert({ org_id: orgId, ...patch });
   if (error) return databaseFailure(error);
 
   await logEvent(admin, { orgId, runId: null, actorId: actor.employeeId, action: "settings_changed", payload: patch });

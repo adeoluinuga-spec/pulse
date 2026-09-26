@@ -72,7 +72,7 @@ type Detail = {
   decisions: Record<"calculate" | "submit" | "return" | "approve" | "void" | "adjust", Decision>;
   viewer: { employeeId: string; canPrepare: boolean; canApprove: boolean };
   lines: Line[];
-  adjustments: Array<{ id: string; employee_id: string; employeeName: string | null; label: string; kind: string; amount_kobo: number; taxable: boolean; pensionable: boolean }>;
+  adjustments: Array<{ id: string; employee_id: string; employeeName: string | null; label: string; kind: string; amount_kobo: number; taxable: boolean; pensionable: boolean; note: string | null }>;
   events: Array<{ action: string; actorName: string | null; created_at: string; payload: Record<string, unknown> }>;
 };
 
@@ -102,7 +102,7 @@ export default function RunView({ runId }: { runId: string }) {
   const [reason, setReason] = useState("");
   const [adding, setAdding] = useState(false);
   const [dialogError, setDialogError] = useState({ message: "", errors: [] as string[] });
-  const [adjustment, setAdjustment] = useState({ employeeId: "", label: "", kind: "earning", amount: "", taxable: true, pensionable: false });
+  const [adjustment, setAdjustment] = useState({ employeeId: "", label: "", kind: "deduction", amount: "", note: "", taxable: true, pensionable: false });
   const [people, setPeople] = useState<Array<{ id: string; name: string | null; onPayroll: boolean }>>([]);
 
   // Performance bonuses from a released appraisal cycle.
@@ -222,7 +222,7 @@ export default function RunView({ runId }: { runId: string }) {
       await api(`/api/payroll/runs/${runId}/adjustments`, { method: "POST", body: JSON.stringify(adjustment) });
       showToast("Adjustment added. Recalculate to include it.", "success");
       setAdding(false);
-      setAdjustment({ employeeId: "", label: "", kind: "earning", amount: "", taxable: true, pensionable: false });
+      setAdjustment({ employeeId: "", label: "", kind: "deduction", amount: "", note: "", taxable: true, pensionable: false });
       await load();
     } catch (thrown) {
       setDialogError(errorParts(thrown));
@@ -513,6 +513,7 @@ export default function RunView({ runId }: { runId: string }) {
                       <small>
                         {entry.employeeName} · {entry.kind === "earning" ? `earning${entry.taxable ? ", taxable" : ", not taxable"}${entry.pensionable ? ", pensionable" : ""}` : "deduction after tax"}
                       </small>
+                      {entry.note ? <small>{entry.note}</small> : null}
                     </td>
                     <td className={styles.num}>
                       {entry.kind === "deduction" ? "−" : "+"}
@@ -697,18 +698,21 @@ export default function RunView({ runId }: { runId: string }) {
             Type
             <select aria-label="Type" value={adjustment.kind} onChange={(event) => setAdjustment({ ...adjustment, kind: event.target.value })}>
               <option value="earning">Earning — bonus, arrears, overtime</option>
-              <option value="deduction">Deduction — loan, advance, other</option>
+              <option value="deduction">Deduction — loan, disciplinary, other</option>
             </select>
           </label>
           <label className={styles.field}>
             Description
-            <input value={adjustment.label} onChange={(event) => setAdjustment({ ...adjustment, label: event.target.value })} placeholder="Q3 performance bonus" />
+            <input value={adjustment.label} onChange={(event) => setAdjustment({ ...adjustment, label: event.target.value })} placeholder={adjustment.kind === "deduction" ? "Loan repayment, disciplinary deduction..." : "Q3 performance bonus"} />
           </label>
           <label className={styles.field}>
             Amount (₦)
             <input type="number" min={0} step="0.01" value={adjustment.amount} onChange={(event) => setAdjustment({ ...adjustment, amount: event.target.value })} />
           </label>
         </div>
+        <label className={styles.field}>Note (optional)
+          <input maxLength={500} value={adjustment.note} onChange={(event) => setAdjustment({ ...adjustment, note: event.target.value })} placeholder="Reason or reference for this adjustment" />
+        </label>
         {adjustment.kind === "earning" ? (
           <>
             <label className={styles.check}>

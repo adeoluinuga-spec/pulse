@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2, Plus, Save, Trash2 } from "lucide-react";
 
 import { useToast } from "@/components/ui/Toast";
 import { NIGERIAN_STATES } from "@/lib/payrollInputs";
+import { splitAnnualGross, type SalaryComponent } from "@/lib/payrollSalaryStructure";
 import PayrollDialog from "./PayrollDialog";
 import { api, errorParts, naira } from "./payrollClient";
 import styles from "./payroll.module.css";
@@ -22,7 +23,7 @@ type Component = { code: string; label: string; amountKobo: number; taxable: boo
 
 type Detail = {
   person: { id: string; name: string | null; email: string | null; department: string | null; join_date: string | null };
-  compensation: Array<{ id: string; effective_from: string; components: Component[]; grade: string | null; reason: string | null }>;
+  compensation: Array<{ id: string; effective_from: string; components: Component[]; annual_gross_kobo: number | null; salary_structure_version: number | null; grade: string | null; reason: string | null }> ;
   profile: Record<string, unknown> | null;
 };
 
@@ -46,16 +47,21 @@ export default function PersonPay({ employeeId }: { employeeId: string }) {
   const [profileError, setProfileError] = useState({ message: "", errors: [] as string[] });
   const [adding, setAdding] = useState(false);
   const [dialogError, setDialogError] = useState({ message: "", errors: [] as string[] });
-  const [record, setRecord] = useState({ effectiveFrom: "", reason: "", grade: "", components: STARTER });
+  const [record, setRecord] = useState({ effectiveFrom: "", reason: "", grade: "", annualGross: "", mode: "automatic", components: STARTER });
+  const [salaryStructure, setSalaryStructure] = useState<SalaryComponent[] | null>(null);
+  const [structureVersion, setStructureVersion] = useState(0);
+  const [preview, setPreview] = useState<{ annualGrossKobo: number; monthlyGrossKobo: number; netKobo: number; deductions: Array<{ label: string; amountKobo: number }>; blockers: string[] } | null>(null);
 
   const load = useCallback(async () => {
     try {
       const [detail, overview] = await Promise.all([
         api<Detail>(`/api/payroll/people/${employeeId}`),
-        api<{ viewer: { canPrepare: boolean } }>("/api/payroll/overview"),
+        api<{ viewer: { canPrepare: boolean }; settings: { salaryStructure: SalaryComponent[] | null; salaryStructureVersion: number } }>("/api/payroll/overview"),
       ]);
       setData(detail);
       setCanPrepare(overview.viewer.canPrepare);
+      setSalaryStructure(overview.settings.salaryStructure);
+      setStructureVersion(overview.settings.salaryStructureVersion);
       const p = detail.profile ?? {};
       setProfile({
         taxState: (p.tax_state as string) ?? "",
@@ -109,11 +115,14 @@ export default function PersonPay({ employeeId }: { employeeId: string }) {
       effectiveFrom: new Date().toISOString().slice(0, 10),
       reason: "",
       grade: latest?.grade ?? "",
+      annualGross: latest ? String((latest.annual_gross_kobo ?? latest.components.reduce((sum, c) => sum + c.amountKobo, 0) * 12) / 100) : "",
+      mode: salaryStructure?.length ? "automatic" : "manual",
       components: latest
         ? latest.components.map((c) => ({ code: c.code, label: c.label, amount: String(c.amountKobo / 100), taxable: c.taxable, pensionable: c.pensionable, isBasic: c.isBasic }))
         : STARTER,
     });
     setDialogError({ message: "", errors: [] });
+    setPreview(null);
     setAdding(true);
   };
 
@@ -121,7 +130,7 @@ export default function PersonPay({ employeeId }: { employeeId: string }) {
     setBusy("record");
     setDialogError({ message: "", errors: [] });
     try {
-      await api(`/api/payroll/people/${employeeId}/compensation`, { method: "POST", body: JSON.stringify(record) });
+      await api(`/api/payroll/people/${employeeId}/compensation`, { method: "POST", body: JSON.stringify({ ...record, structureVersion }) });
       showToast("Pay record added.", "success");
       setAdding(false);
       await load();
@@ -130,6 +139,21 @@ export default function PersonPay({ employeeId }: { employeeId: string }) {
     } finally {
       setBusy("");
     }
+  };
+
+  const previewPay = async () => {
+    setBusy("preview");
+    setDialogError({ message: "", errors: [] });
+    try {
+      const result = await api<{ preview: NonNullable<typeof preview> }>(
+        "/api/payroll/people/" + employeeId + "/compensation",
+        { method: "POST", body: JSON.stringify({ ...record, structureVersion, previewOnly: true }) },
+      );
+      setPreview(result.preview);
+    } catch (error) {
+      setPreview(null);
+      setDialogError(errorParts(error));
+    } finally { setBusy(""); }
   };
 
   const withdraw = async (id: string) => {
@@ -182,6 +206,10 @@ export default function PersonPay({ employeeId }: { employeeId: string }) {
   );
 
   const draftGross = record.components.reduce((sum, component) => sum + (Number(component.amount) || 0), 0);
+  let automaticSplit: ReturnType<typeof splitAnnualGross> | null = null;
+  if (record.mode === "automatic" && salaryStructure?.length && Number(record.annualGross) > 0) {
+    try { automaticSplit = splitAnnualGross(Number(record.annualGross), salaryStructure); } catch { /* Server validates the amount. */ }
+  }
 
   return (
     <div className={styles.workspace}>
@@ -336,7 +364,7 @@ export default function PersonPay({ employeeId }: { employeeId: string }) {
         error={dialogError.message}
         errors={dialogError.errors}
         footer={
-          <button type="button" className={styles.primary} onClick={() => void addRecord()} disabled={busy === "record"}>
+          <button type="button" className={styles.primary} onClick={() => void addRecord()} disabled={busy === "record" || (record.mode === "automatic" && (!automaticSplit || preview?.annualGrossKobo !== automaticSplit.annualGrossKobo))}>
             {busy === "record" ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save pay record
           </button>
         }
@@ -344,7 +372,7 @@ export default function PersonPay({ employeeId }: { employeeId: string }) {
         <div className={styles.grid3}>
           <label className={styles.field}>
             Takes effect from
-            <input type="date" value={record.effectiveFrom} onChange={(event) => setRecord({ ...record, effectiveFrom: event.target.value })} />
+            <input type="date" value={record.effectiveFrom} onChange={(event) => { setRecord({ ...record, effectiveFrom: event.target.value }); setPreview(null); }} />
           </label>
           <label className={styles.field}>
             Grade (optional)
@@ -356,9 +384,32 @@ export default function PersonPay({ employeeId }: { employeeId: string }) {
           </label>
         </div>
 
-        <h3 className={styles.eyebrow} style={{ marginTop: 10 }}>
-          Monthly components
-        </h3>
+        <div className={styles.grid2} style={{ marginTop: 16 }}>
+          <label className={styles.field}>Pay method
+            <select value={record.mode} onChange={(event) => { setRecord({ ...record, mode: event.target.value }); setPreview(null); }}>
+              {salaryStructure?.length ? <option value="automatic">Use organisation structure</option> : null}
+              <option value="manual">Manual exception</option>
+            </select>
+          </label>
+          {record.mode === "automatic" ? <label className={styles.field}>Annual gross (NGN)
+            <input type="number" min="0.01" step="0.01" value={record.annualGross} onChange={(event) => { setRecord({ ...record, annualGross: event.target.value }); setPreview(null); }} />
+          </label> : null}
+        </div>
+        {record.mode === "manual" ? <p className={styles.hint}>Use for a contract that differs from the organisation structure. Enter the monthly amounts below.</p> : null}
+        {record.mode === "automatic" && automaticSplit ? <div className={styles.panel}>
+          <strong>Monthly gross: {naira(automaticSplit.monthlyGrossKobo)}</strong>
+          <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Component</th><th>Share</th><th className={styles.num}>Monthly</th></tr></thead><tbody>
+            {automaticSplit.components.map((component, index) => <tr key={component.code}><td>{component.label}</td><td>{((salaryStructure?.[index].percentBps ?? 0) / 100).toFixed(2)}%</td><td className={styles.num}>{naira(component.amountKobo)}</td></tr>)}
+          </tbody></table></div>
+          <button type="button" className={styles.small} onClick={() => void previewPay()} disabled={busy === "preview"}>Preview take-home pay</button>
+          {preview && preview.annualGrossKobo === automaticSplit.annualGrossKobo ? <div style={{ marginTop: 12 }}>
+            <p><strong>Estimated monthly take-home: {naira(preview.netKobo)}</strong></p>
+            {preview.deductions.map((deduction, index) => <p key={index} className={styles.hint}>{deduction.label}: {naira(deduction.amountKobo)}</p>)}
+            {preview.blockers.length ? <p className={styles.warning}>{preview.blockers.join(" ")}</p> : null}
+            <p className={styles.hint}>Estimate for a full month using current payroll settings. The payroll run applies joining dates, one-off items and the rules in force for that month.</p>
+          </div> : null}
+        </div> : null}
+        {record.mode === "manual" ? <><h3 className={styles.eyebrow} style={{ marginTop: 10 }}>Monthly components</h3>
         {record.components.map((component, index) => (
           <div key={index} className={styles.componentRow}>
             <input className={styles.input} aria-label={`Component ${index + 1} code`} value={component.code} onChange={(event) => updateComponent(index, { code: event.target.value })} placeholder="code" />
@@ -392,7 +443,7 @@ export default function PersonPay({ employeeId }: { employeeId: string }) {
             <Plus size={12} /> Add component
           </button>
           <span className={styles.muted}>Monthly gross: {naira(Math.round(draftGross * 100))}</span>
-        </div>
+        </div></> : null}
       </PayrollDialog>
     </div>
   );

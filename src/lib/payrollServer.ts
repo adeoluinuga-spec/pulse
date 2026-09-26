@@ -155,6 +155,8 @@ export type SettingsView = {
   defaultTaxState: string | null;
   payDay: number | null;
   stored: boolean;
+  salaryStructure: import("./payrollSalaryStructure.ts").SalaryComponent[] | null;
+  salaryStructureVersion: number;
 };
 
 /**
@@ -168,7 +170,7 @@ export async function loadSettings(admin: Admin, orgId: string): Promise<Setting
   const [settings, headcount] = await Promise.all([
     admin
       .from("payroll_settings")
-      .select("pension_enabled, nhf_enabled, nsitf_enabled, itf_enabled, default_tax_state, pay_day")
+      .select("*")
       .eq("org_id", orgId)
       .maybeSingle<{
         pension_enabled: boolean;
@@ -177,6 +179,8 @@ export async function loadSettings(admin: Admin, orgId: string): Promise<Setting
         itf_enabled: boolean;
         default_tax_state: string | null;
         pay_day: number | null;
+        salary_structure?: import("./payrollSalaryStructure.ts").SalaryComponent[] | null;
+        salary_structure_version?: number;
       }>(),
     admin.from("employees").select("id", { count: "exact", head: true }).eq("org_id", orgId),
   ]);
@@ -196,6 +200,8 @@ export async function loadSettings(admin: Admin, orgId: string): Promise<Setting
       defaultTaxState: data.default_tax_state,
       payDay: data.pay_day,
       stored: true,
+      salaryStructure: data.salary_structure ?? null,
+      salaryStructureVersion: data.salary_structure_version ?? 0,
     };
   }
 
@@ -206,6 +212,8 @@ export async function loadSettings(admin: Admin, orgId: string): Promise<Setting
     defaultTaxState: null,
     payDay: null,
     stored: false,
+    salaryStructure: null,
+    salaryStructureVersion: 0,
   };
 }
 

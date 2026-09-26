@@ -85,6 +85,8 @@ create table if not exists public.payroll_settings (
   itf_enabled boolean not null default true,
   default_tax_state text,
   pay_day smallint check (pay_day between 1 and 31),
+  salary_structure jsonb,
+  salary_structure_version integer not null default 0,
   updated_by uuid references public.employees(id) on delete set null,
   updated_at timestamptz not null default now()
 );
@@ -140,6 +142,8 @@ create table if not exists public.employee_compensation (
   employee_id uuid not null references public.employees(id) on delete cascade,
   effective_from date not null,
   components jsonb not null check (jsonb_typeof(components) = 'array' and jsonb_array_length(components) > 0),
+  annual_gross_kobo bigint check (annual_gross_kobo is null or annual_gross_kobo > 0),
+  salary_structure_version integer,
   grade text,
   reason text,
   created_by uuid references public.employees(id) on delete set null,

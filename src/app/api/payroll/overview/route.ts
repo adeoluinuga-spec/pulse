@@ -94,7 +94,7 @@ async function getHandler() {
 
   return reply({
     viewer: { employeeId: actor.employeeId, ...can },
-    settings: { ...settings.settings, defaultTaxState: settings.defaultTaxState, payDay: settings.payDay, stored: settings.stored },
+    settings: { ...settings.settings, defaultTaxState: settings.defaultTaxState, payDay: settings.payDay, stored: settings.stored, salaryStructure: settings.salaryStructure, salaryStructureVersion: settings.salaryStructureVersion },
     currentRules,
     people,
     runs: runs.data ?? [],

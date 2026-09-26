@@ -29,7 +29,7 @@ async function getHandler(_request: Request, { params }: Params) {
   const [compensation, profile] = await Promise.all([
     admin
       .from("employee_compensation")
-      .select("id, effective_from, components, grade, reason, created_at")
+      .select("*")
       .eq("org_id", orgId)
       .eq("employee_id", employeeId)
       .order("effective_from", { ascending: false }),
