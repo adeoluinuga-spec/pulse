@@ -31,6 +31,16 @@ export async function GET(request: Request, { params }: Params) {
 
   const report = buildReport(loaded.definition, responses);
 
+  // Read separately, and forgivingly: if this deployment is ahead of the
+  // migration that added these columns, the report still works.
+  let cleared: { count: number; at: string | null } = { count: 0, at: null };
+  const { data: clearedRow } = await admin
+    .from("surveys")
+    .select("responses_cleared, responses_cleared_at")
+    .eq("id", surveyId)
+    .maybeSingle<{ responses_cleared: number | null; responses_cleared_at: string | null }>();
+  if (clearedRow?.responses_cleared) cleared = { count: clearedRow.responses_cleared, at: clearedRow.responses_cleared_at };
+
   if (new URL(request.url).searchParams.get("format") === "csv") {
     if (report.suppressed) return reply({ error: `Fewer than ${report.minimumGroup} people have answered, so there is nothing to export yet.` }, 409);
     return new Response(reportCsv(report), {
@@ -45,6 +55,7 @@ export async function GET(request: Request, { params }: Params) {
   return reply({
     survey: { ...loaded.definition, slug: loaded.row.slug, openedAt: loaded.row.opened_at, closedAt: loaded.row.closed_at, closingNote: loaded.row.closing_note },
     report,
+    cleared,
     commentCount: commentsFor(report).length,
   });
 }

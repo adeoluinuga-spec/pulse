@@ -28,6 +28,7 @@ try {
   await db.query("insert into organisations(id, name, slug) values ($1, 'Bracken', 'bracken')", [ORG]);
   await db.query("insert into employees(id, org_id, name, email, platform_role) values ($1,$2,'HR','hr@t.co','hr_admin')", [HR, ORG]);
   await db.exec(await readFile("supabase/migrations/20260925_000001_surveys.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/20260928_000001_survey_clear_responses.sql", "utf8"));
 
   // ── nothing in the shape of the tables can identify a respondent ────────────
   const columns = (await db.query(
@@ -64,6 +65,20 @@ try {
   // ── an answer is final ─────────────────────────────────────────────────────
   await refused("update survey_answers set rating = 1", [], /cannot be changed/i, "editing an answer after it was sent");
   await refused("delete from survey_answers", [], /cannot be changed/i, "deleting a single answer");
+  await refused("delete from survey_responses where survey_id = $1", [survey.id], /cannot be changed/i, "or deleting the response around it");
+
+  // ── clearing test answers: all of them, and on the record ──────────────────
+  const cleared = (await one("select public.survey_clear_responses($1) as n", [survey.id])).n;
+  assert.equal(cleared, 1, "clearing removes every response");
+  assert.equal((await one("select count(*)::int as n from survey_answers", [])).n, 0, "and their answers");
+  const clearedRow = await one("select responses_cleared, responses_cleared_at from surveys where id = $1", [survey.id]);
+  assert.equal(clearedRow.responses_cleared, 1, "the survey records how many were cleared");
+  assert.ok(clearedRow.responses_cleared_at, "and when");
+
+  // The exemption lasts only for that call.
+  const laterResponse = await one("insert into survey_responses(survey_id, groups) values ($1, '{}'::jsonb) returning id", [survey.id]);
+  await db.query("insert into survey_answers(response_id, question_id, rating) values ($1,$2,3)", [laterResponse.id, q1.id]);
+  await refused("delete from survey_answers", [], /cannot be changed/i, "the guard is back in place afterwards");
 
   // ── questions freeze once anyone has answered ──────────────────────────────
   await refused("insert into survey_questions(survey_id, position, question_type, prompt) values ($1, 3, 'scale', 'A late addition')", [survey.id], /already answered/i, "adding a question mid-survey");
@@ -87,11 +102,12 @@ try {
       await refused(`select * from ${table}`, [], /permission denied/i, `${role} reading ${table}`);
     }
     await refused("insert into survey_responses(survey_id) values ($1)", [survey.id], /permission denied/i, `${role} answering without going through the server`);
+    await refused("select public.survey_clear_responses($1)", [survey.id], /permission denied/i, `${role} clearing a survey's responses`);
     await db.exec("reset role");
   }
 
   console.log(
-    "PASS: a submission stores answers, self-chosen groups and the hour — no employee, email, token, address or device; the time is rounded so it cannot fingerprint anyone; answers cannot be edited or deleted once sent; questions freeze as soon as the first person answers but stay editable before that; a slug must be link-safe and the minimum group cannot go below three; neither signed-in nor anonymous browsers can read or write any survey table.",
+    "PASS: a submission stores answers, self-chosen groups and the hour — no employee, email, token, address or device; the time is rounded so it cannot fingerprint anyone; answers cannot be edited or deleted once sent; questions freeze as soon as the first person answers but stay editable before that; a slug must be link-safe and the minimum group cannot go below three; neither signed-in nor anonymous browsers can read or write any survey table; test answers can be cleared only all at once, which is recorded on the survey, and only by the server.",
   );
 } finally {
   await db.close();

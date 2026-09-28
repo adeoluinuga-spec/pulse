@@ -23,6 +23,7 @@ export default function SurveyReportView({ surveyId, onChanged }: { surveyId: st
   const { showToast } = useToast();
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [report, setReport] = useState<Report | null>(null);
+  const [cleared, setCleared] = useState<{ count: number; at: string | null }>({ count: 0, at: null });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [themes, setThemes] = useState<{ loading: boolean; text: string }>({ loading: false, text: "" });
@@ -34,6 +35,7 @@ export default function SurveyReportView({ surveyId, onChanged }: { surveyId: st
       if (!response.ok) throw new Error(body.error ?? "Could not load this survey.");
       setSurvey(body.survey);
       setReport(body.report);
+      setCleared(body.cleared ?? { count: 0, at: null });
       setError("");
     } catch (thrown) {
       setError((thrown as Error).message);
@@ -123,6 +125,14 @@ export default function SurveyReportView({ surveyId, onChanged }: { surveyId: st
           </button>
         </div>
       </section>
+
+      {cleared.count > 0 && (
+        <p className="rounded-lg border border-border bg-paper p-4 text-xs text-muted">
+          {cleared.count} earlier {cleared.count === 1 ? "response was" : "responses were"} cleared
+          {cleared.at ? ` on ${new Date(cleared.at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}` : ""} and are
+          not in these figures.
+        </p>
+      )}
 
       {report.suppressed ? (
         <Muted>
