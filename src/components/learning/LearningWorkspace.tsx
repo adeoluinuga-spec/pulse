@@ -10,18 +10,19 @@ import {
   Download,
   Plus,
   RefreshCw,
-  Save,
   Trash2,
   Users,
   Pencil,
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import {
+  isLiveRoleplay,
   learningCsv,
+  liveRoleplayFields,
   type LearningActivity,
   type LearningConfig,
 } from "@/lib/learning";
-import { learningStarter } from "@/lib/learningTemplate";
+import ActivityBuilder from "./ActivityBuilder";
 import s from "./learning.module.css";
 
 type Trainee = {
@@ -242,7 +243,13 @@ export default function LearningWorkspace({ id }: { id: string }) {
     }
   }, [endpoint]);
   useEffect(() => {
-    void load();
+    // Loaded after mount, in a callback, so the fetch never sets state during
+    // the effect itself.
+    let cancelled = false;
+    void Promise.resolve().then(() => (cancelled ? undefined : load()));
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
   async function act(body: unknown, message: string) {
     setBusy(true);
@@ -287,11 +294,14 @@ export default function LearningWorkspace({ id }: { id: string }) {
     (a, b) => a.position - b.position || a.id.localeCompare(b.id),
   );
   const activity = activities.find((a) => a.id === selected) ?? activities[0];
+  // A written role-play is done when its turns are used up. A live one is acted
+  // out away from Pulse, so the only thing Pulse can see is whether the person
+  // has written their feedback — same as a form.
   const completed = (traineeId: string) =>
     activities.filter(
       (a) =>
         a.released &&
-        (a.type === "roleplay"
+        (a.type === "roleplay" && !isLiveRoleplay(a)
           ? data.members.some(
               (m) =>
                 m.trainee_id === traineeId &&
@@ -581,7 +591,7 @@ export default function LearningWorkspace({ id }: { id: string }) {
             </button>
           </div>
           {editing ? (
-            <ActivityEditor
+            <ActivityBuilder
               key={typeof editing === "string" ? "new" : editing.id}
               activity={editing === "new" ? undefined : editing}
               busy={busy}
@@ -752,6 +762,16 @@ export default function LearningWorkspace({ id }: { id: string }) {
                         )
                         .join(" · ")}
                     </p>
+                    {isLiveRoleplay(activity) ? (
+                      <LiveComparison
+                        activity={activity}
+                        members={data.members.filter(
+                          (m) => m.room_id === room.id,
+                        )}
+                        trainees={data.trainees}
+                        submissions={data.submissions}
+                      />
+                    ) : null}
                     {data.messages
                       .filter((m) => m.room_id === room.id)
                       .sort((a, b) => a.created_at.localeCompare(b.created_at))
@@ -840,154 +860,6 @@ export default function LearningWorkspace({ id }: { id: string }) {
   );
 }
 
-function ActivityEditor({
-  activity,
-  busy,
-  save,
-  close,
-}: {
-  activity?: LearningActivity;
-  busy: boolean;
-  save: (value: Record<string, unknown>) => Promise<void>;
-  close: () => void;
-}) {
-  const [title, setTitle] = useState(activity?.title ?? "");
-  const [summary, setSummary] = useState(activity?.summary ?? "");
-  const [type, setType] = useState(activity?.type ?? "content");
-  const [config, setConfig] = useState(
-    JSON.stringify(activity?.config ?? { body: "" }, null, 2),
-  );
-  const [error, setError] = useState("");
-  return (
-    <form
-      className={s.group}
-      onSubmit={(e) => {
-        e.preventDefault();
-        try {
-          const value = JSON.parse(config);
-          setError("");
-          void save({
-            activityId: activity?.id,
-            title,
-            summary,
-            type,
-            config: value,
-          });
-        } catch {
-          setError("Config must be valid JSON.");
-        }
-      }}
-    >
-      <h2>{activity ? "Edit activity" : "New activity"}</h2>
-      <div className={s.grid}>
-        <label className={s.field}>
-          Title
-          <input
-            value={title}
-            required
-            maxLength={200}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </label>
-        <label className={s.field}>
-          Type
-          <select
-            value={type}
-            onChange={(e) => {
-              const next = e.target.value as typeof type;
-              setType(next);
-              setConfig(
-                JSON.stringify(
-                  next === "content"
-                    ? { body: "" }
-                    : next === "roleplay"
-                      ? {
-                          scenario: "",
-                          roles: ["Manager", "Team member"],
-                          rounds: 4,
-                        }
-                      : {
-                          fields: [
-                            {
-                              key: "answer",
-                              label: "Your answer",
-                              type: "textarea",
-                              required: true,
-                            },
-                          ],
-                        },
-                  null,
-                  2,
-                ),
-              );
-            }}
-          >
-            <option value="content">Reading material</option>
-            <option value="form">Form / reflection / IDP</option>
-            <option value="roleplay">Group role-play</option>
-          </select>
-        </label>
-      </div>
-      <label className={s.field}>
-        Summary
-        <input
-          value={summary}
-          maxLength={300}
-          onChange={(e) => setSummary(e.target.value)}
-        />
-      </label>
-      {type === "form" ? (
-        <label className={s.field}>
-          Template
-          <select
-            defaultValue=""
-            onChange={(e) => {
-              const template = learningStarter.find(
-                (t) => t.title === e.target.value,
-              );
-              if (template) setConfig(JSON.stringify(template.config, null, 2));
-            }}
-          >
-            <option value="">Choose a template</option>
-            {learningStarter
-              .filter((a) => a.type === "form")
-              .map((a) => (
-                <option key={a.title}>{a.title}</option>
-              ))}
-          </select>
-        </label>
-      ) : null}
-      <label className={s.field}>
-        Activity configuration (JSON)
-        <textarea
-          className={s.code}
-          spellCheck={false}
-          value={config}
-          onChange={(e) => setConfig(e.target.value)}
-        />
-      </label>
-      {error ? (
-        <p role="alert" className={s.error}>
-          {error}
-        </p>
-      ) : null}
-      <div className={s.row}>
-        <button className={s.primary} disabled={busy}>
-          <Save size={16} />
-          Save activity
-        </button>
-        <button
-          type="button"
-          className={s.button}
-          disabled={busy}
-          onClick={close}
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
-  );
-}
 function RoomEditor({
   activity,
   data,
@@ -1112,5 +984,82 @@ function Answers({
         )
       )}
     </div>
+  );
+}
+
+/**
+ * The three accounts of one live role-play, side by side.
+ *
+ * Each person answered on their own, without seeing anybody else's answers, so
+ * the differences between them are real. A participant who felt heard next to
+ * one who felt interrupted next to an observer who counted the interruptions is
+ * the whole point of running the exercise.
+ */
+function LiveComparison({
+  activity,
+  members,
+  trainees,
+  submissions,
+}: {
+  activity: LearningActivity;
+  members: Member[];
+  trainees: Trainee[];
+  submissions: Submission[];
+}) {
+  const seated = [...members].sort((a, b) => a.seat - b.seat);
+  const answered = seated.filter((m) =>
+    submissions.some(
+      (v) =>
+        v.trainee_id === m.trainee_id &&
+        v.activity_id === activity.id &&
+        v.status === "submitted",
+    ),
+  );
+  return (
+    <>
+      <p className={s.muted}>
+        {answered.length} of {seated.length} have written their feedback. Each
+        person answered without seeing the others.
+      </p>
+      <div className={s.compare}>
+        {seated.map((member) => {
+          const trainee = trainees.find((t) => t.id === member.trainee_id);
+          const submission = submissions.find(
+            (v) =>
+              v.trainee_id === member.trainee_id &&
+              v.activity_id === activity.id,
+          );
+          const fields = liveRoleplayFields(activity.config, member.seat);
+          return (
+            <article className={s.compareCard} key={member.trainee_id}>
+              <h4>{trainee?.display_name ?? "Trainee"}</h4>
+              <p className={s.muted}>{member.role_name}</p>
+              {!submission ? (
+                <p className={s.muted}>Nothing written yet.</p>
+              ) : (
+                <>
+                  {submission.status === "draft" ? (
+                    <p className={s.muted}>Draft, not submitted.</p>
+                  ) : null}
+                  <dl>
+                    {fields.map((field) => (
+                      <div key={field.key}>
+                        <dt>{field.label}</dt>
+                        <dd>
+                          {submission.payload[field.key] === undefined ||
+                          submission.payload[field.key] === ""
+                            ? "—"
+                            : String(submission.payload[field.key])}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </>
   );
 }

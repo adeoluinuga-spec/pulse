@@ -28,6 +28,22 @@ export type LearningField = {
 };
 export type LearningConfig = {
   body?: string;
+  /** A video or document to open alongside reading material. */
+  link?: string;
+  linkLabel?: string;
+  /**
+   * How a role-play runs.
+   *
+   * "written" is the original: people take ordered turns in the browser.
+   * "live" is a facilitated workshop — people act the scenario out in the room
+   * or on a call, then each writes their own feedback afterwards. The written
+   * mode stays because it works when people cannot meet.
+   */
+  mode?: "live" | "written";
+  /** Live role-play: what each person in a role answers afterwards. */
+  participantFields?: LearningField[];
+  /** Live role-play: what the observer answers. */
+  observerFields?: LearningField[];
   intro?: string;
   fields?: LearningField[];
   rows?: number | null;
@@ -49,6 +65,39 @@ export type LearningActivity = {
 };
 export type LearningPayload = Record<string, unknown>;
 
+/**
+ * What each person answers after a live role-play, as a starting point.
+ *
+ * Participants are asked what they experienced; the observer is asked what they
+ * saw. Comparing the two is the point of the exercise — one person believing
+ * they listened well while the other felt interrupted is the coaching material.
+ */
+export const liveParticipantFields: LearningField[] = [
+  { key: "heard", label: "Did you feel heard and understood?", type: "scale", lowLabel: "Not at all", highLabel: "Completely", required: true },
+  { key: "disagree", label: "Could you express disagreement?", type: "scale", lowLabel: "Not at all", highLabel: "Easily", required: true },
+  { key: "felt", label: "What did you feel during the conversation?", type: "textarea", required: true },
+  { key: "helped", label: "What did the other person do that helped?", type: "textarea" },
+  { key: "differently", label: "What would you do differently next time?", type: "textarea", required: true },
+];
+
+export const liveObserverFields: LearningField[] = [
+  { key: "listened", label: "Did each person listen without interrupting?", type: "scale", lowLabel: "Rarely", highLabel: "Throughout", required: true },
+  { key: "disagreement", label: "How did they respond to disagreement?", type: "textarea", required: true },
+  { key: "behaviour", label: "What observable behaviour did you see? Describe what was said and done, not what you think it meant.", type: "textarea", required: true },
+  { key: "acknowledged", label: "Did anyone acknowledge the other person's perspective?", type: "textarea" },
+  { key: "practise", label: "What should each person practise next?", type: "textarea", required: true },
+];
+
+/** The questions one person answers after a live role-play, by whether they took a role or watched. */
+export function liveRoleplayFields(config: LearningConfig, seat: number): LearningField[] {
+  return seat < 0
+    ? (config.observerFields?.length ? config.observerFields : liveObserverFields)
+    : (config.participantFields?.length ? config.participantFields : liveParticipantFields);
+}
+
+export const isLiveRoleplay = (activity: Pick<LearningActivity, "type" | "config">) =>
+  activity.type === "roleplay" && activity.config.mode === "live";
+
 export function validateLearningConfig(
   type: string,
   value: unknown,
@@ -59,9 +108,16 @@ export function validateLearningConfig(
   const text = (v: unknown, max: number) =>
     typeof v === "string" && v.trim().length > 0 && v.length <= max;
   if (type === "content") {
-    if (!text(c.body, 40000))
-      throw new Error("Add material text, up to 40,000 characters.");
-    return { body: c.body };
+    const hasLink = c.link !== undefined && c.link !== "";
+    if (hasLink && !/^https:\/\/\S{3,500}$/.test(String(c.link)))
+      throw new Error("A link must be a full https address.");
+    if (!text(c.body, 40000) && !hasLink)
+      throw new Error("Add material text, a link, or both.");
+    return {
+      body: text(c.body, 40000) ? c.body : undefined,
+      link: hasLink ? c.link : undefined,
+      linkLabel: text(c.linkLabel, 120) ? c.linkLabel : undefined,
+    };
   }
   if (type === "roleplay") {
     if (
@@ -75,9 +131,28 @@ export function validateLearningConfig(
       throw new Error(
         "A role-play needs a scenario and 2 to 6 different role names.",
       );
-    if (!Number.isInteger(c.rounds) || c.rounds! < 1 || c.rounds! > 10)
-      throw new Error("Choose between 1 and 10 rounds.");
-    return { scenario: c.scenario, roles: c.roles, rounds: c.rounds };
+    const mode = c.mode === "live" ? "live" : "written";
+    if (mode === "written") {
+      if (!Number.isInteger(c.rounds) || c.rounds! < 1 || c.rounds! > 10)
+        throw new Error("Choose between 1 and 10 rounds.");
+      return { scenario: c.scenario, roles: c.roles, rounds: c.rounds, mode };
+    }
+    // A live role-play is acted out away from Pulse, so it has no turns. What it
+    // does need is the two sets of questions people answer afterwards.
+    const feedback = (value: unknown, fallback: LearningField[], label: string) => {
+      if (value === undefined) return fallback;
+      if (!Array.isArray(value) || !value.length || value.length > 20)
+        throw new Error(`${label} needs 1 to 20 questions.`);
+      return validateLearningConfig("form", { fields: value }).fields as LearningField[];
+    };
+    return {
+      scenario: c.scenario,
+      roles: c.roles,
+      mode,
+      participantFields: feedback(c.participantFields, liveParticipantFields, "Participant feedback"),
+      observerFields: feedback(c.observerFields, liveObserverFields, "Observer feedback"),
+      intro: text(c.intro, 2000) ? c.intro : undefined,
+    };
   }
   if (type !== "form") throw new Error("Choose material, form or role-play.");
   if (

@@ -322,9 +322,15 @@ try {
     .getByRole("button", { name: "Add activity", exact: true })
     .click();
   await admin.getByLabel("Title", { exact: true }).fill("Session notes");
+  // Built with ordinary controls now, not by typing JSON.
   await admin
-    .getByLabel("Activity configuration (JSON)")
-    .fill(JSON.stringify({ body: "Our next session" }));
+    .getByLabel("What kind of activity is this?")
+    .selectOption("material");
+  await admin.getByLabel("The material").fill("Our next session");
+  await admin
+    .getByRole("button", { name: "Preview what trainees see" })
+    .click();
+  await admin.getByRole("heading", { name: "Session notes" }).waitFor();
   await admin
     .getByRole("button", { name: "Save activity", exact: true })
     .click();

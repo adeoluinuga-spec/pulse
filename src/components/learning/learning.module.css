@@ -341,3 +341,46 @@ a.item:hover {
     padding: 14px;
   }
 }
+
+/* A list that reads as lines of information rather than bullet points. */
+.plain {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Side-by-side accounts of the same role-play: each person's own answers. */
+.compare {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+@media (min-width: 900px) {
+  .compare {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+.compareCard {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  background: var(--card);
+}
+.compareCard h4 {
+  margin: 0 0 2px;
+  font-size: 14px;
+}
+.compareCard dt {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.compareCard dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  white-space: pre-wrap;
+}

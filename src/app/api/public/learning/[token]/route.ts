@@ -10,7 +10,9 @@ import {
   traineeFor,
 } from "@/lib/learningServer";
 import {
+  isLiveRoleplay,
   learningEmailHtml,
+  liveRoleplayFields,
   validateLearningAnswers,
   type LearningActivity,
 } from "@/lib/learning";
@@ -136,13 +138,40 @@ export async function POST(request: Request, { params }: Context) {
       .eq("released", true)
       .maybeSingle<LearningActivity>();
     if (error) throw error;
-    if (!activity || activity.type === "roleplay")
+    const live = activity ? isLiveRoleplay(activity) : false;
+    // A written role-play is answered by taking turns, not by saving a form.
+    if (!activity || (activity.type === "roleplay" && !live))
       throw new LearningError("This activity is not available.", 404);
     const draft = body.draft === true;
     let payload = {};
     if (activity.type === "form") {
       try {
         payload = validateLearningAnswers(activity.config, body.payload, draft);
+      } catch (e) {
+        throw new LearningError((e as Error).message);
+      }
+    } else if (live) {
+      // Which questions this person answers depends on whether they took a role
+      // or watched, and that comes from their seat in the group — never from
+      // the request.
+      const { data: seat, error: seatError } = await admin
+        .from("learning_room_members")
+        .select("seat")
+        .eq("trainee_id", trainee.id)
+        .eq("activity_id", activity.id)
+        .maybeSingle<{ seat: number }>();
+      if (seatError) throw seatError;
+      if (!seat)
+        throw new LearningError(
+          "You are not in a group for this role-play. Your facilitator can add you to one.",
+          403,
+        );
+      try {
+        payload = validateLearningAnswers(
+          { fields: liveRoleplayFields(activity.config, seat.seat) },
+          body.payload,
+          draft,
+        );
       } catch (e) {
         throw new LearningError((e as Error).message);
       }
@@ -159,7 +188,7 @@ export async function POST(request: Request, { params }: Context) {
         409,
       );
     let email: "sent" | "failed" | "not_requested" = "not_requested";
-    if (!draft && activity.type === "form" && trainee.email) {
+    if (!draft && (activity.type === "form" || live) && trainee.email) {
       try {
         const base =
           process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;

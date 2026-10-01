@@ -12,10 +12,12 @@ import {
   Save,
   Send,
 } from "lucide-react";
-import type {
-  LearningActivity,
-  LearningField,
-  LearningPayload,
+import {
+  isLiveRoleplay,
+  liveRoleplayFields,
+  type LearningActivity,
+  type LearningField,
+  type LearningPayload,
 } from "@/lib/learning";
 import LearningMarkdown from "./LearningMarkdown";
 import s from "./learning.module.css";
@@ -96,7 +98,13 @@ export default function LearningTrainee({
     }
   }, [api]);
   useEffect(() => {
-    void load();
+    // Loaded after mount, in a callback, so the fetch never sets state during
+    // the effect itself.
+    let cancelled = false;
+    void Promise.resolve().then(() => (cancelled ? undefined : load()));
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
   const activity = data?.activities.find((a) => a.id === activityId);
   useEffect(() => {
@@ -108,9 +116,11 @@ export default function LearningTrainee({
   }, [activity?.type, load]);
   const saved = data?.submissions.find((a) => a.activity_id === activityId);
   const room = data?.rooms.find((a) => a.activity_id === activityId);
+  // A role-play acted out in the room is finished when you have written your
+  // own feedback; a written one, when its turns are used up.
   const completed =
     data?.activities.filter((a) =>
-      a.type === "roleplay"
+      a.type === "roleplay" && !isLiveRoleplay(a)
         ? data.rooms.some(
             (r) => r.activity_id === a.id && r.status === "completed",
           )
@@ -185,7 +195,7 @@ export default function LearningTrainee({
                   );
                   const group = data.rooms.find((r) => r.activity_id === a.id);
                   const done =
-                    a.type === "roleplay"
+                    a.type === "roleplay" && !isLiveRoleplay(a)
                       ? group?.status === "completed"
                       : sub?.status === "submitted";
                   return (
@@ -214,7 +224,9 @@ export default function LearningTrainee({
                               ? "Draft saved"
                               : a.type === "roleplay" && !group
                                 ? "Awaiting group"
-                                : "To do"}
+                                : isLiveRoleplay(a)
+                                  ? "Feedback to write"
+                                  : "To do"}
                         </span>
                       </div>
                       <p className={s.muted}>{a.summary}</p>
@@ -283,7 +295,28 @@ export default function LearningTrainee({
                   <LearningMarkdown>
                     {activity.config.scenario ?? ""}
                   </LearningMarkdown>
-                  {room ? (
+                  {!room ? (
+                    <p className={s.notice}>
+                      Your facilitator is arranging your role-play group.
+                    </p>
+                  ) : isLiveRoleplay(activity) ? (
+                    <LiveRoleplay
+                      activity={activity}
+                      room={room}
+                      traineeId={data.trainee.id}
+                      saved={saved}
+                      api={api}
+                      onSaved={async (message, draft) => {
+                        if (draft) {
+                          setNotice(message);
+                          await load();
+                        } else {
+                          showToast(message, "success");
+                          router.push(`/t/${token}`);
+                        }
+                      }}
+                    />
+                  ) : (
                     <Roleplay
                       room={room}
                       traineeId={data.trainee.id}
@@ -291,10 +324,6 @@ export default function LearningTrainee({
                       api={api}
                       refresh={load}
                     />
-                  ) : (
-                    <p className={s.notice}>
-                      Your facilitator is arranging your role-play group.
-                    </p>
                   )}
                 </>
               ) : null}
@@ -308,6 +337,86 @@ export default function LearningTrainee({
         </>
       ) : null}
     </main>
+  );
+}
+
+/**
+ * A role-play that happens away from Pulse.
+ *
+ * The group acts the scenario out together — in a room or on whatever call they
+ * already use — and each person then writes their own account of it. Those
+ * accounts are never shown to each other: the point is to compare what one
+ * person intended with what the other experienced and what the observer saw,
+ * and that only works if nobody is reading the others' answers first.
+ */
+function LiveRoleplay({
+  activity,
+  room,
+  traineeId,
+  saved,
+  api,
+  onSaved,
+}: {
+  activity: LearningActivity;
+  room: Room;
+  traineeId: string;
+  saved?: Submission;
+  api: string;
+  onSaved: (message: string, draft: boolean) => Promise<void>;
+}) {
+  const me = room.members.find((m) => m.trainee_id === traineeId);
+  const others = room.members.filter((m) => m.trainee_id !== traineeId);
+  if (!me) {
+    return (
+      <p className={s.notice}>
+        You are not in a group for this role-play yet. Your facilitator can add
+        you to one.
+      </p>
+    );
+  }
+  const observing = me.seat < 0;
+  return (
+    <>
+      <div className={s.group}>
+        <h2>{room.name}</h2>
+        <p>
+          You are <strong>{me.role_name}</strong>
+          {observing ? ", watching the conversation." : "."}
+        </p>
+        {others.length ? (
+          <ul className={s.plain}>
+            {others.map((m) => (
+              <li key={m.trainee_id}>
+                {m.name} — {m.role_name}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className={s.muted}>
+          {observing
+            ? "Watch the conversation — in the room or on a call — without taking part. Note what people actually say and do. When it has finished, answer the questions below on your own."
+            : "Have the conversation together — in the room or on a call. Pulse is not the conversation; it is where you record what happened afterwards. When you have finished, answer the questions below on your own."}
+        </p>
+        <p className={s.muted}>
+          Your answers go to your facilitator. The other people in your group do
+          not see them.
+        </p>
+      </div>
+      <LearningForm
+        key={activity.id}
+        activity={{
+          ...activity,
+          config: {
+            fields: liveRoleplayFields(activity.config, me.seat),
+            intro: activity.config.intro,
+            confirmText: activity.config.confirmText,
+          },
+        }}
+        saved={saved}
+        api={api}
+        onSaved={onSaved}
+      />
+    </>
   );
 }
 
