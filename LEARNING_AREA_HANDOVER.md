@@ -33,6 +33,20 @@ Anonymous staff surveys are separate: there are no survey foreign keys, matching
 
 The five training scenarios were not supplied. They are deliberately not invented or released as original training content. The starter is offered to each tenant when creating a programme; it has **not been inserted into the production SD account by this build**.
 
+### Facilitator and trainee walkthrough
+
+Start at **Talent development > Learning area > New programme** while signed in as SD HR. Enter the programme and client names, select the starter activities, then choose **Create programme**. Bracken remains an external training client, not a new Pulse tenant or a set of SD employee records.
+
+Prepare content in **Activities** before inviting real trainees. The current activity editor includes structured JSON configuration; it is not yet a fully visual course builder. Finalise questions, role names and rounds before creating role-play groups or collecting submissions. Replace the hidden placeholder scenarios with the actual workshop material, then release only the activities ready for use.
+
+In **Trainees > Add trainees**, paste one `Name, email` entry per line. Copy each person's link and send it individually through your chosen channel. **Creating trainees does not send invitation emails.** Do not post the collection of personal links in a shared group: each link grants access to that trainee's dashboard and saved work.
+
+For role-play, define the scenario and roles, create a group, assign a different trainee to each role and optionally add an observer. Release the activity. Participants open their own links and converse in character through written, ordered turns. They do not need to be in the same room, but this is not a video-call tool. Observers can leave feedback; HR reviews the conversation in **Responses**.
+
+Trainees open their personal link to see released activities and progress. They mark reading as read, fill in commitments/reflections/IDPs, click **Save draft** before leaving unfinished work and click **Submit** when ready. Reopening the same link restores saved answers. Drafts are visible to SD, and the interface tells trainees this. A successful form submission attempts a receipt email when an address is present; it does not email the submitted answers.
+
+HR uses **Responses** to review named submissions and transcripts and copy/download CSV. Automatic AI analysis, consultant approval and delivery of generated reports to trainees or Bracken leadership are not part of this release.
+
 ## Saving and progress
 
 - Materials have an explicit Mark as read action.
@@ -71,9 +85,23 @@ The receipt contains a private dashboard link, **not the submitted IDP/reflectio
 3. Prefer a dedicated strong `LEARNING_LINK_SECRET`, set consistently on local and deployed servers before creating real links. Changing it makes existing encrypted links unreadable to HR; existing token hashes still work. HR can revoke and reissue links after rotation. The service-role-key fallback permits use with existing configuration.
 4. Deploy, then create the Bracken cohort from SD's account and rehearse with two test trainees before distribution.
 
-At build time, `supabase migration list --linked` was refused with HTTP 403, insufficient account privileges, and requested `SUPABASE_DB_PASSWORD`. The live migration remains **unverified/unapplied by this agent**. No live trainee emails were sent by testing.
+At build time, `supabase migration list --linked` was refused with HTTP 403, insufficient account privileges, and requested `SUPABASE_DB_PASSWORD`. **The user subsequently confirmed applying the migration. Live checks on 1 October verified the eight learning tables and the save/group-creation RPCs are available. Do not reapply the migration.** These checks do not establish a full live end-to-end rehearsal or inspect migration-history bookkeeping. No live trainee emails were sent by testing.
 
 Vercel CLI was signed out and successfully signed in through the browser as `adeoluinuga-9332`. The Windows certificate store was required (`NODE_USE_SYSTEM_CA=1`); TLS verification was not disabled.
+
+### Post-migration live checks
+
+Checked the configured Supabase project and `https://app.pulse.stuartdavidson.org` after the user's migration confirmation:
+
+- All eight learning tables returned HTTP 200 to service-role count-only reads; each contained zero records at the time of the check. Anonymous reads returned HTTP 401. No trainee answers or personal records were retrieved.
+- `learning_save` with a deliberately invalid token returned `This link is no longer active.` Anonymous execution returned PostgreSQL `42501`, permission denied. The probe did not create a submission.
+- `learning_create_room` with nonexistent cohort/activity IDs returned `Choose a role-play activity.` No group was created.
+- Unauthenticated `/cohorts` returned HTTP 307 to sign-in. `/api/learning/cohorts` returned HTTP 401 with `Sign in to manage learning programmes.`
+- `/t/not-a-valid-link` returned HTTP 200 without a login redirect, allowing the public page to render. Its API returned HTTP 404 with a human-readable request for a new link. Both responses prevented caching. This verifies the invalid-link route, not successful access through a real trainee link.
+- Local `NEXT_PUBLIC_APP_URL` was unset. The receipt handler falls back to the request origin; production environment values were not inspected in this check. Explicitly configure the canonical URL for predictable receipt links.
+- Initial local Node requests failed certificate validation; retrying with `NODE_USE_SYSTEM_CA=1` succeeded. TLS verification was never disabled. The initial network failures were not treated as database permission results.
+
+**Current assessment:** the migration's core objects and deployed routes are available, and the checked unauthenticated restrictions hold. Successful authenticated programme creation, live saves, receipt delivery and cross-tenant behaviour still require the rehearsal below. Earlier browser tests used mocked APIs and do not replace it.
 
 ## Verification and next steps
 
@@ -83,5 +111,21 @@ Vercel CLI was signed out and successfully signed in through the browser as `ade
 - Run `node --experimental-strip-types --test src/lib/*.test.ts`, `npx tsc --noEmit` and `npx next build` before handover.
 - Build verification on 1 October: 439 unit tests passed, 1 pre-existing live-database test skipped; TypeScript and the production build passed. The real-browser rehearsal passed with mocked APIs at phone and desktop sizes. Corrupt generated Next dev type files were removed after stopping the test server, then regenerated; no source workaround was introduced.
 - Dependency installation reported 15 audit findings (1 moderate, 13 high, 1 critical) across the dependency tree. Dependency remediation was not included in this feature and needs separate triage.
-- Pending live rehearsal: apply migration, verify two real tenant accounts cannot access each other's cohorts, create Bracken with actual trainees/scenarios, check a receipt at an authorised test mailbox, and verify expired/revoked links on the deployed URL.
+- Migration application: confirmed by the user, with the post-migration live checks recorded above. No repeat application is needed.
 - Next product phase: facilitator review/analysis, report approval and controlled delivery to trainee and client leadership. Scope it after this first training cohort has been used.
+
+### Remaining live rehearsal checklist
+
+- [x] Verify all eight learning tables are accessible to the server and denied to anonymous callers.
+- [x] Verify live save/group-creation functions reject invalid identifiers and anonymous save execution is denied.
+- [x] Verify deployed HR routes require authentication and invalid trainee links do not demand sign-in.
+- [ ] Sign in as SD HR and create a clearly labelled test programme with starter activities.
+- [ ] Add two authorised test trainees and distribute their different links privately. Do not use real client trainees as test data.
+- [ ] Open each link separately; confirm each dashboard shows the correct trainee and only released activities.
+- [ ] Save a draft, close/reopen the link, verify restoration, submit and confirm it appears under HR Responses.
+- [ ] Check receipt delivery at an authorised test mailbox and verify its link returns to the correct dashboard.
+- [ ] Configure and release a short two-person role-play; complete ordered turns and check the HR transcript. Exercise observer feedback with an optional third test trainee.
+- [ ] Complete an IDP, inspect progress and export CSV; verify the exported records match the test submissions.
+- [ ] Verify a second real tenant cannot list/read/manage SD's cohort and SD cannot access the other tenant's cohort.
+- [ ] Revoke a test link and verify the deployed human message; check expiry and archived-programme behaviour without disrupting a real programme.
+- [ ] Create the actual Bracken programme with approved training scenarios and real trainees only after the rehearsal passes.
