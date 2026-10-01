@@ -18,13 +18,14 @@ export async function GET(_request: Request, { params }: Context) {
     const { id } = await params;
     const { admin, orgId } = await learningContext();
     const cohort = await cohortFor(admin, id, orgId);
-    const [trainees, activities, submissions, rooms, members] =
+    const [trainees, activities, submissions, rooms, members, files] =
       await Promise.all([
         learningRows(admin, "learning_trainees", "cohort_id", id),
         learningRows(admin, "learning_activities", "cohort_id", id),
         learningRows(admin, "learning_submissions", "cohort_id", id),
         learningRows(admin, "learning_rooms", "cohort_id", id),
         learningRows(admin, "learning_room_members", "cohort_id", id),
+        learningRows(admin, "learning_files", "cohort_id", id),
       ]);
     const messages = (
       await Promise.all(
@@ -59,6 +60,13 @@ export async function GET(_request: Request, { params }: Context) {
       rooms,
       members,
       messages,
+      files: files.map((file) => ({
+        id: file.id,
+        activity_id: file.activity_id,
+        name: file.name,
+        mime: file.mime,
+        size_bytes: file.size_bytes,
+      })),
     });
   });
 }

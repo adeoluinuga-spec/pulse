@@ -8,6 +8,7 @@ import {
   ArrowDown,
   Copy,
   Download,
+  Paperclip,
   Plus,
   RefreshCw,
   Trash2,
@@ -15,6 +16,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { describeFileType, fileSizeLabel } from "@/lib/learningFiles";
 import {
   isLiveRoleplay,
   learningCsv,
@@ -56,6 +58,13 @@ type Message = {
   body: string;
   created_at: string;
 };
+type MaterialFile = {
+  id: string;
+  activity_id: string;
+  name: string;
+  mime: string;
+  size_bytes: number;
+};
 type Cohort = {
   id: string;
   name: string;
@@ -72,6 +81,7 @@ type Detail = {
   rooms: Room[];
   members: Member[];
   messages: Message[];
+  files: MaterialFile[];
 };
 
 async function api<T>(url: string, body?: unknown): Promise<T> {
@@ -682,6 +692,14 @@ export default function LearningWorkspace({ id }: { id: string }) {
                     </button>
                   </div>
                 </div>
+                <ActivityFiles
+                  activity={a}
+                  files={(data.files ?? []).filter(
+                    (file) => file.activity_id === a.id,
+                  )}
+                  endpoint={`${endpoint}/files`}
+                  reload={load}
+                />
                 {a.type === "roleplay" ? (
                   <button
                     className={s.button}
@@ -1061,5 +1079,124 @@ function LiveComparison({
         })}
       </div>
     </>
+  );
+}
+
+/**
+ * Material attached to one activity: a deck, a handout, a worksheet.
+ *
+ * Uploading goes through the server rather than straight to storage, so a file
+ * is checked before it exists. Opening one asks for a link that lasts five
+ * minutes — the facilitator never holds a lasting address, and neither does
+ * anybody they forward it to by accident.
+ */
+function ActivityFiles({
+  activity,
+  files,
+  endpoint,
+  reload,
+}: {
+  activity: LearningActivity;
+  files: MaterialFile[];
+  endpoint: string;
+  reload: () => Promise<void>;
+}) {
+  const { showToast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function upload(file: File) {
+    setBusy(true);
+    setError("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("activityId", activity.id);
+      const response = await fetch(endpoint, { method: "POST", body: form });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "The upload did not finish.");
+      showToast(`${file.name} attached.`, "success");
+      await reload();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function act(fileId: string, action: "open" | "delete") {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(endpoint, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId, action }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Please retry.");
+      if (action === "delete") {
+        showToast("File removed.", "success");
+        await reload();
+      } else {
+        window.open(result.url, "_blank", "noopener");
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      {files.length ? (
+        <ul className={s.plain}>
+          {files.map((file) => (
+            <li key={file.id}>
+              <button
+                type="button"
+                className={s.linkButton}
+                disabled={busy}
+                onClick={() => void act(file.id, "open")}
+              >
+                {file.name}
+              </button>{" "}
+              <span className={s.muted}>
+                {describeFileType(file.mime).label} · {fileSizeLabel(file.size_bytes)}
+              </span>{" "}
+              <button
+                type="button"
+                className={s.icon}
+                aria-label={`Remove ${file.name}`}
+                disabled={busy}
+                onClick={() => void act(file.id, "delete")}
+              >
+                <Trash2 size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <label className={s.choice}>
+        <Paperclip size={15} />
+        {busy ? "Working..." : "Attach a file"}
+        <input
+          type="file"
+          hidden
+          disabled={busy}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void upload(file);
+          }}
+        />
+      </label>
+      {error ? (
+        <p role="alert" className={s.error}>
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }

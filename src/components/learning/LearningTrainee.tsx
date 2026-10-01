@@ -19,6 +19,7 @@ import {
   type LearningField,
   type LearningPayload,
 } from "@/lib/learning";
+import { describeFileType, fileSizeLabel } from "@/lib/learningFiles";
 import LearningMarkdown from "./LearningMarkdown";
 import s from "./learning.module.css";
 
@@ -53,6 +54,14 @@ type Dashboard = {
   activities: LearningActivity[];
   submissions: Submission[];
   rooms: Room[];
+  files?: MaterialFile[];
+};
+type MaterialFile = {
+  id: string;
+  activity_id: string;
+  name: string;
+  mime: string;
+  size_bytes: number;
 };
 async function request<T>(url: string, body?: unknown): Promise<T> {
   const r = await fetch(url, {
@@ -250,6 +259,23 @@ export default function LearningTrainee({
           ) : null}
           {activity ? (
             <>
+              {activity.config.link ? (
+                <p>
+                  <a
+                    href={activity.config.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {activity.config.linkLabel || "Open the link"}
+                  </a>
+                </p>
+              ) : null}
+              <MaterialFiles
+                files={(data.files ?? []).filter(
+                  (file) => file.activity_id === activity.id,
+                )}
+                api={api}
+              />
               {activity.type === "content" ? (
                 <>
                   <LearningMarkdown>
@@ -734,5 +760,59 @@ function Roleplay({
         </form>
       ) : null}
     </section>
+  );
+}
+
+/**
+ * Material to read alongside an activity.
+ *
+ * The link is asked for at the moment it is clicked and lasts five minutes, so
+ * nothing here can be forwarded to somebody without their own link.
+ */
+function MaterialFiles({ files, api }: { files: MaterialFile[]; api: string }) {
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  if (!files.length) return null;
+  return (
+    <div className={s.group}>
+      <h3>Material</h3>
+      <ul className={s.plain}>
+        {files.map((file) => (
+          <li key={file.id}>
+            <button
+              type="button"
+              className={s.linkButton}
+              disabled={busy === file.id}
+              onClick={async () => {
+                setBusy(file.id);
+                setError("");
+                try {
+                  const result = await request<{ url: string }>(api, {
+                    action: "file",
+                    fileId: file.id,
+                  });
+                  window.open(result.url, "_blank", "noopener");
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy("");
+                }
+              }}
+            >
+              {busy === file.id ? "Opening..." : file.name}
+            </button>{" "}
+            <span className={s.muted}>
+              {describeFileType(file.mime).label} ·{" "}
+              {fileSizeLabel(file.size_bytes)}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {error ? (
+        <p role="alert" className={s.error}>
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }

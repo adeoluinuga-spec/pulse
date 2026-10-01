@@ -1,4 +1,8 @@
 import {
+  FILE_LINK_SECONDS,
+  LEARNING_BUCKET,
+} from "@/lib/learningFiles";
+import {
   json,
   learningAdmin,
   learningBody,
@@ -25,7 +29,7 @@ export async function GET(request: Request, { params }: Context) {
     const admin = learningAdmin();
     await learningLimit(admin, request, token);
     const { trainee, cohort } = await traineeFor(admin, token);
-    const [activities, submissions, members] = await Promise.all([
+    const [activities, submissions, members, files] = await Promise.all([
       admin
         .from("learning_activities")
         .select("id,cohort_id,title,summary,type,config,position,released")
@@ -35,6 +39,7 @@ export async function GET(request: Request, { params }: Context) {
         .order("id"),
       learningRows(admin, "learning_submissions", "trainee_id", trainee.id),
       learningRows(admin, "learning_room_members", "trainee_id", trainee.id),
+      learningRows(admin, "learning_files", "cohort_id", cohort.id),
     ]);
     if (activities.error) throw activities.error;
     const released = new Set(activities.data.map((a) => a.id));
@@ -89,6 +94,16 @@ export async function GET(request: Request, { params }: Context) {
       },
       cohort: { name: cohort.name, clientName: cohort.client_name },
       activities: activities.data,
+      // Only the files on activities they can open, and never their paths.
+      files: files
+        .filter((file) => released.has(String(file.activity_id)))
+        .map((file) => ({
+          id: file.id,
+          activity_id: file.activity_id,
+          name: file.name,
+          mime: file.mime,
+          size_bytes: file.size_bytes,
+        })),
       submissions: submissions
         .filter((s) => released.has(s.activity_id))
         .map((s) => ({
@@ -130,6 +145,35 @@ export async function POST(request: Request, { params }: Context) {
         );
       return json({ saved: true });
     }
+    if (body.action === "file") {
+      const { data: file, error: fileError } = await admin
+        .from("learning_files")
+        .select("id, path, name, mime, activity_id")
+        .eq("id", String(body.fileId ?? ""))
+        .eq("cohort_id", cohort.id)
+        .maybeSingle<{ id: string; path: string; name: string; mime: string; activity_id: string }>();
+      if (fileError) throw fileError;
+      if (!file) throw new LearningError("That file is not available.", 404);
+
+      // The activity it belongs to has to be released, or a file could be read
+      // before its material is open.
+      const { data: activityRow, error: releaseError } = await admin
+        .from("learning_activities")
+        .select("id")
+        .eq("id", file.activity_id)
+        .eq("cohort_id", cohort.id)
+        .eq("released", true)
+        .maybeSingle<{ id: string }>();
+      if (releaseError) throw releaseError;
+      if (!activityRow) throw new LearningError("That file is not available.", 404);
+
+      const { data: link, error: linkError } = await admin.storage
+        .from(LEARNING_BUCKET)
+        .createSignedUrl(file.path, FILE_LINK_SECONDS);
+      if (linkError || !link) throw new LearningError("That file could not be opened. Please try again.", 503);
+      return json({ url: link.signedUrl, name: file.name, mime: file.mime });
+    }
+
     const { data: activity, error } = await admin
       .from("learning_activities")
       .select("*")
