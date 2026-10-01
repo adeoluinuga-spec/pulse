@@ -14,6 +14,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     // A public survey link: the person answering has no account, so they get no
     // sign-in chrome — no sidebar, no notification bell, no avatar.
     pathname.startsWith("/s/") ||
+    pathname.startsWith("/t/") ||
     pathname === "/admin";
   const isImmersivePortal = pathname === "/hr" || pathname === "/executive";
 

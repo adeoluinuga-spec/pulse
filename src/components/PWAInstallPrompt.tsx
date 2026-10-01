@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { X, Download } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function PWAInstallPrompt() {
+  const pathname = usePathname();
+  const isPublic = pathname.startsWith("/t/") || pathname.startsWith("/s/") || pathname.startsWith("/review");
   const [visible, setVisible]             = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> } | null>(null);
 
   useEffect(() => {
+    if (isPublic) return;
     if (typeof window === "undefined") return;
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       navigator.serviceWorker.register("/sw.js").catch(() => undefined);
@@ -30,7 +34,7 @@ export default function PWAInstallPrompt() {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
       clearTimeout(timer);
     };
-  }, []);
+  }, [isPublic]);
 
   function dismiss() {
     setVisible(false);
@@ -47,7 +51,7 @@ export default function PWAInstallPrompt() {
     dismiss();
   }
 
-  if (!visible) return null;
+  if (!visible || isPublic) return null;
 
   return (
     <div className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,12px))] left-4 right-4 z-[100] mx-auto max-w-[430px] animate-sheet-up md:bottom-6 md:left-auto md:right-6 md:w-80">

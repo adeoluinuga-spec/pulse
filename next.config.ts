@@ -6,6 +6,14 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   turbopack: {},
+  async headers() {
+    return [{ source: "/t/:path*", headers: [
+      { key: "Cache-Control", value: "private, no-store" },
+      { key: "Referrer-Policy", value: "no-referrer" },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+      { key: "X-Frame-Options", value: "DENY" },
+    ] }];
+  },
 };
 
 export default nextConfig;

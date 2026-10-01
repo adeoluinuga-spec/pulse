@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BarChart2, ChevronRight, LogOut, Settings, User, Users } from "lucide-react";
+import { Bell, BarChart2, ChevronRight, LogOut, Settings, User, Users, GraduationCap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -32,7 +32,7 @@ export default function TopBar() {
       </Link>
 
       <div className="hidden min-w-0 md:block">
-        <p className="font-display text-[13px] font-semibold text-ink">{pathname === "/dashboard/organisation" ? "Organisation structure" : "Performance command center"}</p>
+        <p className="font-display text-[13px] font-semibold text-ink">{pathname.startsWith("/cohorts") ? "Learning area" : pathname === "/dashboard/organisation" ? "Organisation structure" : "Performance command center"}</p>
         <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-muted">Pulse Work OS</p>
       </div>
 
@@ -78,7 +78,7 @@ export default function TopBar() {
                 <DropItem href="/settings" Icon={Settings} label="Settings" onClick={() => setProfileOpen(false)} />
 
                 {(user.platformRole === "hr_admin" || user.platformRole === "super_admin") && (
-                  <DropItem href="/hr" Icon={Users} label="Switch to HR View" accent onClick={() => setProfileOpen(false)} />
+                  <><DropItem href="/hr" Icon={Users} label="Switch to HR View" accent onClick={() => setProfileOpen(false)} /><DropItem href="/cohorts" Icon={GraduationCap} label="Learning area" onClick={() => setProfileOpen(false)} /></>
                 )}
 
                 {(user.platformRole === "executive_view" || user.platformRole === "super_admin") && (

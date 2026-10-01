@@ -1,6 +1,6 @@
 # Pulse: the platform bible
 
-**Last updated:** 25 September 2026
+**Last updated:** 1 October 2026
 **Status:** The single reference for what Pulse is, what it can do, who can do what, and what is still unfinished. Where an older document disagrees with this one, this one wins (section 17 lists which documents it replaces).
 
 **How this was written:** from the code as it stands, not from earlier notes. Where a claim depends on something outside the code (a migration having been run, an email actually arriving), the text says so.
@@ -27,6 +27,7 @@
 16. Testing
 17. Document map
 18. Build history
+19. External-client learning area
 
 **Status labels used throughout**
 
@@ -429,7 +430,8 @@ Each run keeps a full copy of the rules it used. All three are marked **unverifi
 | AI & wellbeing `/dashboard/ai-wellbeing` | Live | **Coach:** on request, reads your real goals, KPIs and reports and gives priorities; says plainly when there is nothing to work from. **Wellbeing check-in:** mood, workload and support, saved weekly and visible to you and HR (not your manager), with an AI response; a difficult week offers a link to raise it confidentially with HR. |
 | Profile `/dashboard/profile` | Live | Personal details save. Documents are real uploads to private storage, listed with HR's review status. Band shows only what HR has recorded. Pay comes from payroll; bonuses point to payslips. The invented document checklist, company documents, band ladder, promotion checklist and bonus projection are gone. |
 | `/team`, `/reports` (top level) | Not built | "Coming soon" placeholders; the real pages are under `/dashboard`. |
-| Leave, PIPs, learning, development plans | Not built | "Coming soon" in the sidebar. Appraisal development commitments exist separately. |
+| Client training learning area | Built; activation pending | Tenant-owned cohorts, personal trainee dashboards, materials, forms, IDPs, assigned group role-play, named responses and CSV. See section 19 and LEARNING_AREA_HANDOVER.md. |
+| Leave, PIPs, organisation-wide L&D planning | Not built | Appraisal commitments and training-cohort IDPs exist separately. |
 
 ---
 
@@ -511,7 +513,7 @@ A second AI provider client (DeepSeek) exists in the code but is not used.
 - Monitoring and alerting for failed sends, jobs and purges.
 - Splitting the very large 360 console file (`src/app/assessments/page.tsx`, about 3,500 lines).
 
-**Not built:** leave, performance improvement plans, learning and development, development plans, matrix reporting.
+**Not built:** leave, performance improvement plans, organisation-wide learning planning and matrix reporting. Training-cohort IDPs and the external-client learning area are built, with database activation and live rehearsal pending (section 19).
 
 **Not yet done:** a full rehearsal with real roles in a test organisation, from org chart to strategy, goals and KPIs, saved reports, appraisal release, bonus preview, payroll approval, export and employee payslip, plus a separate real-email 360 rehearsal.
 
@@ -616,3 +618,16 @@ Browser tests use invented data and block outside traffic. Passing tests prove t
 | 17 Sept | Independent audit; payroll controls hardened in response |
 | 25 Sept | Anonymous staff surveys: public link, aggregate-only reporting, suppression of small groups |
 | 18 Sept | This document; demo data removed from every signed-in screen; Team workspace rebuilt on the org chart with real tasks, chat and escalations; Reports, Performance, AI & wellbeing and Profile rebuilt on real data |
+| 1 Oct | External-client learning area: cohorts, personal trainee dashboards, materials, saved forms and IDPs, assigned group role-play, facilitator responses and CSV. Database activation and live rehearsal pending. |
+
+## 19. External-client learning area
+
+**Built; database activation and live rehearsal pending.** This lets a Pulse tenant run training for an external client without onboarding that client's staff as tenant employees. For example, SD owns a Bracken cohort; each Bracken trainee receives a private expiring link, without sign-in.
+
+HR reaches it under **Talent development > Learning area**, or the profile menu on mobile. Each programme has Trainees, Activities and Responses tabs. Trainees see released materials, progress, commitments, reflections and fixed-row IDPs. Role-play is a real shared written conversation: the facilitator assigns roles and an optional observer; players respond in turn; only the assigned group and tenant HR can see the conversation. Reflection remains a separate private activity. HR can review saved work, including drafts, and export named responses and transcripts.
+
+Every cohort is tenant-scoped. Tokens are hashed for lookup, with encrypted recovery for authorised HR link copying, 180-day expiry and revocation. Direct browser access to the learning tables is denied. The public route does not join or read anonymous survey responses. Drafts save explicitly; re-submission updates the same record. Submission receipt emails link back to the private dashboard without including development answers.
+
+Apply `supabase/migrations/20261001_000001_learning_area.sql` before using the feature. Its matching copy is `supabase/schema/15_learning_area.sql`; run only one. The build agent could not apply it because the linked Supabase CLI account returned insufficient privileges. The Bracken production cohort and its actual scenarios still need to be created by SD after migration. The supplied starter is available when creating a programme and holds incomplete scenario content unreleased.
+
+See [LEARNING_AREA_HANDOVER.md](LEARNING_AREA_HANDOVER.md) for the workflow, security boundaries, configuration, test coverage and deployment checklist. Automated analysis, report approval and report delivery to trainees/client leadership are the next phase. Organisation-wide L&D planning remains separate and unbuilt.

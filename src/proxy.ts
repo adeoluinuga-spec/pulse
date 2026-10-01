@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { DEV_AUTH_BYPASS } from "@/lib/devAuth";
 
 const PROTECTED_PREFIXES = [
+  "/cohorts",
   "/dashboard",
   "/assessments",
   "/goals",
@@ -82,6 +83,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/cohorts/:path*",
     "/auth/login",
     "/dashboard/:path*",
     "/assessments/:path*",

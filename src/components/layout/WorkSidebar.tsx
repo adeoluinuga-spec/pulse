@@ -135,7 +135,7 @@ function SidebarContent() {
       label: "Talent development",
       icon: GraduationCap,
       items: [
-        { label: "Learning & development", icon: GraduationCap, comingSoon: true, description: "Learning and development planning is being prepared for a future Pulse release." },
+        ...(isHr ? [{ label: "Learning area", href: "/cohorts", icon: GraduationCap }] : []),
         { label: "Development plans", icon: Target, comingSoon: true, description: "Individual development plans are being prepared for a future Pulse release." },
       ],
     },

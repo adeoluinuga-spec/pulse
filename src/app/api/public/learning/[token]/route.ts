@@ -1,0 +1,190 @@
+import {
+  json,
+  learningAdmin,
+  learningBody,
+  LearningError,
+  learningHandled,
+  learningLimit,
+  learningRows,
+  tokenHash,
+  traineeFor,
+} from "@/lib/learningServer";
+import {
+  learningEmailHtml,
+  validateLearningAnswers,
+  type LearningActivity,
+} from "@/lib/learning";
+import { resolveOrgReplyTo, sendPulseEmail } from "@/lib/pulseEmail";
+export const dynamic = "force-dynamic";
+type Context = { params: Promise<{ token: string }> };
+export async function GET(request: Request, { params }: Context) {
+  return learningHandled(async () => {
+    const { token } = await params;
+    const admin = learningAdmin();
+    await learningLimit(admin, request, token);
+    const { trainee, cohort } = await traineeFor(admin, token);
+    const [activities, submissions, members] = await Promise.all([
+      admin
+        .from("learning_activities")
+        .select("id,cohort_id,title,summary,type,config,position,released")
+        .eq("cohort_id", cohort.id)
+        .eq("released", true)
+        .order("position")
+        .order("id"),
+      learningRows(admin, "learning_submissions", "trainee_id", trainee.id),
+      learningRows(admin, "learning_room_members", "trainee_id", trainee.id),
+    ]);
+    if (activities.error) throw activities.error;
+    const released = new Set(activities.data.map((a) => a.id));
+    const rooms = [];
+    for (const member of members.filter((m) => released.has(m.activity_id))) {
+      const { data: room, error } = await admin
+        .from("learning_rooms")
+        .select("id,name,activity_id,status,turn_number")
+        .eq("id", member.room_id)
+        .eq("cohort_id", cohort.id)
+        .single();
+      if (error) throw error;
+      const [players, messages] = await Promise.all([
+        learningRows(admin, "learning_room_members", "room_id", room.id),
+        learningRows(admin, "learning_messages", "room_id", room.id),
+      ]);
+      const { data: names, error: nameError } = await admin
+        .from("learning_trainees")
+        .select("id,display_name")
+        .eq("cohort_id", cohort.id)
+        .in(
+          "id",
+          players.map((p) => String(p.trainee_id)),
+        );
+      if (nameError) throw nameError;
+      rooms.push({
+        ...room,
+        members: players.map((p) => ({
+          trainee_id: p.trainee_id,
+          role_name: p.role_name,
+          seat: p.seat,
+          name: names.find((n) => n.id === p.trainee_id)?.display_name,
+        })),
+        messages: messages.map((m) => ({
+          id: m.id,
+          trainee_id: m.trainee_id,
+          body: m.body,
+          created_at: m.created_at,
+        })),
+      });
+    }
+    const { error: seenError } = await admin
+      .from("learning_trainees")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", trainee.id);
+    if (seenError) throw seenError;
+    return json({
+      trainee: {
+        id: trainee.id,
+        name: trainee.display_name,
+        expiresAt: trainee.expires_at,
+      },
+      cohort: { name: cohort.name, clientName: cohort.client_name },
+      activities: activities.data,
+      submissions: submissions
+        .filter((s) => released.has(s.activity_id))
+        .map((s) => ({
+          activity_id: s.activity_id,
+          payload: s.payload,
+          status: s.status,
+          updated_at: s.updated_at,
+        })),
+      rooms,
+    });
+  });
+}
+export async function POST(request: Request, { params }: Context) {
+  return learningHandled(async () => {
+    const { token } = await params;
+    const admin = learningAdmin();
+    await learningLimit(admin, request, token);
+    const { trainee, cohort } = await traineeFor(admin, token);
+    const body = await learningBody(request);
+    if (body.action === "speak") {
+      if (
+        typeof body.message !== "string" ||
+        !body.message.trim() ||
+        body.message.length > 4000 ||
+        typeof body.requestId !== "string" ||
+        !/^[0-9a-f-]{36}$/i.test(body.requestId)
+      )
+        throw new LearningError("Write a response of up to 4,000 characters.");
+      const { error } = await admin.rpc("learning_speak", {
+        p_hash: tokenHash(token),
+        p_room: body.roomId,
+        p_body: body.message,
+        p_request: body.requestId,
+      });
+      if (error)
+        throw new LearningError(
+          "Your response was not sent. Check that this is your group, the activity is open and it is your turn.",
+          409,
+        );
+      return json({ saved: true });
+    }
+    const { data: activity, error } = await admin
+      .from("learning_activities")
+      .select("*")
+      .eq("cohort_id", cohort.id)
+      .eq("id", String(body.activityId))
+      .eq("released", true)
+      .maybeSingle<LearningActivity>();
+    if (error) throw error;
+    if (!activity || activity.type === "roleplay")
+      throw new LearningError("This activity is not available.", 404);
+    const draft = body.draft === true;
+    let payload = {};
+    if (activity.type === "form") {
+      try {
+        payload = validateLearningAnswers(activity.config, body.payload, draft);
+      } catch (e) {
+        throw new LearningError((e as Error).message);
+      }
+    }
+    const { data: saved, error: saveError } = await admin.rpc("learning_save", {
+      p_hash: tokenHash(token),
+      p_activity: activity.id,
+      p_payload: payload,
+      p_draft: draft,
+    });
+    if (saveError)
+      throw new LearningError(
+        "Your work could not be saved. Check that your link and this activity are still open.",
+        409,
+      );
+    let email: "sent" | "failed" | "not_requested" = "not_requested";
+    if (!draft && activity.type === "form" && trainee.email) {
+      try {
+        const base =
+          process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+        const result = await sendPulseEmail({
+          to: trainee.email,
+          subject: `${cohort.name}: submission saved`,
+          html: learningEmailHtml(
+            trainee.display_name,
+            "Your learning submission is saved",
+            `${base.replace(/\/$/, "")}/t/${token}`,
+          ),
+          replyTo: await resolveOrgReplyTo(admin, cohort.org_id),
+        });
+        email = result.ok ? "sent" : "failed";
+      } catch {
+        email = "failed";
+      }
+    }
+    return json({
+      saved: true,
+      updatedAt: saved.updated_at,
+      email,
+      message: draft
+        ? "Draft saved."
+        : activity.config.confirmText || "Your work is saved.",
+    });
+  });
+}

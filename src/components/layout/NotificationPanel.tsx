@@ -48,7 +48,7 @@ export default function NotificationPanel() {
 
   // Pages people reach without an account — a survey link, a 360 review link —
   // have no notifications to show and should carry nothing that implies a login.
-  const isPublic = pathname.startsWith("/s/") || pathname.startsWith("/review");
+  const isPublic = pathname.startsWith("/s/") || pathname.startsWith("/t/") || pathname.startsWith("/review");
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   if (isPublic) return null;
