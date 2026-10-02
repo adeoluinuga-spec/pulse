@@ -57,6 +57,8 @@ export type PulseEmail = {
   subject: string;
   html: string;
   replyTo?: string;
+  idempotencyKey?: string;
+  timeoutMs?: number;
 };
 
 export type SendResult =
@@ -98,7 +100,9 @@ export async function sendPulseEmail(email: PulseEmail): Promise<SendResult> {
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json",
+      ...(email.idempotencyKey ? { "Idempotency-Key": email.idempotencyKey } : {}) },
+    ...(email.timeoutMs ? { signal: AbortSignal.timeout(email.timeoutMs) } : {}),
     body: JSON.stringify({
       from: fromEmail,
       to: [email.to],

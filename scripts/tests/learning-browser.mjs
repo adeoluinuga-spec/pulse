@@ -17,7 +17,7 @@ const tokens = ["a".repeat(64), "b".repeat(64)];
 const trainees = tokens.map((token, i) => ({
   id: `t${i + 1}`,
   display_name: ["Ada Okafor", "Bola Adeyemi"][i],
-  email: null,
+  email: `trainee${i + 1}@example.com`,
   token,
   expires_at: "2027-01-01T00:00:00Z",
   last_seen_at: null,
@@ -315,8 +315,27 @@ try {
   const hr = await context(1440),
     admin = await hr.newPage();
   admin.on("pageerror", (e) => errors.push(e.message));
+  const inviteRequests = [];
+  await hr.route("**/api/learning/cohorts/c1/invitations", async (route) => {
+    const body = route.request().postDataJSON();
+    inviteRequests.push(body);
+    const failed = body.traineeId === "t2" && inviteRequests.filter((r) => r.traineeId === "t2").length === 1;
+    await route.fulfill({ status: failed ? 502 : 200, contentType: "application/json", body: JSON.stringify(failed ? { error: "Provider unavailable. Retry." } : { status: "accepted" }) });
+  });
   await admin.goto(`${root}/cohorts/c1`, { timeout: 120000 });
   await admin.getByRole("heading", { name: cohort.name }).waitFor();
+  await admin.getByText("Email invitations", { exact: true }).click();
+  await admin.getByRole("button", { name: "Send invitations", exact: true }).click();
+  await admin.getByText("Provider unavailable. Retry.", { exact: true }).waitFor();
+  await admin.getByRole("button", { name: "Send invitations", exact: true }).click();
+  await admin.getByRole("button", { name: "Resend invitation to Bola Adeyemi", exact: true }).waitFor();
+  assert.equal(inviteRequests.length, 3);
+  assert.equal(inviteRequests[1].requestId, inviteRequests[2].requestId);
+  assert.equal(inviteRequests.filter((r) => r.traineeId === "t1").length, 1);
+  await admin.setViewportSize({ width: 360, height: 860 });
+  await fit(admin);
+  await admin.screenshot({ path: join(artifacts, "invitations-mobile.png"), fullPage: true });
+  await admin.setViewportSize({ width: 1440, height: 860 });
   await admin.getByRole("button", { name: "Activities", exact: true }).click();
   await admin
     .getByRole("button", { name: "Add activity", exact: true })

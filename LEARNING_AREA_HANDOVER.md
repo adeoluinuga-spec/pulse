@@ -1,6 +1,6 @@
 # Pulse Learning Area
 
-Updated: 1 October 2026. Built for a Pulse tenant delivering training to an external client.
+Updated: 2 October 2026. Built for a Pulse tenant delivering training to an external client.
 
 ## Model and scope
 
@@ -75,6 +75,19 @@ HR uses **Responses** to review named submissions and transcripts and copy/downl
 ## Email
 
 Uses the existing `sendPulseEmail` sender and tenant `resolveOrgReplyTo` policy. Successful form submission sends a receipt when the trainee has an email address. A delivery failure does not undo saved work and is reported honestly to the trainee.
+
+### Trainee invitation emails (2 October)
+
+In **Trainees**, expand **Email invitations**. Use **Send invitations** for eligible trainees, or the envelope beside a person to send individually. After a successful send the individual control becomes Resend. Creating trainees still does not send automatically: HR decides when the programme is ready. Copy-link distribution remains available.
+
+- Uses the existing Resend API key and verified FROM_EMAIL. Replies use the programme owner's tenant-specific reply-to policy, including its HR fallback. No additional migration or Edge Function deployment is required for invitations.
+- One message goes to one trainee, containing their name, programme, client and private dashboard link. Resending preserves the active link; it does not rotate tokens.
+- Missing/invalid email, expired/revoked/unrecoverable links and archived programmes cannot be sent. Issue a new link where needed. The server independently checks authenticated HR access, tenant ownership and trainee membership.
+- The browser processes the cohort sequentially with pacing; keep the page open. Each HTTP request handles one recipient, avoiding a single long-running bulk request. Results and retry IDs are held only in the current mounted view, not stored as an invitation history. Refresh/navigation discards them and stops scheduling further requests; an already-running request may still complete.
+- **Accepted by Resend** is provider acceptance, not proof of inbox delivery. Failures remain visible per trainee. Clicking Send invitations again retries those not accepted in this session, without repeating successful recipients. Individual Resend intentionally sends another message.
+- An uncertain/failed request reuses its provider idempotency key within the same view; a successful resend receives a fresh key. Provider deduplication is subject to [Resend's documented 24-hour retention window](https://resend.com/changelog/idempotency-keys). There is no durable background queue, delivery webhook tracking or automatic retry after leaving the page.
+- No live invitation emails were sent during implementation tests. Rehearse with an authorised test mailbox before bulk client distribution. Earlier setup guidance about copying links describes the still-supported manual alternative.
+- Verification: 453 unit tests passed, one existing test skipped. TypeScript and production build passed. Chrome rehearsal with mocked APIs covered cohort sends, per-recipient failure, retry-key reuse, successful-recipient exclusion on retry and the 360px invitation layout. Sender tests verified the existing From address, tenant Reply-To, single recipient and provider idempotency header without sending mail.
 
 The receipt contains a private dashboard link, **not the submitted IDP/reflection payload**. Automatic approval review rejected copying development answers into email; the implemented receipt is the safer alternative. Automated analysis, generated reports, report approval, report emails, reminders, learner uploads and training attendance are deferred.
 

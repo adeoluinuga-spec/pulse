@@ -25,6 +25,7 @@ import {
   type LearningConfig,
 } from "@/lib/learning";
 import ActivityBuilder from "./ActivityBuilder";
+import LearningInvitations from "./LearningInvitations";
 import s from "./learning.module.css";
 
 type Trainee = {
@@ -502,6 +503,7 @@ export default function LearningWorkspace({ id }: { id: string }) {
               Copy all links
             </button>
           </div>
+          <LearningInvitations cohortId={id} active={data.cohort.status === "active"} trainees={data.trainees} />
           <div className={s.tableWrap}>
             <table className={s.table}>
               <thead>
