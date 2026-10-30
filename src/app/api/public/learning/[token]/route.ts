@@ -107,6 +107,7 @@ export async function GET(request: Request, { params }: Context) {
       submissions: submissions
         .filter((s) => released.has(s.activity_id))
         .map((s) => ({
+          entry_id: s.entry_id,
           activity_id: s.activity_id,
           payload: s.payload,
           status: s.status,
@@ -220,11 +221,15 @@ export async function POST(request: Request, { params }: Context) {
         throw new LearningError((e as Error).message);
       }
     }
-    const { data: saved, error: saveError } = await admin.rpc("learning_save", {
+    const repeatable = activity.type === "form" && activity.config.repeatable === true;
+    if (repeatable && (typeof body.entryId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.entryId) || body.entryId === "00000000-0000-0000-0000-000000000000"))
+      throw new LearningError("Choose a clash entry or start a new one.");
+    const { data: saved, error: saveError } = await admin.rpc(repeatable ? "learning_save_entry" : "learning_save", {
       p_hash: tokenHash(token),
       p_activity: activity.id,
       p_payload: payload,
       p_draft: draft,
+      ...(repeatable ? { p_entry: body.entryId } : {}),
     });
     if (saveError)
       throw new LearningError(
@@ -245,6 +250,7 @@ export async function POST(request: Request, { params }: Context) {
             `${base.replace(/\/$/, "")}/t/${token}`,
           ),
           replyTo: await resolveOrgReplyTo(admin, cohort.org_id),
+          ...(repeatable ? { idempotencyKey: `learning-entry-${trainee.id}-${activity.id}-${body.entryId}` } : {}),
         });
         email = result.ok ? "sent" : "failed";
       } catch {

@@ -1,5 +1,18 @@
 # Running a learning programme in Pulse
 
+## Session 2 and repeatable logs (30 October 2026)
+
+Bracken's eight Session 2 activities are in the existing Manager Development Programme under Stuart Davidson. Existing links and the Session 1 IDP continue to work. Release The five rules and Clash log before training; reveal the other six activities during the session using Released.
+
+For the **Clash log**, choose **Add a clash** for each incident. Save draft to finish later; reopen the same personal link and choose Continue draft. Submit preserves that incident as a separate dated entry. Submitted entries are read-only; start a new entry for a new incident. Completing one entry counts the activity toward progress, but managers can continue logging.
+
+In **Responses**, SD sees all entries, including labelled drafts. CSV export includes every entry and the trainee's name: keep it within the authorised SD team. Prepare a separately reviewed, unattributed summary for executive sharing, removing identifying details from the narratives as well as names. Pulse does not automatically anonymise or mail this summary.
+
+Individual answers and drafts are visible to authorised programme administrators, not other trainees. Do not name people in the clash log or One person, honestly reflection. This is not an anonymous survey or a facilitator-only access system.
+
+For future questionnaire/reflection activities, the editor's **Repeatable log** setting preserves multiple entries instead of replacing a person's last answer. Choose it before collecting work; the existing edit lock still applies after answers arrive.
+
+
 A guide for whoever delivers the training: how to build a programme, what each kind of activity is for, how to put materials in front of people, and how to read what comes back.
 
 **Last updated:** 2 October 2026

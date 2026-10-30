@@ -363,6 +363,17 @@ try {
   await admin.getByRole("button", { name: "CSV export" }).click();
   const file = await (await download).path();
   assert.match(await readFile(file, "utf8"), /Ada Okafor/);
+  // Multiple entries from one learner must survive both facilitator display and export.
+  submissions.push({ activity_id: "commit", trainee_id: "t1", payload: { commitment: "Second separate journal entry" }, status: "submitted", updated_at: new Date().toISOString() });
+  await admin.reload();
+  await admin.getByRole("button", { name: "Responses", exact: true }).click();
+  await admin.getByLabel("Activity", { exact: true }).selectOption("commit");
+  await admin.getByText("Second separate journal entry", { exact: true }).waitFor();
+  const entriesDownload = admin.waitForEvent("download");
+  await admin.getByRole("button", { name: "CSV export" }).click();
+  const entriesCsv = await readFile(await (await entriesDownload).path(), "utf8");
+  assert.match(entriesCsv, /Second separate journal entry/);
+  assert.equal(entriesCsv.split("Ada Okafor").length - 1, 2);
   await admin.screenshot({
     path: join(artifacts, "facilitator-desktop.png"),
     fullPage: true,

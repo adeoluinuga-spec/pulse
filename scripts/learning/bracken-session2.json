@@ -1,0 +1,296 @@
+[
+  {
+    "title": "The five rules",
+    "summary": "What we agreed on 17 October. Two minutes.",
+    "type": "content",
+    "released": true,
+    "config": {
+      "body": "## Five rules for shared work\n\nOne person can serve four projects. These five sentences decide what happens when that collides.\n\n| Rule | The question it answers |\n| --- | --- |\n| **People management** | Who owns this person’s workload, development and performance conversation |\n| **Project authority** | What a project lead may assign, approve and change on their own |\n| **Priority resolution** | Who decides when two leads need the same person at the same time |\n| **Capacity change** | What existing work is named and moved when urgent work is added |\n| **Visible work** | Where everyone can see agreed commitments and blockers |\n\n## Why it matters now\n\nYour executive team set four strategic objectives for 2027. The second is **execution efficiency, from 55% to 85%**. These five rules are how that number moves. They are provisional until 14 November, when the executive team decides what becomes permanent — and they will decide using what you log.\n\nA rule only exists if it settles something. That is what we are testing."
+    }
+  },
+  {
+    "title": "Clash log — the two-week trial",
+    "summary": "One real clash from 19–29 October. No names.",
+    "type": "form",
+    "released": true,
+    "config": {
+      "intro": "Think of one time in the last two weeks when two pieces of work needed the same person, or when something urgent landed and something else had to give. Describe the situation, not the people — no names anywhere.\n\n“I worked around the rule” is the most useful answer you can give. It shows us where the rule is unusable.\n\nDo not name people. Authorised Stuart Davidson programme administrators can see your entries and saved drafts. Other trainees cannot. Add a separate entry for each new clash.",
+      "confirmText": "Saved. Stuart Davidson will review these entries and prepare an unattributed summary for the executive team on 14 November. Your original entry remains visible to authorised programme administrators.",
+      "fields": [
+        {
+          "key": "q1",
+          "label": "What was raised? The situation, in facts.",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "q2",
+          "label": "Who decided it?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "A project lead",
+            "The people manager",
+            "An executive",
+            "The person themselves",
+            "Nobody — it resolved itself",
+            "Nobody — it is still open"
+          ]
+        },
+        {
+          "key": "q3",
+          "label": "How long from raising it to a decision?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "Same day",
+            "One to two days",
+            "Three days or more",
+            "Still open"
+          ]
+        },
+        {
+          "key": "q4",
+          "label": "Did the rule settle it, or did you work around it?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "The rule settled it",
+            "The rule helped but did not settle it",
+            "I worked around the rule",
+            "I did not know which rule applied",
+            "I had not seen the rules"
+          ]
+        },
+        {
+          "key": "q5",
+          "label": "What would have settled it faster?",
+          "type": "textarea",
+          "required": false
+        },
+        {
+          "key": "q6",
+          "label": "Roughly how many hours did this cost you personally?",
+          "type": "choice",
+          "required": false,
+          "options": [
+            "Under 1 hour",
+            "1–3 hours",
+            "Half a day",
+            "A day or more"
+          ]
+        }
+      ],
+      "repeatable": true
+    }
+  },
+  {
+    "title": "Why people underperform",
+    "summary": "The four blockers, and the Heart and Head quadrant. Keep this open.",
+    "type": "content",
+    "released": false,
+    "config": {
+      "body": "## Find out why before you decide what\n\nFour things stop someone performing. Only one of them is attitude.\n\n- **Psychological** — they do not believe they can do it, or do not believe it is safe to try and fail.\n\n- **Emotional** — something is going on, here or at home, and it is using the capacity the work needs.\n\n- **Environmental** — tools, information, access, time, or four projects and no priority rule. Not their fault.\n\n- **Behavioural** — they can, they are able to, and they are choosing not to. The rarest of the four.\n\nMost managers correct the fourth when the cause was the third.\n\n## Heart and Head\n\n| | What it means | What it asks of you |\n| --- | --- | --- |\n| **Heart high, Head high** | Willing and able | Stretch, motivate, promote — before someone else does |\n| **Heart high, Head low** | Willing, not yet able | Train, and recognise the effort while they learn |\n| **Heart low, Head high** | Able, not willing | Inspect. Something happened. Usually hurt, not defiance — find out before you act |\n| **Heart low, Head low** | Neither | Exit, properly: a documented process, with HR from the start, never decided in frustration and never alone |\n\n## Two rules for using this\n\nNobody sits permanently in a box. People move between them, and your behaviour is often what moves them.\n\nBefore you place anyone bottom-left, check two things: was there an environmental blocker, and was the standard ever actually stated to them? Most people who look bottom-left are top-left with an expectation nobody told them."
+    }
+  },
+  {
+    "title": "One person, honestly",
+    "summary": "Twenty minutes. No names — ever.",
+    "type": "form",
+    "released": false,
+    "config": {
+      "intro": "Think of one person you have been frustrated by. Do not name them here or anywhere else. Answer about the situation, not the individual.\n\nYour response and saved drafts are visible to you and authorised Stuart Davidson programme administrators, not other trainees.",
+      "confirmText": "Saved. Your response is visible to you and authorised Stuart Davidson programme administrators, not other trainees. If you want to discuss a specific case privately, ask for a coaching slot.",
+      "fields": [
+        {
+          "key": "q1",
+          "label": "Where would you place them on Heart and Head?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "Heart high, Head high",
+            "Heart high, Head low",
+            "Heart low, Head high",
+            "Heart low, Head low",
+            "I am not sure"
+          ]
+        },
+        {
+          "key": "q2",
+          "label": "Which blocker is actually in play? Give the evidence, not the impression.",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "q3",
+          "label": "Was the standard ever stated to them, in advance, out loud?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "Yes, in writing",
+            "Yes, said but not written",
+            "Assumed, never stated",
+            "No"
+          ]
+        },
+        {
+          "key": "q4",
+          "label": "After your partner asked what if you are wrong about the blocker — did your answer change?",
+          "type": "choice",
+          "required": false,
+          "options": [
+            "Yes, completely",
+            "Partly",
+            "No"
+          ]
+        },
+        {
+          "key": "q5",
+          "label": "One action you will take this week.",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "q6",
+          "label": "By when?",
+          "type": "text",
+          "required": true
+        }
+      ]
+    }
+  },
+  {
+    "title": "My team’s direction",
+    "summary": "One sentence your team could repeat back.",
+    "type": "form",
+    "released": false,
+    "config": {
+      "intro": "Your executive team set four objectives for 2027: client retention 30% to 60%; execution efficiency 55% to 85%; revenue, savings and investment; and visibility and credibility, 2 to 6.\n\nIn September only 71% of staff could say where Bracken is heading. That number is yours to move.",
+      "confirmText": "Saved. Say it twice before we meet again. Once is an announcement; direction is what you repeat.",
+      "fields": [
+        {
+          "key": "q1",
+          "label": "Which single objective does your team most directly move?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "Client retention",
+            "Execution efficiency",
+            "Revenue, savings and investment",
+            "Visibility and credibility"
+          ]
+        },
+        {
+          "key": "q2",
+          "label": "Write the sentence: what we do, and why it moves that number. One sentence a designer could repeat.",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "q3",
+          "label": "When will you say it to your team, and where?",
+          "type": "text",
+          "required": true
+        }
+      ]
+    }
+  },
+  {
+    "title": "Meeting audit",
+    "summary": "Twelve minutes. One out, one in.",
+    "type": "form",
+    "released": false,
+    "config": {
+      "intro": "Every recurring meeting you run or attend in a normal week. Name its type: training, check-in, review, support or strategy. If you cannot pick one, that is the finding.",
+      "confirmText": "Saved. Kill the meeting and book the one-to-ones on Monday 2 November — one out, one in.",
+      "fields": [
+        {
+          "key": "q1",
+          "label": "List your recurring meetings, and the type of each.",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "q2",
+          "label": "How many could you not assign a single type to?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "None",
+            "One",
+            "Two",
+            "Three or more"
+          ]
+        },
+        {
+          "key": "q3",
+          "label": "Which one will you stop or shorten?",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "q4",
+          "label": "Do you currently hold a recurring one-to-one with every direct report?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "Yes, all of them",
+            "Some of them",
+            "No"
+          ]
+        },
+        {
+          "key": "q5",
+          "label": "When will the missing one-to-ones be in the calendar?",
+          "type": "text",
+          "required": true
+        }
+      ]
+    }
+  },
+  {
+    "title": "My commitment — Session 2",
+    "summary": "Two behaviours for the next four weeks.",
+    "type": "form",
+    "released": false,
+    "config": {
+      "intro": "A behaviour, not an intention — what would someone see you doing differently on Monday?\n\nAn intention: “Be more supportive of my team.”   A behaviour: “Ask what they need from me, and write it down, in every one-to-one.”",
+      "confirmText": "Saved. We open the next session with these, read back to the room.",
+      "fields": [
+        {
+          "key": "q1",
+          "label": "Commitment 1",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "q2",
+          "label": "Commitment 2",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "key": "q3",
+          "label": "I will know it is working when…",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "q4",
+          "label": "Looking back at your Session 1 commitments — what got in the way?",
+          "type": "textarea",
+          "required": false
+        }
+      ]
+    }
+  },
+  {
+    "title": "Before we meet again",
+    "summary": "Five things, with dates.",
+    "type": "content",
+    "released": false,
+    "config": {
+      "body": "## Between now and 14 November\n\n| What | By |\n| --- | --- |\n| Kill the meeting you named, and book the one-to-ones that replace it | Mon 2 Nov |\n| Keep logging clashes as they happen — same four fields | Ongoing |\n| Finish and agree every development plan with the person it is about | Fri 6 Nov |\n| Have the performance conversation you worked on today | Fri 13 Nov |\n| Say your team’s one-sentence direction to your team. Twice. | Ongoing |\n\n## The four blockers, to keep handy\n\nPsychological — they do not believe they can.  Emotional — something else is using the capacity.  Environmental — tools, time, information, or no priority rule.  Behavioural — they are choosing not to.\n\n## The five coaching questions\n\n1. What are you trying to get to?  2. What have you tried so far?  3. What is actually in the way?  4. What will you do about it this week?  5. **What do you need from me?**\n\nAsk the fifth one in every one-to-one, and write the answer down in front of them.\n\n## What happens on 14 November\n\nYour executive team reviews the clash log and the 2026 business review, and decides which of the five rules becomes permanent. What you log before then is what they will be reading.\n\nIf you want to talk through a specific person before then, ask for a coaching slot. Thirty minutes, confidential."
+    }
+  }
+]

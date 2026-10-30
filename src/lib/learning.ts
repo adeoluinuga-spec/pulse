@@ -27,6 +27,7 @@ export type LearningField = {
   highLabel?: string;
 };
 export type LearningConfig = {
+  repeatable?: boolean;
   body?: string;
   /** A video or document to open alongside reading material. */
   link?: string;
@@ -155,6 +156,9 @@ export function validateLearningConfig(
     };
   }
   if (type !== "form") throw new Error("Choose material, form or role-play.");
+  if (c.repeatable !== undefined && typeof c.repeatable !== "boolean")
+    throw new Error("Repeatable must be true or false.");
+  if (c.repeatable && c.rows) throw new Error("A development plan cannot be a repeatable log.");
   if (
     !Array.isArray(c.fields) ||
     !c.fields.length ||
@@ -202,6 +206,7 @@ export function validateLearningConfig(
     );
   return {
     fields: c.fields,
+    ...(c.repeatable !== undefined ? { repeatable: c.repeatable } : {}),
     rows: c.rows ?? null,
     singleFields: c.singleFields ?? [],
     intro: c.intro,

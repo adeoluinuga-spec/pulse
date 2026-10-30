@@ -24,6 +24,7 @@ import LearningMarkdown from "./LearningMarkdown";
 import s from "./learning.module.css";
 
 type Submission = {
+  entry_id?: string;
   activity_id: string;
   payload: LearningPayload;
   status: string;
@@ -206,7 +207,7 @@ export default function LearningTrainee({
                   const done =
                     a.type === "roleplay" && !isLiveRoleplay(a)
                       ? group?.status === "completed"
-                      : sub?.status === "submitted";
+                      : data.submissions.some((v) => v.activity_id === a.id && v.status === "submitted");
                   return (
                     <Link
                       key={a.id}
@@ -299,7 +300,9 @@ export default function LearningTrainee({
                   </button>
                 </>
               ) : null}
-              {activity.type === "form" ? (
+              {activity.type === "form" && activity.config.repeatable ? (
+                <LearningJournal key={activity.id} activity={activity} submissions={data.submissions.filter((v) => v.activity_id === activity.id)} api={api} refresh={load} />
+              ) : activity.type === "form" ? (
                 <LearningForm
                   key={activity.id}
                   activity={activity}
@@ -356,8 +359,8 @@ export default function LearningTrainee({
             </>
           ) : null}
           <footer className={`${s.group} ${s.muted}`}>
-            Your facilitator can review your progress and saved work, including
-            drafts. Role-play messages are shared with your assigned group. Keep
+            Authorised programme administrators can review your progress and saved work, including
+            drafts. Individual form answers are not shown to other trainees. Written role-play messages are shared with your assigned group. Keep
             your personal link private.
           </footer>
         </>
@@ -446,16 +449,52 @@ function LiveRoleplay({
   );
 }
 
+function LearningJournal({ activity, submissions, api, refresh }: {
+  activity: LearningActivity;
+  submissions: Submission[];
+  api: string;
+  refresh: () => Promise<void>;
+}) {
+  const [entryId, setEntryId] = useState<string | null>(null);
+  const { showToast } = useToast();
+  const selected = submissions.find((v) => v.entry_id === entryId);
+  return <section>
+    <p className={s.notice}>Keep a separate entry for each clash. Do not name people. Your saved entries and drafts are visible to authorised programme administrators, not other trainees.</p>
+    {entryId ? <>
+      <LearningForm key={entryId} activity={activity} saved={selected} entryId={entryId} api={api}
+        onSaved={async (message, draft) => {
+          await refresh();
+          showToast(message, "success");
+          if (!draft) setEntryId(null);
+        }} />
+      <button className={s.button} onClick={() => {
+        if (window.confirm("Return to the log? Save your draft first to keep changes.")) setEntryId(null);
+      }}>Back to entries</button>
+    </> : <button className={s.primary} onClick={() => setEntryId(crypto.randomUUID())}>Add a clash</button>}
+    <h2>Your entries ({submissions.length})</h2>
+    {!submissions.length ? <p className={s.muted}>No entries yet. Start with one clash from the two-week trial.</p> : null}
+    {[...submissions].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).map((entry) => <details className={s.group} key={entry.entry_id}>
+      <summary>{entry.status === "draft" ? "Draft" : "Submitted"} · {date(entry.updated_at)}</summary>
+      {(activity.config.fields ?? []).map((field) => <div key={field.key}>
+        <strong>{field.label}</strong><p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{String(entry.payload[field.key] ?? "Not answered")}</p>
+      </div>)}
+      {entry.status === "draft" && !entryId ? <button className={s.button} onClick={() => setEntryId(entry.entry_id!)}>Continue draft</button> : null}
+    </details>)}
+  </section>;
+}
+
 function LearningForm({
   activity,
   saved,
   api,
   onSaved,
+  entryId,
 }: {
   activity: LearningActivity;
   saved?: Submission;
   api: string;
   onSaved: (message: string, draft: boolean) => Promise<void>;
+  entryId?: string;
 }) {
   const [payload, setPayload] = useState<LearningPayload>(
     saved?.payload ??
@@ -496,6 +535,7 @@ function LearningForm({
         activityId: activity.id,
         payload,
         draft,
+        ...(entryId ? { entryId } : {}),
       });
       setDirty(false);
       await onSaved(

@@ -202,6 +202,10 @@ export default function ActivityBuilder({
 
       {storedType(kind) === "form" ? (
         <>
+          {kind !== "idp" ? <label className={s.choice}>
+            <input type="checkbox" checked={config.repeatable === true} onChange={(e) => set({ repeatable: e.target.checked })} />
+            Repeatable log — keep each submitted entry separately
+          </label> : null}
           <label className={s.field}>
             Introduction (optional)
             <textarea value={config.intro ?? ""} rows={2} onChange={(e) => set({ intro: e.target.value })} />

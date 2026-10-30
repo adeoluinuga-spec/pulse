@@ -351,16 +351,16 @@ export default function LearningWorkspace({ id }: { id: string }) {
         ]
       : [
           ["Trainee", "Status", "Updated", "Answers"],
-          ...data.trainees.map((t) => {
-            const v = data.submissions.find(
+          ...data.trainees.flatMap((t) => {
+            const entries = data.submissions.filter(
               (v) => v.trainee_id === t.id && v.activity_id === activity?.id,
             );
-            return [
+            return (entries.length ? entries : [undefined]).map((v) => [
               t.display_name,
               v?.status ?? "Not submitted",
               v?.updated_at ?? "",
               v?.payload ?? "",
-            ];
+            ]);
           }),
         ];
   function download() {
@@ -843,9 +843,10 @@ export default function LearningWorkspace({ id }: { id: string }) {
           ) : activity ? (
             <div className={s.list}>
               {data.trainees.map((t) => {
-                const response = data.submissions.find(
+                const responses = data.submissions.filter(
                   (v) => v.activity_id === activity.id && v.trainee_id === t.id,
-                );
+                ).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+                const response = responses[0];
                 return (
                   <article className={s.item} key={t.id}>
                     <div className={s.spread}>
@@ -856,17 +857,17 @@ export default function LearningWorkspace({ id }: { id: string }) {
                         {response?.status ?? "Not submitted"}
                       </span>
                     </div>
-                    {response ? (
-                      <>
+                    {responses.map((entry, index) => (
+                      <div key={index} className={s.group}>
                         <p className={s.muted}>
-                          {new Date(response.updated_at).toLocaleString()}
+                          {entry.status} · {new Date(entry.updated_at).toLocaleString()}
                         </p>
                         <Answers
                           activity={activity}
-                          payload={response.payload}
+                          payload={entry.payload}
                         />
-                      </>
-                    ) : null}
+                      </div>
+                    ))}
                   </article>
                 );
               })}
