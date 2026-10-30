@@ -399,3 +399,25 @@ a.item:hover {
   color: var(--muted);
   cursor: default;
 }
+
+.sessionGroup {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  background: var(--card);
+}
+.sessionGroup > summary {
+  cursor: pointer;
+  padding: 4px 0 12px;
+  font-size: 18px;
+}
+.sessionGroup > summary span {
+  display: block;
+  font-size: 13px;
+  margin-top: 6px;
+}
+.sessionGroup > summary:focus-visible {
+  outline: 2px solid var(--pulse);
+  outline-offset: 4px;
+}

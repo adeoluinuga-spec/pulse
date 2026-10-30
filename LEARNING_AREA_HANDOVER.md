@@ -1,5 +1,16 @@
 # Pulse Learning Area
 
+## Session grouping — 30 October 2026
+
+- Activities now have an optional `session_number` (1–50), outside their question configuration. Migration `20261030_000002_learning_sessions.sql` / copy-ready `schema/17_learning_sessions.sql` was applied by the user and verified through live reads/writes. Do not apply both copies.
+- HR sees collapsible session groups in Activities, a Session dropdown in the editor, and a direct session selector on each card. The direct selector supports regrouping already-answered activities without bypassing the question-editing lock. Moving activities up/down operates inside their session. Responses dropdown labels include the session.
+- Trainees see collapsible session groups and progress per session, counting only released activities. Individual activity pages identify their session. Existing programmes without any session assignments retain the simple list; mixed programmes show unassigned work separately. Existing IDs, personal links, responses and release controls do not change.
+- SD/Bracken's existing Manager Development Programme has **11 Session 1 activities** and **8 Session 2 activities**. The IDP remains in Session 1 and released. The five rules and Clash log remain released in Session 2; the other six remain hidden. The separate Bracken test programme and other tenants were not modified.
+- Repeatable setup: `node scripts/learning/group-bracken-sessions.mjs` previews, `--apply` writes. It verifies the exact tenant/programme, matches the approved 19 titles, rejects conflicting assignments, and verifies that only session metadata changed. Other programmes can use the same UI without a setup script.
+- Application authorisation still resolves the authenticated HR user's tenant before updating a cohort-scoped activity. RLS remains in place. New tests cover input bounds, numeric grouping/order, legacy unassigned activities, and changing session metadata on answered work while preserving answers and the question lock. Browser rehearsal covers collapse/expand, mobile layout, editor selection and regrouping an answered activity.
+- Verification: 459 unit/database tests passed, one existing skip. The learning browser rehearsal passed at 360px and desktop sizes, using mocked APIs and sending no emails. All changed code passed targeted lint; `npx tsc --noEmit` and `npx next build` both passed. Live categorisation verified the 19 activities and confirmed their questions, release states and positions were unchanged.
+
+
 ## Session 2 delivery — 30 October 2026
 
 This section supersedes older descriptions of one submission per activity where **Repeatable log** is enabled. Normal reflections, IDPs and role-play retain their existing behaviour.

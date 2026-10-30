@@ -26,6 +26,8 @@ import {
 } from "@/lib/learning";
 import ActivityBuilder from "./ActivityBuilder";
 import LearningInvitations from "./LearningInvitations";
+import LearningSessions, { SessionSelect } from './LearningSessions';
+import { groupLearningSessions } from '@/lib/learningSessions';
 import s from "./learning.module.css";
 
 type Trainee = {
@@ -301,9 +303,7 @@ export default function LearningWorkspace({ id }: { id: string }) {
         </button>
       </main>
     );
-  const activities = [...data.activities].sort(
-    (a, b) => a.position - b.position || a.id.localeCompare(b.id),
-  );
+  const activities = groupLearningSessions(data.activities).flatMap(group => group.activities);
   const activity = activities.find((a) => a.id === selected) ?? activities[0];
   // A written role-play is done when its turns are used up. A live one is acted
   // out away from Pulse, so the only thing Pulse can see is whether the person
@@ -376,7 +376,7 @@ export default function LearningWorkspace({ id }: { id: string }) {
   }
   async function move(index: number, direction: number) {
     const other = activities[index + direction];
-    if (!other) return;
+    if (!other || (other.session_number ?? null) !== (activities[index].session_number ?? null)) return;
     setBusy(true);
     try {
       const ordered = [...activities];
@@ -616,8 +616,9 @@ export default function LearningWorkspace({ id }: { id: string }) {
               }}
             />
           ) : null}
-          <div className={s.list}>
-            {activities.map((a, i) => (
+          <LearningSessions activities={activities} renderActivity={(a) => {
+            const i = activities.findIndex(entry => entry.id === a.id);
+            return (
               <article className={s.item} key={a.id}>
                 <div className={s.spread}>
                   <div>
@@ -632,6 +633,8 @@ export default function LearningWorkspace({ id }: { id: string }) {
                     </p>
                   </div>
                   <div className={s.row}>
+                    <SessionSelect value={a.session_number} disabled={busy} label={`Session for ${a.title}`}
+                      onChange={(sessionNumber) => void act({ action: 'session', activityId: a.id, sessionNumber }, 'Session updated.')} />
                     <label className={s.choice}>
                       <input
                         type="checkbox"
@@ -664,7 +667,7 @@ export default function LearningWorkspace({ id }: { id: string }) {
                       className={s.icon}
                       title="Move up"
                       aria-label={`Move ${a.title} up`}
-                      disabled={busy || !i}
+                      disabled={busy || !i || (activities[i - 1]?.session_number ?? null) !== (a.session_number ?? null)}
                       onClick={() => void move(i, -1)}
                     >
                       <ArrowUp size={16} />
@@ -673,7 +676,7 @@ export default function LearningWorkspace({ id }: { id: string }) {
                       className={s.icon}
                       title="Move down"
                       aria-label={`Move ${a.title} down`}
-                      disabled={busy || i === activities.length - 1}
+                      disabled={busy || i === activities.length - 1 || (activities[i + 1]?.session_number ?? null) !== (a.session_number ?? null)}
                       onClick={() => void move(i, 1)}
                     >
                       <ArrowDown size={16} />
@@ -714,8 +717,8 @@ export default function LearningWorkspace({ id }: { id: string }) {
                   </button>
                 ) : null}
               </article>
-            ))}
-          </div>
+            );
+          }} />
           {roomActivity ? (
             <RoomEditor
               key={roomActivity.id}
@@ -739,7 +742,7 @@ export default function LearningWorkspace({ id }: { id: string }) {
               >
                 {activities.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.title}
+                    {a.session_number ? `Session ${a.session_number} — ` : ''}{a.title}
                   </option>
                 ))}
               </select>

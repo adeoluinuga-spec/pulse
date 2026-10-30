@@ -32,7 +32,7 @@ export async function GET(request: Request, { params }: Context) {
     const [activities, submissions, members, files] = await Promise.all([
       admin
         .from("learning_activities")
-        .select("id,cohort_id,title,summary,type,config,position,released")
+        .select("id,cohort_id,title,summary,type,config,position,released,session_number")
         .eq("cohort_id", cohort.id)
         .eq("released", true)
         .order("position")

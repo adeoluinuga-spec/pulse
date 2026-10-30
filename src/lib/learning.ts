@@ -55,6 +55,7 @@ export type LearningConfig = {
   rounds?: number;
 };
 export type LearningActivity = {
+  session_number?: number | null;
   id: string;
   cohort_id: string;
   title: string;

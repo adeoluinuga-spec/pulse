@@ -12,6 +12,7 @@ import {
 } from "@/lib/learning";
 import { learningStarter } from "@/lib/learningTemplate";
 import s from "./learning.module.css";
+import { SessionSelect } from './LearningSessions';
 
 /**
  * Building an activity with ordinary form controls.
@@ -75,6 +76,7 @@ export default function ActivityBuilder({
   const [kind, setKind] = useState<Kind>(kindOf(activity));
   const [title, setTitle] = useState(activity?.title ?? "");
   const [summary, setSummary] = useState(activity?.summary ?? "");
+  const [session, setSession] = useState<number | null>(activity?.session_number ?? null);
   const [config, setConfig] = useState<LearningConfig>(activity?.config ?? { body: "" });
   const [preview, setPreview] = useState(false);
   const [error, setError] = useState("");
@@ -99,7 +101,7 @@ export default function ActivityBuilder({
       return;
     }
     setError("");
-    void save({ activityId: activity?.id, title, summary, type: storedType(kind), config });
+    void save({ activityId: activity?.id, title, summary, sessionNumber: session, type: storedType(kind), config });
   };
 
   const isRoleplay = kind === "roleplay_live" || kind === "roleplay_written";
@@ -108,6 +110,7 @@ export default function ActivityBuilder({
   return (
     <form className={s.group} onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <h2>{activity ? "Edit activity" : "New activity"}</h2>
+      <SessionSelect value={session} onChange={setSession} disabled={busy} />
 
       <label className={s.field}>
         What kind of activity is this?

@@ -21,6 +21,7 @@ import {
 } from "@/lib/learning";
 import { describeFileType, fileSizeLabel } from "@/lib/learningFiles";
 import LearningMarkdown from "./LearningMarkdown";
+import LearningSessions from './LearningSessions';
 import s from "./learning.module.css";
 
 type Submission = {
@@ -169,6 +170,7 @@ export default function LearningTrainee({
                 : `Hello, ${data.trainee.name}`}
             </h1>
             <p className={s.muted}>{data.cohort.name}</p>
+            {activity?.session_number ? <p className={s.badge}>Session {activity.session_number}</p> : null}
             {activityId ? (
               <Link className={s.button} href={`/t/${token}`}>
                 <ArrowLeft size={16} />
@@ -199,7 +201,11 @@ export default function LearningTrainee({
           {!activityId ? (
             <div className={s.list}>
               {data.activities.length ? (
-                data.activities.map((a) => {
+                <LearningSessions activities={data.activities}
+                  isComplete={(a) => a.type === 'roleplay' && !isLiveRoleplay(a)
+                    ? data.rooms.some(r => r.activity_id === a.id && r.status === 'completed')
+                    : data.submissions.some(v => v.activity_id === a.id && v.status === 'submitted')}
+                  renderActivity={(a) => {
                   const sub = data.submissions.find(
                     (v) => v.activity_id === a.id,
                   );
@@ -245,7 +251,7 @@ export default function LearningTrainee({
                       ) : null}
                     </Link>
                   );
-                })
+                }} />
               ) : (
                 <p className={s.empty}>
                   Your facilitator will release activities here shortly.

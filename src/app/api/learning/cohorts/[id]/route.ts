@@ -11,6 +11,7 @@ import {
   revealLearningLink,
 } from "@/lib/learningServer";
 import { parseLearningTrainees, validateLearningConfig } from "@/lib/learning";
+import { validateLearningSession } from '@/lib/learningSessions';
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, { params }: Context) {
@@ -122,10 +123,20 @@ export async function POST(request: Request, { params }: Context) {
         .eq("id", id)
         .eq("org_id", orgId);
       if (error) throw error;
+    } else if (b.action === "session") {
+      let session;
+      try { session = validateLearningSession(b.sessionNumber); }
+      catch (e) { throw new LearningError((e as Error).message); }
+      const { data, error } = await admin.from('learning_activities')
+        .update({ session_number: session }).eq('id', String(b.activityId)).eq('cohort_id', id).select('id');
+      if (error) throw error;
+      if (!data.length) throw new LearningError('Activity not found.', 404);
     } else if (b.action === "activity") {
       let config;
+      let session;
       try {
         config = validateLearningConfig(String(b.type), b.config);
+        session = validateLearningSession(b.sessionNumber);
       } catch (e) {
         throw new LearningError((e as Error).message);
       }
@@ -134,6 +145,7 @@ export async function POST(request: Request, { params }: Context) {
         title: learningText(b.title, "Activity title"),
         summary: typeof b.summary === "string" ? b.summary.slice(0, 300) : null,
         config,
+        ...(b.sessionNumber !== undefined ? { session_number: session } : {}),
       };
       if (b.activityId) {
         const [s, r] = await Promise.all([

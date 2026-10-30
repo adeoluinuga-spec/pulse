@@ -25,6 +25,7 @@ const trainees = tokens.map((token, i) => ({
 const activities = [
   {
     id: "reading",
+    session_number: 1,
     cohort_id: "c1",
     title: "The difficult conversation",
     type: "content",
@@ -37,6 +38,7 @@ const activities = [
   },
   {
     id: "commit",
+    session_number: 1,
     cohort_id: "c1",
     title: "My commitment",
     type: "form",
@@ -56,6 +58,7 @@ const activities = [
   },
   {
     id: "role",
+    session_number: 2,
     cohort_id: "c1",
     title: "Role-play practice",
     type: "roleplay",
@@ -71,6 +74,7 @@ const activities = [
   },
   {
     id: "idp",
+    session_number: 1,
     cohort_id: "c1",
     title: "Individual Development Plan",
     type: "form",
@@ -198,11 +202,13 @@ async function context(width = 360) {
         if (b.action === "activity")
           activities.push({
             ...b,
+            session_number: b.sessionNumber ?? null,
             id: crypto.randomUUID(),
             cohort_id: "c1",
             position: 20,
             released: false,
           });
+        if (b.action === 'session') activities.find(a => a.id === b.activityId).session_number = b.sessionNumber;
         return respond({ saved: true });
       }
       return respond({
@@ -241,6 +247,12 @@ try {
   other.on("pageerror", (e) => errors.push(e.message));
   await page.goto(`${root}/t/${tokens[0]}`, { timeout: 120000 });
   await page.getByRole("heading", { name: "Hello, Ada Okafor" }).waitFor();
+  await page.getByRole('progressbar', { name: 'Session 1 progress' }).waitFor();
+  assert.equal(await page.getByRole('progressbar', { name: 'Session 1 progress' }).getAttribute('max'), '3');
+  const sessionOne = page.locator('details').filter({ has: page.locator('summary strong', { hasText: 'Session 1' }) });
+  await sessionOne.locator('summary').click();
+  assert.equal(await page.getByRole('link', { name: /The difficult conversation/ }).isVisible(), false);
+  await sessionOne.locator('summary').click();
   await fit(page);
   await page.screenshot({
     path: join(artifacts, "trainee-mobile.png"),
@@ -337,10 +349,18 @@ try {
   await admin.screenshot({ path: join(artifacts, "invitations-mobile.png"), fullPage: true });
   await admin.setViewportSize({ width: 1440, height: 860 });
   await admin.getByRole("button", { name: "Activities", exact: true }).click();
+  await admin.getByLabel('Session for My commitment', { exact: true }).selectOption('2');
+  await admin.getByText('Session updated.', { exact: true }).waitFor();
+  assert.equal(activities.find(a => a.id === 'commit').session_number, 2);
+  assert.equal(submissions.find(a => a.activity_id === 'commit').payload.commitment, 'Listen before responding.');
+  await admin.setViewportSize({ width: 360, height: 860 });
+  await fit(admin);
+  await admin.setViewportSize({ width: 1440, height: 860 });
   await admin
     .getByRole("button", { name: "Add activity", exact: true })
     .click();
   await admin.getByLabel("Title", { exact: true }).fill("Session notes");
+  await admin.getByLabel('Session', { exact: true }).selectOption('3');
   // Built with ordinary controls now, not by typing JSON.
   await admin
     .getByLabel("What kind of activity is this?")

@@ -1,5 +1,14 @@
 # Running a learning programme in Pulse
 
+## Organising activities by session
+
+In **Activities**, choose a **Session** when creating or editing an activity. To move an activity that already has answers, use its card's **Session for …** dropdown; this changes its grouping without editing questions or answers.
+
+HR and trainees can expand or collapse Session 1, Session 2 and subsequent groups. Trainees see progress within each session, based only on released activities. A session assignment does not release an activity: keep using **Released** for that. Up/down arrows reorder work inside its session.
+
+Bracken's earlier activities, including the existing IDP, are in **Session 1**. The eight new activities are in **Session 2**. Trainees continue using their existing links, and the Session 1 IDP remains accessible. Unassigned activities stay available; programmes without session assignments keep their existing list layout.
+
+
 ## Session 2 and repeatable logs (30 October 2026)
 
 Bracken's eight Session 2 activities are in the existing Manager Development Programme under Stuart Davidson. Existing links and the Session 1 IDP continue to work. Release The five rules and Clash log before training; reveal the other six activities during the session using Released.
